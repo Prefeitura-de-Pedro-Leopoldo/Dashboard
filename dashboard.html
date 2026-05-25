@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Painel · Escola de Governo Pedro Leopoldo</title>
+    <meta name="theme-color" content="#3063ad" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)" />
+
+    <link rel="stylesheet" href="assets/css/admin.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("egovpl-theme");
+          var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+    <!-- Libs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  </head>
+  <body>
+    <div class="app-shell" id="appShell">
+      <!-- ============================================================
+           SIDEBAR
+           ============================================================ -->
+      <aside class="sidebar" aria-label="Menu lateral">
+        <!-- Header: hamburger + logo -->
+        <div class="sidebar__header">
+          <button class="sidebar__toggle" id="sidebarToggle" aria-label="Alternar menu" title="Alternar menu">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="sidebar__brand">
+            <div class="sidebar__logo">E</div>
+            <div class="sidebar__brand-text">
+              <strong>EGov-PL</strong>
+              <span>Painel Admin</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navegação por grupos -->
+        <nav class="sidebar__nav" role="navigation">
+          <div class="sidebar__group-label">Análise</div>
+          <button class="nav-link is-active" data-nav="dashboard" title="Dashboard">
+            <i class="fas fa-gauge-high"></i>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-link" data-nav="eventos" title="Análise por Evento">
+            <i class="fas fa-calendar-day"></i>
+            <span>Análise por Evento</span>
+          </button>
+          <button class="nav-link" data-nav="comparar" title="Comparar Eventos">
+            <i class="fas fa-scale-balanced"></i>
+            <span>Comparar Eventos</span>
+          </button>
+
+          <div class="sidebar__group-label">Dados</div>
+          <button class="nav-link" data-nav="participantes" title="Participantes">
+            <i class="fas fa-users"></i>
+            <span>Participantes</span>
+          </button>
+          <button class="nav-link" data-nav="secretarias" title="Secretarias">
+            <i class="fas fa-building-columns"></i>
+            <span>Secretarias</span>
+          </button>
+
+          <div class="sidebar__group-label">Documentação</div>
+          <button class="nav-link" data-nav="relatorios" title="Relatórios">
+            <i class="fas fa-file-lines"></i>
+            <span>Relatórios</span>
+          </button>
+          <button class="nav-link" data-nav="autoreport" title="Auto-Relatório de Satisfação">
+            <i class="fas fa-file-pdf"></i>
+            <span>Auto-Relatório</span>
+          </button>
+
+          <div class="sidebar__group-label">Operações</div>
+          <button class="nav-link" data-nav="certificados" title="Emitir Certificados">
+            <i class="fas fa-award"></i>
+            <span>Emitir Certificados</span>
+          </button>
+          <button class="nav-link" data-nav="qrcode" title="Gerador de QR Code">
+            <i class="fas fa-qrcode"></i>
+            <span>QR Code</span>
+          </button>
+
+        </nav>
+
+        <!-- Footer com usuário -->
+        <div class="sidebar__footer">
+          <div class="sidebar__avatar" id="avatarLetter">A</div>
+          <div class="sidebar__user">
+            <strong id="userName">Administrador</strong>
+            <span id="userEmail">admin</span>
+          </div>
+          <button class="sidebar__logout" id="logoutBtn" title="Sair">
+            <i class="fas fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ============================================================
+           CONTENT
+           ============================================================ -->
+      <div>
+        <header class="topbar">
+          <div class="topbar__title-wrap">
+            <h1 class="topbar__title" id="topbarTitle">Dashboard</h1>
+            <div class="topbar__sub" id="topbarSub">Visão consolidada e análise de cada evento.</div>
+          </div>
+          <div class="topbar__right">
+            <button class="topbar__btn icon-only" id="themeToggle" title="Alternar tema">
+              <i class="fas fa-sun"></i>
+            </button>
+            <button class="topbar__btn" id="refreshBtn" title="Recarregar dados">
+              <i class="fas fa-arrows-rotate"></i>
+              <span>Atualizar</span>
+            </button>
+          </div>
+        </header>
+
+        <main class="main">
+          <div class="main-inner" id="mainContent">
+            <!-- ============== DASHBOARD ============== -->
+            <section class="view is-active" id="view-dashboard">
+              <div id="dashTabsHost"></div>
+
+              <!-- Aba 1: Visão geral -->
+              <div class="view-tabs__panel" data-tab-panel="overview">
+                <div class="kpi-grid" id="kpisGlobal"></div>
+                <div class="alert-strip" id="alertStrip" hidden></div>
+
+                <div class="section-block section-block--tight" id="highlightsBlock" hidden>
+                  <div class="section-header section-header--compact">
+                    <div class="section-header__text">
+                      <h2>Destaques</h2>
+                    </div>
+                  </div>
+                  <div class="insights-grid insights-grid--compact" id="highlightsGrid"></div>
+                </div>
+
+                <div class="section-block">
+                  <div class="section-header section-header--compact">
+                    <div class="section-header__text">
+                      <h2>Eventos</h2>
+                      <p>Clique em um card para abrir a análise detalhada.</p>
+                    </div>
+                  </div>
+                  <div class="event-grid" id="eventGrid"></div>
+                </div>
+              </div>
+
+              <!-- Aba 2: Gráficos consolidados -->
+              <div class="view-tabs__panel" data-tab-panel="charts" hidden>
+                <div class="grid-2">
+                  <div class="card">
+                    <div class="card__header">
+                      <div><h3>Inscritos vs Presentes</h3><p>Comparativo direto por evento.</p></div>
+                    </div>
+                    <div class="chart-wrap lg" id="wrap-globalBar"><canvas id="chartGlobalBar"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card__header">
+                      <div><h3>Taxa de presença</h3><p>Verde &ge; 80% &middot; Âmbar 60-79% &middot; Vermelho &lt; 60%.</p></div>
+                    </div>
+                    <div class="chart-wrap lg" id="wrap-globalTaxa"><canvas id="chartGlobalTaxa"></canvas></div>
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div class="card">
+                    <div class="card__header">
+                      <div><h3>Ranking de secretarias</h3><p>Soma de inscrições de todos os eventos.</p></div>
+                    </div>
+                    <div class="chart-wrap lg" id="wrap-globalSec"><canvas id="chartGlobalSec"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card__header">
+                      <div><h3>Presença consolidada</h3><p>Distribuição global de comparecimento.</p></div>
+                    </div>
+                    <div class="chart-wrap lg" id="wrap-globalDonut"><canvas id="chartGlobalDonut"></canvas></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- ============== ANÁLISE POR EVENTO ============== -->
+            <section class="view" id="view-eventos"></section>
+
+            <!-- ============== COMPARAR ============== -->
+            <section class="view" id="view-comparar"></section>
+
+            <!-- ============== PARTICIPANTES ============== -->
+            <section class="view" id="view-participantes"></section>
+
+            <!-- ============== SECRETARIAS ============== -->
+            <section class="view" id="view-secretarias"></section>
+
+            <!-- ============== RELATÓRIOS ============== -->
+            <section class="view" id="view-relatorios"></section>
+
+            <!-- ============== CERTIFICADOS ============== -->
+            <section class="view" id="view-certificados"></section>
+
+            <!-- ============== QR CODE ============== -->
+            <section class="view" id="view-qrcode"></section>
+
+            <!-- ============== AUTO-RELATÓRIO ============== -->
+            <section class="view" id="view-autoreport"></section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="assets/js/app.js"></script>
+  </body>
+</html>

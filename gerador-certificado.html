@@ -1,0 +1,1189 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Gerador de Certificados · EGov-PL (Admin)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --border: #e2e6ee;
+        --text: #1a2238;
+        --muted: #5d6b88;
+        --brand: #3063ad;
+        --brand-dark: #1a3d70;
+        --accent: #4dad33;
+        --danger: #c33;
+        --radius: 10px;
+        --shadow: 0 6px 20px -8px rgba(20, 30, 60, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          "Manrope",
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      /* hidden precisa ganhar de qualquer display: grid/flex setado nas regras abaixo */
+      [hidden] {
+        display: none !important;
+      }
+
+      /* ---------------- Gate ---------------- */
+      .gate {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #1a3d70, #3063ad);
+        display: grid;
+        place-items: center;
+        z-index: 1000;
+      }
+      .gate__card {
+        background: #fff;
+        padding: 36px 32px;
+        border-radius: 14px;
+        box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.4);
+        width: min(360px, 90vw);
+        text-align: center;
+      }
+      .gate__card h1 {
+        margin: 0 0 6px;
+        font-size: 1.3rem;
+        color: var(--brand-dark);
+      }
+      .gate__card p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .gate__card input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: inherit;
+        margin-bottom: 12px;
+      }
+      .gate__card input:focus {
+        outline: none;
+        border-color: var(--brand);
+      }
+      .gate__card button {
+        width: 100%;
+        padding: 12px;
+        background: var(--brand);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 150ms;
+      }
+      .gate__card button:hover {
+        background: var(--brand-dark);
+      }
+      .gate__err {
+        color: var(--danger);
+        font-size: 0.85rem;
+        margin-top: 8px;
+        min-height: 1em;
+      }
+
+      /* ---------------- Layout ---------------- */
+      header {
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--brand-dark);
+      }
+      header h1 span {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .logout {
+        background: transparent;
+        border: 1px solid var(--border);
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .logout:hover {
+        color: var(--text);
+        border-color: var(--muted);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 24px;
+        padding: 24px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* ---------------- Form ---------------- */
+      .form {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        align-self: start;
+        position: sticky;
+        top: 24px;
+      }
+      .form h2 {
+        margin: 0 0 16px;
+        font-size: 1rem;
+        color: var(--brand-dark);
+      }
+      .field {
+        margin-bottom: 14px;
+      }
+      .field label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        padding: 9px 11px;
+        border: 1.5px solid var(--border);
+        border-radius: 7px;
+        font-size: 0.92rem;
+        font-family: inherit;
+        background: #fff;
+        color: var(--text);
+      }
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        outline: none;
+        border-color: var(--brand);
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .field-row .field {
+        margin-bottom: 0;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+      }
+      .btn {
+        padding: 11px;
+        border: 0;
+        border-radius: 7px;
+        font-weight: 600;
+        font-family: inherit;
+        font-size: 0.92rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition:
+          transform 120ms,
+          background 120ms;
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn--primary {
+        background: var(--brand);
+        color: #fff;
+      }
+      .btn--primary:hover {
+        background: var(--brand-dark);
+      }
+      .btn--accent {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn--accent:hover {
+        background: #3c8e26;
+      }
+
+      /* ---------------- Preview ---------------- */
+      .preview {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        overflow: auto;
+      }
+      .preview h2 {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        color: var(--brand-dark);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .preview h2 small {
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 0.82rem;
+      }
+      .canvas-wrap {
+        background: #e8ecf2;
+        border-radius: 8px;
+        padding: 14px;
+        display: grid;
+        place-items: center;
+      }
+      canvas {
+        max-width: 100%;
+        height: auto;
+        box-shadow: 0 12px 36px -16px rgba(0, 0, 0, 0.35);
+        border-radius: 4px;
+        background: #fff;
+      }
+
+      /* ---------------- Batch CSV ---------------- */
+      .batch {
+        background: linear-gradient(180deg, #fafbfd 0%, #f5f7fb 100%);
+        margin: 18px -20px -20px;
+        padding: 18px 20px 20px;
+        border-radius: 0 0 var(--radius) var(--radius);
+        border-top: 1px solid var(--border);
+      }
+      .batch__header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .batch__header-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 1rem;
+        box-shadow: 0 4px 12px -3px rgba(48, 99, 173, 0.45);
+      }
+      .batch__header h3 {
+        margin: 0;
+        font-size: 0.98rem;
+        color: var(--brand-dark);
+        font-weight: 700;
+      }
+      .batch__header p {
+        margin: 1px 0 0;
+        font-size: 0.74rem;
+        color: var(--muted);
+      }
+
+      /* Step indicator */
+      .batch__step {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .batch__step-num {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--brand);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        margin-top: 1px;
+      }
+      .batch__step.is-done .batch__step-num {
+        background: var(--accent);
+      }
+      .batch__step-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .batch__step-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+
+      /* Chips de colunas */
+      .batch__cols {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin: 4px 0 6px;
+      }
+      .batch__col {
+        font-size: 0.7rem;
+        background: #fff;
+        border: 1px solid var(--border);
+        color: var(--brand-dark);
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-weight: 500;
+      }
+
+      /* Link "Baixar modelo" */
+      .batch__sample {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.78rem;
+        color: var(--brand);
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: 600;
+      }
+      .batch__sample:hover {
+        text-decoration: underline;
+      }
+
+      /* Drop zone */
+      .batch__drop {
+        position: relative;
+        border: 2px dashed #c8d0dd;
+        background: #fff;
+        border-radius: 10px;
+        padding: 22px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition:
+          border-color 150ms,
+          background 150ms,
+          transform 150ms;
+        display: block;
+      }
+      .batch__drop:hover {
+        border-color: var(--brand);
+        background: rgba(48, 99, 173, 0.03);
+      }
+      .batch__drop.is-drag {
+        border-color: var(--brand);
+        background: rgba(48, 99, 173, 0.06);
+        transform: scale(1.01);
+      }
+      .batch__drop.has-file {
+        border-style: solid;
+        border-color: var(--accent);
+        background: rgba(77, 173, 51, 0.05);
+      }
+      .batch__drop input {
+        display: none;
+      }
+      .batch__drop-icon {
+        font-size: 1.7rem;
+        line-height: 1;
+        margin-bottom: 6px;
+        opacity: 0.55;
+        transition: opacity 150ms, transform 150ms;
+      }
+      .batch__drop:hover .batch__drop-icon,
+      .batch__drop.is-drag .batch__drop-icon {
+        opacity: 1;
+        transform: translateY(-2px);
+      }
+      .batch__drop.has-file .batch__drop-icon {
+        opacity: 1;
+        color: var(--accent);
+      }
+      .batch__drop-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .batch__drop-sub {
+        font-size: 0.74rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .batch__drop.has-file .batch__drop-title {
+        color: var(--accent);
+      }
+
+      /* CTA */
+      .batch__btn {
+        margin-top: 14px;
+        width: 100%;
+        padding: 13px;
+        border: 0;
+        border-radius: 8px;
+        font-weight: 700;
+        font-family: inherit;
+        font-size: 0.92rem;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 14px -4px rgba(48, 99, 173, 0.5);
+        transition: transform 120ms, box-shadow 120ms, opacity 120ms;
+      }
+      .batch__btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .batch__btn:not(:disabled):hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px -6px rgba(48, 99, 173, 0.6);
+      }
+      .batch__btn:not(:disabled):active {
+        transform: scale(0.985);
+      }
+      .batch__btn-count {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+      }
+
+      /* Progresso */
+      .batch__progress-wrap {
+        margin-top: 14px;
+        display: none;
+      }
+      .batch__progress-wrap.is-visible {
+        display: block;
+      }
+      .batch__progress-head {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .batch__progress-head strong {
+        color: var(--brand-dark);
+        font-weight: 700;
+      }
+      .batch__progress {
+        height: 8px;
+        background: #e6eaf2;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .batch__progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--brand), var(--accent));
+        transition: width 200ms ease-out;
+        border-radius: 999px;
+      }
+
+      /* Status */
+      .batch__status {
+        margin-top: 10px;
+        font-size: 0.82rem;
+        color: var(--muted);
+        min-height: 1.1em;
+      }
+      .batch__status.is-success {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .batch__status.is-error {
+        color: var(--danger);
+        font-weight: 600;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        .form {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===== Gate de senha ===== -->
+    <div class="gate" id="gate" hidden>
+      <div class="gate__card">
+        <h1>Acesso restrito</h1>
+        <p>Esta área é exclusiva da equipe EGov-PL.</p>
+        <input type="password" id="gate-pwd" placeholder="Senha" autocomplete="off" data-bwignore data-lpignore="true" data-1p-ignore data-form-type="other" />
+        <button type="button" id="gate-btn">Entrar</button>
+        <div class="gate__err" id="gate-err"></div>
+      </div>
+    </div>
+
+    <!-- ===== App ===== -->
+    <div id="app" hidden>
+      <header>
+        <h1>Gerador de Certificados <span>· EGov-PL Admin</span></h1>
+        <button class="logout" id="logout">Sair</button>
+      </header>
+
+      <main>
+        <form class="form" id="form" autocomplete="off">
+          <h2>Dados do certificado</h2>
+
+          <div class="field">
+            <label for="f-nome">Nome completo do participante</label>
+            <input type="text" id="f-nome" placeholder="Ex.: Maria da Silva Oliveira" required />
+          </div>
+
+          <div class="field">
+            <label for="f-curso">Título do curso</label>
+            <input type="text" id="f-curso" placeholder="Ex.: Fundamentos da Gestão Pública" required />
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="f-dia">Dia</label>
+              <input type="number" id="f-dia" min="1" max="31" placeholder="14" required />
+            </div>
+            <div class="field">
+              <label for="f-mes">Mês</label>
+              <select id="f-mes" required>
+                <option value="">Selecione</option>
+                <option value="janeiro">Janeiro</option>
+                <option value="fevereiro">Fevereiro</option>
+                <option value="março">Março</option>
+                <option value="abril">Abril</option>
+                <option value="maio">Maio</option>
+                <option value="junho">Junho</option>
+                <option value="julho">Julho</option>
+                <option value="agosto">Agosto</option>
+                <option value="setembro">Setembro</option>
+                <option value="outubro">Outubro</option>
+                <option value="novembro">Novembro</option>
+                <option value="dezembro">Dezembro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-ano">Ano</label>
+              <input type="number" id="f-ano" min="2024" max="2099" placeholder="2026" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="f-carga">Carga horária (em horas)</label>
+            <input type="number" id="f-carga" min="1" placeholder="8" required />
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn btn--primary" id="btn-pdf">⬇ Baixar PDF</button>
+            <button type="button" class="btn btn--accent" id="btn-png">⬇ Baixar PNG</button>
+          </div>
+
+          <!-- ===== Geração em massa via CSV ===== -->
+          <div class="batch">
+            <div class="batch__header">
+              <div class="batch__header-icon" aria-hidden="true">📋</div>
+              <div>
+                <h3>Geração em massa</h3>
+                <p>Importe uma planilha e gere todos os certificados de uma vez</p>
+              </div>
+            </div>
+
+            <!-- Passo 1: planilha modelo -->
+            <div class="batch__step">
+              <div class="batch__step-num">1</div>
+              <div class="batch__step-body">
+                <div class="batch__step-title">Baixe a planilha modelo</div>
+                <div class="batch__cols">
+                  <span class="batch__col">nome</span>
+                  <span class="batch__col">curso</span>
+                  <span class="batch__col">dia</span>
+                  <span class="batch__col">mes</span>
+                  <span class="batch__col">ano</span>
+                  <span class="batch__col">carga_horaria</span>
+                </div>
+                <button type="button" class="batch__sample" id="btn-sample">
+                  ⬇ Baixar planilha modelo (CSV)
+                </button>
+              </div>
+            </div>
+
+            <!-- Passo 2: upload -->
+            <div class="batch__step" id="step-upload">
+              <div class="batch__step-num">2</div>
+              <div class="batch__step-body">
+                <div class="batch__step-title">Envie sua planilha preenchida</div>
+                <label class="batch__drop" id="drop">
+                  <input type="file" id="f-csv" accept=".csv,text/csv" />
+                  <div class="batch__drop-icon" id="drop-icon">📄</div>
+                  <div class="batch__drop-title" id="drop-title">Clique ou arraste o CSV aqui</div>
+                  <div class="batch__drop-sub" id="drop-sub">Aceita arquivos .csv até 5 MB</div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Passo 3: gerar -->
+            <div class="batch__step" id="step-gen">
+              <div class="batch__step-num">3</div>
+              <div class="batch__step-body">
+                <div class="batch__step-title">Gere os certificados</div>
+                <button type="button" class="batch__btn" id="btn-batch" disabled>
+                  <span>⚡ Gerar PDFs em massa</span>
+                  <span class="batch__btn-count" id="btn-count" hidden></span>
+                </button>
+                <div class="batch__progress-wrap" id="bar-wrap">
+                  <div class="batch__progress-head">
+                    <span id="progress-label">Processando…</span>
+                    <strong id="progress-pct">0%</strong>
+                  </div>
+                  <div class="batch__progress">
+                    <div class="batch__progress-bar" id="bar-fill"></div>
+                  </div>
+                </div>
+                <div class="batch__status" id="batch-status"></div>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <section class="preview">
+          <h2>Pré-visualização <small id="preview-status">aguardando dados…</small></h2>
+          <div class="canvas-wrap">
+            <canvas id="canvas" width="1100" height="820"></canvas>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      /* ============================================================
+     Gerador de Certificados - EGov-PL
+     Tudo client-side: canvas + jsPDF + sessionStorage
+     ============================================================ */
+
+      // ---------- Gate de senha ----------
+      // Trocar este valor para alterar a senha. Client-side é dissuasor,
+      // não segurança real. Não publique este arquivo em URL pública.
+      const ADMIN_PWD = "egov-pl-2026"
+      const SESSION_KEY = "egov_admin_ok"
+
+      const gate = document.getElementById("gate")
+      const app = document.getElementById("app")
+
+      function unlock() {
+        gate.hidden = true
+        app.hidden = false
+      }
+      function lock() {
+        sessionStorage.removeItem(SESSION_KEY)
+        gate.hidden = false
+        app.hidden = true
+      }
+
+      if (sessionStorage.getItem(SESSION_KEY) === "1") {
+        unlock()
+      } else {
+        gate.hidden = false
+        setTimeout(() => document.getElementById("gate-pwd").focus(), 50)
+      }
+
+      function tryUnlock() {
+        const input = document.getElementById("gate-pwd")
+        const err = document.getElementById("gate-err")
+        const v = (input.value || "").trim()
+        if (v === ADMIN_PWD) {
+          sessionStorage.setItem(SESSION_KEY, "1")
+          err.textContent = ""
+          unlock()
+        } else {
+          err.textContent = v ? "Senha incorreta." : "Digite a senha."
+          input.value = ""
+          input.focus()
+        }
+      }
+
+      document.getElementById("gate-btn").addEventListener("click", tryUnlock)
+      document.getElementById("gate-pwd").addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault()
+          tryUnlock()
+        }
+      })
+      document.getElementById("logout").addEventListener("click", lock)
+
+      // ---------- Template ----------
+      const TEMPLATE_SRC = "modelo.png"
+      const SIGNATURES = [
+        { col: "left", nome: "GABRIEL ALBINO PONCIANO NEPOMUCENO", cargo: "Secretário de Gestão e Finanças" },
+        { col: "right", nome: "AURICÉLIO ALVES DE SOUZA SOBRINHO", cargo: "Secretário adjunto de Gestão e Administração" },
+        { col: "center", nome: "MAKERLY APARECIDA MAIA TOLEDO", cargo: "Diretora de Gestão de Pessoas" }
+      ]
+
+      const canvas = document.getElementById("canvas")
+      const ctx = canvas.getContext("2d")
+      const status = document.getElementById("preview-status")
+
+      const tplImg = new Image()
+      let tplReady = false
+      tplImg.onload = () => {
+        tplReady = true
+        canvas.width = tplImg.naturalWidth
+        canvas.height = tplImg.naturalHeight
+        render()
+      }
+      tplImg.onerror = () => {
+        status.textContent = "erro ao carregar template (../Certificado.png)"
+      }
+      tplImg.src = TEMPLATE_SRC
+
+      // ---------- Helpers ----------
+      /**
+       * Desenha um trecho com segmentos {text, bold} centralizados em (cx, y).
+       * Mede a largura total primeiro, depois desenha cada segmento.
+       */
+      function drawRichLine(segments, cx, y, baseSize) {
+        const fontFamily = "'Calibri', 'Carlito', 'Segoe UI', Arial, sans-serif"
+        // mede largura
+        let total = 0
+        for (const s of segments) {
+          ctx.font = `${s.bold ? "700" : "400"} ${baseSize}px ${fontFamily}`
+          total += ctx.measureText(s.text).width
+        }
+        let x = cx - total / 2
+        ctx.textBaseline = "middle"
+        ctx.fillStyle = "#0e2148"
+        for (const s of segments) {
+          ctx.font = `${s.bold ? "700" : "400"} ${baseSize}px ${fontFamily}`
+          ctx.textAlign = "left"
+          ctx.fillText(s.text, x, y)
+          x += ctx.measureText(s.text).width
+        }
+      }
+
+      function drawSignatures() {
+        const w = canvas.width
+        const h = canvas.height
+        const sansFamily = "'Manrope', Arial, sans-serif"
+
+        // Helper para um bloco (nome em maiúsculas + linha + cargo)
+        function block(cx, y, nome, cargo) {
+          ctx.textAlign = "center"
+          ctx.textBaseline = "alphabetic"
+          ctx.fillStyle = "#0e2148"
+          ctx.font = `700 ${w * 0.018}px ${sansFamily}`
+          ctx.fillText(nome, cx, y)
+          ctx.font = `400 ${w * 0.014}px ${sansFamily}`
+          ctx.fillStyle = "#3c4866"
+          ctx.fillText(cargo, cx, y + w * 0.022)
+        }
+
+        block(w * 0.3, h * 0.72, SIGNATURES[0].nome, SIGNATURES[0].cargo)
+        block(w * 0.72, h * 0.72, SIGNATURES[1].nome, SIGNATURES[1].cargo)
+        block(w * 0.5, h * 0.84, SIGNATURES[2].nome, SIGNATURES[2].cargo)
+      }
+
+      function getFormData() {
+        return {
+          nome: document.getElementById("f-nome").value.trim() || "NOME COMPLETO DO PARTICIPANTE",
+          curso: document.getElementById("f-curso").value.trim() || "TÍTULO DO CURSO",
+          dia: document.getElementById("f-dia").value || "XX",
+          mes: document.getElementById("f-mes").value || "XXXX",
+          ano: document.getElementById("f-ano").value || "XXXX",
+          carga: document.getElementById("f-carga").value || "XX"
+        }
+      }
+
+      // ====================================================================
+      // POSIÇÕES dos campos sobre o modelo.png (fração da largura/altura).
+      // Ajustar AQUI se a calibração estiver fora. Cada campo é desenhado
+      // CENTRALIZADO no ponto (x, y).
+      // ====================================================================
+      // ====================================================================
+      // POSIÇÕES dos campos sobre o modelo.png (fração da largura/altura).
+      // Texto fixo do modelo (linhas 2-4 do bloco central):
+      //   L1: "Certificamos que  [NOME]  , participou"
+      //   L2: "da  [CURSO]  , realizada pela Escola"
+      //   L3: "de Governo, no dia [DIA] de [MES] de [ANO], com carga horária de [CARGA] horas."
+      // Cada campo é desenhado CENTRALIZADO no ponto (x, y).
+      // ====================================================================
+      const POS = {
+        nome: { x: 0.54, y: 0.34 }, // gap entre "Certificamos que" e ", participou"
+        curso: { x: 0.42, y: 0.389 }, // gap entre "da" e ", realizada pela Escola"
+        dia: { x: 0.371, y: 0.431 }, // após "no dia"
+        mes: { x: 0.55, y: 0.431 }, // após primeiro "de"
+        ano: { x: 0.715, y: 0.431 }, // após segundo "de"
+        carga: { x: 0.26, y: 0.475 } // após "carga horária de", antes de "horas"
+      }
+
+      function render() {
+        if (!tplReady) return
+        const d = getFormData()
+        drawCertificate(canvas, d)
+        status.textContent = "pronto"
+      }
+
+      /**
+       * Desenha o template + apenas os 6 campos dinâmicos sobre os
+       * placeholders do modelo.png. Tudo em Calibri 22pt bold.
+       */
+      function drawCertificate(target, d) {
+        const w = target.width
+        const h = target.height
+        const c = target.getContext("2d")
+        const fontFamily = "'Calibri', 'Carlito', 'Segoe UI', Arial, sans-serif"
+        const baseSize = w * 0.026 // ~22pt em A4 landscape
+
+        c.clearRect(0, 0, w, h)
+        c.drawImage(tplImg, 0, 0, w, h)
+
+        c.font = `700 ${baseSize}px ${fontFamily}`
+        c.fillStyle = "#000000"
+        c.textBaseline = "middle"
+        c.textAlign = "center"
+
+        c.fillText(d.nome, w * POS.nome.x, h * POS.nome.y)
+        c.fillText(d.curso, w * POS.curso.x, h * POS.curso.y)
+        c.fillText(String(d.dia), w * POS.dia.x, h * POS.dia.y)
+        c.fillText(d.mes, w * POS.mes.x, h * POS.mes.y)
+        c.fillText(String(d.ano), w * POS.ano.x, h * POS.ano.y)
+        c.fillText(String(d.carga), w * POS.carga.x, h * POS.carga.y)
+      }
+
+      // ---------- Download ----------
+      function slug(s) {
+        return s
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+      }
+
+      function downloadPNG() {
+        render()
+        const d = getFormData()
+        canvas.toBlob(
+          blob => {
+            const a = document.createElement("a")
+            a.href = URL.createObjectURL(blob)
+            a.download = `certificado-${slug(d.nome)}-${slug(d.curso)}.png`
+            a.click()
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+          },
+          "image/png",
+          0.95
+        )
+      }
+
+      function downloadPDF() {
+        render()
+        const d = getFormData()
+        if (!window.jspdf) {
+          alert("Biblioteca jsPDF ainda carregando, tente em 1 segundo.")
+          return
+        }
+        const { jsPDF } = window.jspdf
+        // A4 paisagem: 297mm × 210mm
+        const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
+        const imgData = canvas.toDataURL("image/jpeg", 0.92)
+        pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
+        pdf.save(`certificado-${slug(d.nome)}-${slug(d.curso)}.pdf`)
+      }
+
+      // ---------- Bindings ----------
+      document.getElementById("form").addEventListener("input", render)
+      document.getElementById("btn-pdf").addEventListener("click", downloadPDF)
+      document.getElementById("btn-png").addEventListener("click", downloadPNG)
+
+      // ============================================================
+      // CSV Parser (minimo) - suporta virgula ou ponto-e-virgula,
+      // valores entre aspas, e \r\n. Primeira linha = cabeçalho.
+      // ============================================================
+      function parseCSV(text) {
+        text = text.replace(/^﻿/, "") // remove BOM
+        const sep = text.split("\n")[0].includes(";") ? ";" : ","
+        const rows = []
+        let row = [],
+          cur = "",
+          inQuotes = false
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i]
+          if (inQuotes) {
+            if (c === '"' && text[i + 1] === '"') {
+              cur += '"'
+              i++
+            } else if (c === '"') inQuotes = false
+            else cur += c
+          } else {
+            if (c === '"') inQuotes = true
+            else if (c === sep) {
+              row.push(cur)
+              cur = ""
+            } else if (c === "\n") {
+              row.push(cur)
+              rows.push(row)
+              row = []
+              cur = ""
+            } else if (c === "\r") {
+              /* skip */
+            } else cur += c
+          }
+        }
+        if (cur.length || row.length) {
+          row.push(cur)
+          rows.push(row)
+        }
+        if (!rows.length) return { headers: [], data: [] }
+        const headers = rows[0].map(h => h.trim().toLowerCase())
+        const data = rows
+          .slice(1)
+          .filter(r => r.some(v => v && v.trim()))
+          .map(r => {
+            const obj = {}
+            headers.forEach((h, i) => (obj[h] = (r[i] || "").trim()))
+            return obj
+          })
+        return { headers, data }
+      }
+
+      const REQUIRED_COLS = ["nome", "curso", "dia", "mes", "ano", "carga_horaria"]
+      let csvData = null
+
+      function validateCsv(headers, data) {
+        const missing = REQUIRED_COLS.filter(c => !headers.includes(c))
+        if (missing.length) return `Faltam colunas: ${missing.join(", ")}`
+        if (!data.length) return "CSV vazio (apenas cabeçalho)."
+        // valida mês no primeiro registro
+        const mesesValidos = [
+          "janeiro",
+          "fevereiro",
+          "março",
+          "marco",
+          "abril",
+          "maio",
+          "junho",
+          "julho",
+          "agosto",
+          "setembro",
+          "outubro",
+          "novembro",
+          "dezembro"
+        ]
+        for (let i = 0; i < data.length; i++) {
+          const m = (data[i].mes || "").toLowerCase()
+          if (!mesesValidos.includes(m)) return `Linha ${i + 2}: mês inválido "${data[i].mes}"`
+        }
+        return null
+      }
+
+      // ---------- Upload / drag-and-drop ----------
+      const dropEl     = document.getElementById("drop")
+      const dropIcon   = document.getElementById("drop-icon")
+      const dropTitle  = document.getElementById("drop-title")
+      const dropSub    = document.getElementById("drop-sub")
+      const csvInput   = document.getElementById("f-csv")
+      const btnBatch   = document.getElementById("btn-batch")
+      const btnCount   = document.getElementById("btn-count")
+      const statusEl   = document.getElementById("batch-status")
+      const barWrap    = document.getElementById("bar-wrap")
+      const barFill    = document.getElementById("bar-fill")
+      const progressPct = document.getElementById("progress-pct")
+      const progressLabel = document.getElementById("progress-label")
+      const stepUpload = document.getElementById("step-upload")
+      const stepGen    = document.getElementById("step-gen")
+
+      function setDropState(state, file) {
+        dropEl.classList.remove("has-file")
+        statusEl.classList.remove("is-success", "is-error")
+        stepUpload.classList.remove("is-done")
+        if (state === "valid") {
+          dropEl.classList.add("has-file")
+          stepUpload.classList.add("is-done")
+          dropIcon.textContent = "✓"
+          dropTitle.textContent = file.name
+          dropSub.textContent = `${csvData.length} linha(s) válida(s) · clique para trocar`
+        } else if (state === "error") {
+          dropIcon.textContent = "⚠"
+          dropTitle.textContent = file ? file.name : "Arquivo inválido"
+          dropSub.textContent = ""
+        } else {
+          dropIcon.textContent = "📄"
+          dropTitle.textContent = "Clique ou arraste o CSV aqui"
+          dropSub.textContent = "Aceita arquivos .csv até 5 MB"
+        }
+      }
+
+      function setCsv(file) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const parsed = parseCSV(reader.result)
+          const err = validateCsv(parsed.headers, parsed.data)
+          if (err) {
+            csvData = null
+            btnBatch.disabled = true
+            btnCount.hidden = true
+            setDropState("error", file)
+            statusEl.textContent = "⚠ " + err
+            statusEl.classList.add("is-error")
+            return
+          }
+          csvData = parsed.data
+          btnBatch.disabled = false
+          btnCount.hidden = false
+          btnCount.textContent = `${csvData.length} certificado${csvData.length > 1 ? "s" : ""}`
+          setDropState("valid", file)
+          statusEl.textContent = ""
+        }
+        reader.readAsText(file, "utf-8")
+      }
+
+      csvInput.addEventListener("change", e => {
+        if (e.target.files[0]) setCsv(e.target.files[0])
+      })
+      ;["dragenter", "dragover"].forEach(ev =>
+        dropEl.addEventListener(ev, e => {
+          e.preventDefault()
+          dropEl.classList.add("is-drag")
+        })
+      )
+      ;["dragleave", "drop"].forEach(ev =>
+        dropEl.addEventListener(ev, e => {
+          e.preventDefault()
+          dropEl.classList.remove("is-drag")
+        })
+      )
+      dropEl.addEventListener("drop", e => {
+        if (e.dataTransfer.files[0]) setCsv(e.dataTransfer.files[0])
+      })
+
+      // ---------- Planilha modelo ----------
+      document.getElementById("btn-sample").addEventListener("click", () => {
+        const csv =
+          "nome,curso,dia,mes,ano,carga_horaria\n" +
+          "Maria da Silva Oliveira,Fundamentos da Gestão Pública,14,maio,2026,8\n" +
+          "João Pedro Souza,Comunicação que aproxima,21,maio,2026,4\n"
+        const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+        const a = document.createElement("a")
+        a.href = URL.createObjectURL(blob)
+        a.download = "planilha-modelo-certificados.csv"
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      })
+
+      // ---------- Render fora de tela (batch) ----------
+      function renderInto(targetCanvas, fields) {
+        targetCanvas.width = tplImg.naturalWidth
+        targetCanvas.height = tplImg.naturalHeight
+        drawCertificate(targetCanvas, fields)
+      }
+
+      async function generateBatch() {
+        if (!tplReady) {
+          alert("Template ainda carregando.")
+          return
+        }
+        if (!csvData || !csvData.length) return
+        if (!window.jspdf || !window.JSZip) {
+          alert("Bibliotecas ainda carregando, tente novamente em 1 segundo.")
+          return
+        }
+        btnBatch.disabled = true
+        statusEl.classList.remove("is-success", "is-error")
+        statusEl.textContent = ""
+        barWrap.classList.add("is-visible")
+        barFill.style.width = "0%"
+        progressPct.textContent = "0%"
+        progressLabel.textContent = `Gerando 0/${csvData.length}`
+
+        const { jsPDF } = window.jspdf
+        const zip = new JSZip()
+        const tmp = document.createElement("canvas")
+
+        for (let i = 0; i < csvData.length; i++) {
+          const row = csvData[i]
+          const fields = {
+            nome: row.nome,
+            curso: row.curso,
+            dia: row.dia,
+            mes: row.mes.toLowerCase(),
+            ano: row.ano,
+            carga: row.carga_horaria
+          }
+
+          renderInto(tmp, fields)
+          const imgData = tmp.toDataURL("image/jpeg", 0.92)
+          const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
+          pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
+          const blob = pdf.output("blob")
+          zip.file(`certificado-${slug(fields.nome)}-${slug(fields.curso)}.pdf`, blob)
+
+          const pct = Math.round(((i + 1) / csvData.length) * 100)
+          barFill.style.width = pct + "%"
+          progressPct.textContent = pct + "%"
+          progressLabel.textContent = `Gerando ${i + 1}/${csvData.length}`
+          // Cede o thread para a UI atualizar
+          await new Promise(r => setTimeout(r, 0))
+        }
+
+        progressLabel.textContent = "Compactando ZIP…"
+        const zipBlob = await zip.generateAsync({ type: "blob" })
+        const a = document.createElement("a")
+        a.href = URL.createObjectURL(zipBlob)
+        a.download = `certificados-${new Date().toISOString().slice(0, 10)}.zip`
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+
+        stepGen.classList.add("is-done")
+        statusEl.classList.add("is-success")
+        statusEl.textContent = `✓ ${csvData.length} certificado(s) gerado(s) e baixado(s).`
+        btnBatch.disabled = false
+      }
+
+      btnBatch.addEventListener("click", generateBatch)
+    </script>
+  </body>
+</html>

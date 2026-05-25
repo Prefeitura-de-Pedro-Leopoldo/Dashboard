@@ -1,0 +1,305 @@
+/* ================================================================
+   EGov-PL · Design System
+   Identidade visual: Verde #4dad33 · Azul escuro #161f36
+                      Azul #3063ad · Branco #fafafa
+   Tipografia: Aonic (sans) / Gagifr (display) - fallbacks: Manrope / Fraunces
+   ================================================================ */
+
+:root {
+  /* Form controls e scrollbars nativos respeitam o tema */
+  color-scheme: light;
+
+  /* ==============================================================
+     1 · PALETA INSTITUCIONAL
+     ============================================================== */
+
+  /* Azul - escala perceptualmente balanceada em torno de #3063ad */
+  --blue-950: #0d1426;
+  --blue-900: #161f36;
+  --blue-800: #1e2a47;
+  --blue-700: #24417a;
+  --blue-600: #3063ad;
+  --blue-500: #4479c4;
+  --blue-400: #6e9bd6;
+  --blue-300: #9cb8e2;
+  --blue-200: #c3d3ed;
+  --blue-100: #e6edf8;
+  --blue-50: #f2f6fc;
+
+  /* Verde - escala em torno de #4dad33 */
+  --green-900: #1b4a10;
+  --green-800: #22631a;
+  --green-700: #2e7a1c;
+  --green-600: #3b9426;
+  --green-500: #4dad33;
+  --green-400: #6bc155;
+  --green-300: #8cd179;
+  --green-200: #b8e3a9;
+  --green-100: #e8f6e1;
+  --green-50: #f3faef;
+
+  /* Acentos pontuais */
+  --purple: #6b4d9e;
+  --red: #c0392b;
+  --amber: #d69a1f;
+
+  /* Neutros - warm grays com tom azulado sutil (institucional) */
+  --white: #ffffff;
+  --off-white: #fafafa;
+  --gray-25: #fbfbfc;
+  --gray-50: #f5f7fa;
+  --gray-100: #eceff4;
+  --gray-200: #dde2ea;
+  --gray-300: #c5ccd7;
+  --gray-400: #9aa3b2;
+  --gray-500: #6b7180;
+  --gray-600: #4a5161;
+  --gray-700: #343a48;
+  --gray-800: #1f2430;
+  --gray-900: #161f36;
+
+  /* ==============================================================
+     2 · TOKENS SEMÂNTICOS (LIGHT)
+     ============================================================== */
+
+  /* Superfícies */
+  --surface-bg: #fafafa;
+  --surface-card: #ffffff;
+  --surface-muted: #f5f7fa;
+  --surface-subtle: #eceff4;
+  --surface-elevated: #ffffff;
+  --surface-contrast: #161f36;
+  --surface-inverse: #161f36;
+
+  /* Texto (WCAG AA garantido) */
+  --text-primary: #161f36; /* 14.5:1 sobre #fafafa */
+  --text-secondary: #343a48; /* 10.8:1 */
+  --text-muted: #6b7180; /* 5.1:1  */
+  --text-faint: #9aa3b2; /* 3.1:1  - usar só para elementos decorativos */
+  --text-on-brand: #ffffff;
+  --text-on-dark: #fafafa;
+
+  /* Bordas */
+  --border-subtle: #eceff4;
+  --border-default: #dde2ea;
+  --border-strong: #c5ccd7;
+  --border-brand: #3063ad;
+
+  /* Brand (adaptativos) */
+  --brand-primary: #3063ad;
+  --brand-primary-hover: #24417a;
+  --brand-primary-active: #1e2a47;
+  --brand-accent: #4dad33;
+  --brand-accent-hover: #3b9426;
+  --brand-soft-bg: #e6edf8;
+  --brand-soft-bg-hover: #c3d3ed;
+  --brand-soft-accent: #e8f6e1;
+
+  /* Header/Nav */
+  --header-bg: rgba(255, 255, 255, 0.88);
+  --header-border: #eceff4;
+  --nav-link: #343a48;
+  --nav-link-hover: #3063ad;
+  --nav-link-active-bg: #e6edf8;
+
+  /* Hero overlay */
+  --hero-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0.88) 100%);
+
+  /* ==============================================================
+     3 · SOMBRAS (tonalizadas com azul institucional)
+     ============================================================== */
+  --shadow-xs: 0 1px 2px rgba(22, 31, 54, 0.06);
+  --shadow-sm: 0 1px 2px rgba(22, 31, 54, 0.06), 0 1px 3px rgba(22, 31, 54, 0.08);
+  --shadow-md: 0 2px 4px rgba(22, 31, 54, 0.06), 0 4px 8px rgba(22, 31, 54, 0.08);
+  --shadow-lg: 0 4px 10px rgba(22, 31, 54, 0.06), 0 12px 24px rgba(22, 31, 54, 0.1);
+  --shadow-xl: 0 8px 16px rgba(22, 31, 54, 0.08), 0 24px 48px rgba(22, 31, 54, 0.14);
+  --shadow-brand: 0 6px 20px rgba(48, 99, 173, 0.24);
+  --shadow-accent: 0 6px 20px rgba(77, 173, 51, 0.24);
+  --shadow-ring: 0 0 0 3px rgba(48, 99, 173, 0.2);
+  --shadow-ring-accent: 0 0 0 3px rgba(77, 173, 51, 0.2);
+
+  /* Focus ring (acessibilidade - keyboard) */
+  --focus-ring-color: var(--brand-primary);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* Selection */
+  --selection-bg: rgba(77, 173, 51, 0.22);
+  --selection-fg: var(--text-primary);
+
+  /* Scrollbar */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(22, 31, 54, 0.18);
+  --scrollbar-thumb-hover: rgba(22, 31, 54, 0.32);
+
+  /* ==============================================================
+     4 · ESCALA DE ESPAÇAMENTO (base 4px)
+     ============================================================== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ==============================================================
+     5 · RADIUS - progressão harmônica
+     ============================================================== */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-pill: 999px;
+
+  /* ==============================================================
+     6 · TIPOGRAFIA - escala modular (perfect fifth ~1.25)
+     ============================================================== */
+  --font-sans: "Aonic", "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Gagifr", "Fraunces", "Aonic", "Manrope", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Escala (rem = 16px base) */
+  --fs-2xs: 0.6875rem; /* 11px - meta/kicker */
+  --fs-xs: 0.75rem; /* 12px - label */
+  --fs-sm: 0.8125rem; /* 13px - caption */
+  --fs-base: 0.9375rem; /* 15px - body */
+  --fs-md: 1rem; /* 16px - body large */
+  --fs-lg: 1.125rem; /* 18px - lede */
+  --fs-xl: 1.375rem; /* 22px - h4 */
+  --fs-2xl: 1.625rem; /* 26px - h3 */
+  --fs-3xl: 2rem; /* 32px - h2 */
+  --fs-4xl: 2.5rem; /* 40px - h1 subpage */
+  --fs-5xl: 3rem; /* 48px - h1 hero */
+  --fs-6xl: 3.75rem; /* 60px - display xl */
+
+  /* Line heights */
+  --lh-tight: 1.1;
+  --lh-snug: 1.25;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+  --lh-loose: 1.8;
+
+  /* Letter spacing */
+  --tracking-tightest: -0.04em;
+  --tracking-tighter: -0.025em;
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.06em;
+  --tracking-widest: 0.1em;
+
+  /* Font weights */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-black: 800;
+
+  /* ==============================================================
+     7 · MOTION
+     ============================================================== */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --duration-instant: 100ms;
+  --duration-fast: 180ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+
+  --transition: all var(--duration-base) var(--ease-in-out);
+  --transition-fast: all var(--duration-fast) var(--ease-in-out);
+  --transition-slow: all var(--duration-slow) var(--ease-out);
+
+  /* ==============================================================
+     8 · LAYOUT
+     ============================================================== */
+  --container-max: 1200px;
+  --container-px: 24px;
+  --header-h: 88px;
+  --section-py: 96px;
+  --section-py-sm: 64px;
+}
+
+/* ================================================================
+   DARK THEME - inversão completa de surfaces mantendo brand
+   ================================================================ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Selection (mais visivel sobre fundo escuro) */
+  --selection-bg: rgba(107, 193, 85, 0.32);
+  --selection-fg: #ffffff;
+
+  /* Scrollbar */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.24);
+
+  /* Focus ring */
+  --focus-ring-color: var(--brand-primary);
+
+  /* Remap surfaces */
+  --surface-bg: #0b1120;
+  --surface-card: #131a2e;
+  --surface-muted: #0f1729;
+  --surface-subtle: #1a2340;
+  --surface-elevated: #1b2341;
+  --surface-contrast: #fafafa;
+  --surface-inverse: #fafafa;
+
+  /* Texto (testado WCAG AA sobre #0b1120) */
+  --text-primary: #f1f4fa; /* 16.4:1 */
+  --text-secondary: #cfd6e4; /* 11.3:1 */
+  --text-muted: #8a93a8; /* 4.9:1  */
+  --text-faint: #5a6278; /* 2.8:1  decorativo */
+  --text-on-brand: #ffffff;
+  --text-on-dark: #ffffff;
+
+  /* Bordas */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-brand: #6e9bd6;
+
+  /* Brand (ajustado para fundo escuro) */
+  --brand-primary: #6e9bd6;
+  --brand-primary-hover: #9cb8e2;
+  --brand-primary-active: #c3d3ed;
+  --brand-accent: #6bc155;
+  --brand-accent-hover: #8cd179;
+  --brand-soft-bg: rgba(110, 155, 214, 0.14);
+  --brand-soft-bg-hover: rgba(110, 155, 214, 0.24);
+  --brand-soft-accent: rgba(107, 193, 85, 0.14);
+
+  /* Header/Nav */
+  --header-bg: rgba(11, 17, 32, 0.85);
+  --header-border: rgba(255, 255, 255, 0.06);
+  --nav-link: #cfd6e4;
+  --nav-link-hover: #9cb8e2;
+  --nav-link-active-bg: rgba(110, 155, 214, 0.14);
+
+  --hero-overlay: linear-gradient(180deg, rgba(11, 17, 32, 0.3) 0%, rgba(11, 17, 32, 0.7) 55%, rgba(11, 17, 32, 0.92) 100%);
+
+  /* Sombras no dark - mais profundas */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.35), 0 4px 8px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.4), 0 12px 24px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.45), 0 24px 48px rgba(0, 0, 0, 0.65);
+  --shadow-brand: 0 6px 20px rgba(110, 155, 214, 0.28);
+  --shadow-accent: 0 6px 20px rgba(107, 193, 85, 0.28);
+  --shadow-ring: 0 0 0 3px rgba(110, 155, 214, 0.3);
+  --shadow-ring-accent: 0 0 0 3px rgba(107, 193, 85, 0.3);
+}
