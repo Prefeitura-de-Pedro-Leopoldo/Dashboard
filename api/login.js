@@ -1,37 +1,83 @@
 /**
  * POST /api/login
- * Valida credenciais contra a env var AUTH_USERS (JSON) configurada na Vercel.
+ * Valida credenciais contra env vars configuradas na Vercel.
  *
- * AUTH_USERS exemplo:
- * [
- *   {"email":"fabiana.silva@pedroleopoldo.mg.gov.br","password":"...","name":"Fabiana Silva"},
- *   ...
- * ]
+ * Aceita dois formatos:
+ *  1) Uma única env AUTH_USERS contendo array JSON.
+ *  2) Várias envs com prefixo AUTH_USER_ (ex: AUTH_USER_FABIANA), cada uma
+ *     no formato "email|senha|Nome Completo" OU um JSON
+ *     {"email":"...","password":"...","name":"..."}.
  */
 
-function parseUsers() {
-  const raw = process.env.AUTH_USERS;
-  if (!raw) {
-    console.error("[login] AUTH_USERS env var não configurada");
-    return [];
-  }
-  try {
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) {
-      console.error("[login] AUTH_USERS não é um array JSON");
-      return [];
+function normalizeUser(u) {
+  if (!u || typeof u.email !== "string" || typeof u.password !== "string") return null;
+  return {
+    email: u.email.trim().toLowerCase(),
+    password: u.password,
+    name: u.name || u.email.split("@")[0],
+  };
+}
+
+function parseSingleEntry(raw) {
+  const trimmed = String(raw).trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const obj = JSON.parse(trimmed);
+      return normalizeUser(obj);
+    } catch (e) {
+      console.error("[login] entry JSON inválido:", e.message);
+      return null;
     }
-    return arr
-      .filter((u) => u && typeof u.email === "string" && typeof u.password === "string")
-      .map((u) => ({
-        email: u.email.trim().toLowerCase(),
-        password: u.password,
-        name: u.name || u.email.split("@")[0],
-      }));
-  } catch (e) {
-    console.error("[login] Falha ao parsear AUTH_USERS:", e.message);
-    return [];
   }
+  const parts = trimmed.split("|");
+  if (parts.length < 2) return null;
+  return normalizeUser({
+    email: parts[0],
+    password: parts[1],
+    name: parts[2] || "",
+  });
+}
+
+function parseUsers() {
+  const out = [];
+
+  const bulk = process.env.AUTH_USERS;
+  if (bulk) {
+    try {
+      const arr = JSON.parse(bulk);
+      if (Array.isArray(arr)) {
+        for (const u of arr) {
+          const n = normalizeUser(u);
+          if (n) out.push(n);
+        }
+      } else {
+        console.error("[login] AUTH_USERS não é um array JSON");
+      }
+    } catch (e) {
+      console.error("[login] Falha ao parsear AUTH_USERS:", e.message);
+    }
+  }
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.startsWith("AUTH_USER_")) continue;
+    if (!value) continue;
+    const u = parseSingleEntry(value);
+    if (u) out.push(u);
+    else console.error(`[login] env ${key} inválida (use "email|senha|Nome")`);
+  }
+
+  const seen = new Set();
+  const dedup = [];
+  for (const u of out) {
+    if (seen.has(u.email)) continue;
+    seen.add(u.email);
+    dedup.push(u);
+  }
+
+  if (dedup.length === 0) {
+    console.error("[login] nenhum usuário configurado (defina AUTH_USERS ou AUTH_USER_*)");
+  }
+  return dedup;
 }
 
 function safeEqual(a, b) {
