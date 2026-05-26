@@ -77,6 +77,18 @@ const VIEW_TITLES = {
   autoreport: ["Auto-Relatório de Satisfação", "Suba planilhas e gere o PDF no padrão institucional automaticamente."],
 };
 
+const VIEW_GROUPS = {
+  dashboard: "Análise",
+  eventos: "Análise",
+  comparar: "Análise",
+  participantes: "Dados",
+  secretarias: "Dados",
+  relatorios: "Documentação",
+  autoreport: "Documentação",
+  certificados: "Operações",
+  qrcode: "Operações",
+};
+
 // ================ Bootstrap ================
 (async function init() {
   setupSidebar();
@@ -88,17 +100,60 @@ const VIEW_TITLES = {
 })();
 
 async function reloadData() {
+  showDashboardSkeleton();
   try {
     state.data = await loadData();
     renderAll();
   } catch (err) {
     document.getElementById("mainContent").innerHTML = `
       <div class="empty-state">
-        <i class="fas fa-circle-exclamation"></i>
+        <div class="empty-state__art"><i class="fas fa-circle-exclamation"></i></div>
         <h3>Não foi possível carregar os dados</h3>
         <p>${escapeHtml(err.message)}</p>
+        <div class="empty-state__actions">
+          <button class="btn btn--primary" onclick="location.reload()">
+            <i class="fas fa-arrows-rotate"></i> Tentar novamente
+          </button>
+        </div>
       </div>
     `;
+  }
+}
+
+function showDashboardSkeleton() {
+  const kpis = document.getElementById("kpisGlobal");
+  const grid = document.getElementById("eventGrid");
+  if (kpis) {
+    kpis.outerHTML = `
+      <div class="skel-kpis" id="kpisGlobal">
+        <div class="skel-card hero">
+          <div class="skel skel--circle"></div>
+          <div class="skel-card__body">
+            <div class="skel skel--line sm" style="width:30%"></div>
+            <div class="skel skel--title"></div>
+            <div class="skel skel--line" style="width:80%"></div>
+            <div class="skel skel--bar" style="margin-top:12px"></div>
+          </div>
+        </div>
+        ${Array.from({ length: 3 }).map(() => `
+          <div class="skel-card">
+            <div class="skel skel--line sm" style="width:40%"></div>
+            <div class="skel skel--title" style="width:60%"></div>
+            <div class="skel skel--line" style="width:75%"></div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+  if (grid) {
+    grid.innerHTML = Array.from({ length: 6 }).map(() => `
+      <div class="skel-card">
+        <div class="skel skel--title"></div>
+        <div class="skel skel--line" style="width:55%"></div>
+        <div class="skel skel--block" style="margin-top:8px"></div>
+        <div class="skel skel--bar" style="margin-top:8px"></div>
+      </div>
+    `).join("");
   }
 }
 
@@ -262,7 +317,9 @@ function renderDashboard() {
     return;
   }
 
-  document.getElementById("kpisGlobal").innerHTML = renderKPIs(resumo);
+  const kpisHost = document.getElementById("kpisGlobal");
+  kpisHost.className = "kpi-grid";
+  kpisHost.innerHTML = renderKPIs(resumo, eventos);
 
   // Insights particionados por severidade
   const insights = gerarInsightsGlobais(data);
@@ -337,13 +394,13 @@ function renderViewEventos() {
 
   const view = document.getElementById("view-eventos");
   view.innerHTML = `
-    <div class="filters">
-      <div class="filter">
-        <label for="evSelect">Selecionar evento</label>
-        <select id="evSelect">
-          ${eventos.map((e) => `<option value="${e.id}" ${e.id === state.selectedEventId ? "selected" : ""}>${escapeHtml(e.title)} ${e.date ? "(" + formatDateBR(e.date) + ")" : ""}</option>`).join("")}
-        </select>
-      </div>
+    <div class="event-picker">
+      <label class="event-picker__label" for="evSelect">
+        <i class="fas fa-calendar-day"></i> Evento
+      </label>
+      <select id="evSelect" class="event-picker__select">
+        ${eventos.map((e) => `<option value="${e.id}" ${e.id === state.selectedEventId ? "selected" : ""}>${escapeHtml(e.title)} ${e.date ? "(" + formatDateBR(e.date) + ")" : ""}</option>`).join("")}
+      </select>
     </div>
     <div id="eventDetailBlock"></div>
   `;

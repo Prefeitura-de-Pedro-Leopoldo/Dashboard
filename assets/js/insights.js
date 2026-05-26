@@ -128,21 +128,25 @@ export function gerarInsightsGlobais(data) {
     const lotados = comVagas.filter((e) => taxaOcupacao(e) !== null && taxaOcupacao(e) >= 90);
     const vazios = comVagas.filter((e) => taxaOcupacao(e) !== null && taxaOcupacao(e) < 50);
     if (lotados.length) {
-      const lista = lotados.map((e) => `${e.title} (${pct(taxaOcupacao(e))})`).join(", ");
+      const chips = lotados
+        .map((e) => `<span class="insight-chip"><b>${pct(taxaOcupacao(e))}</b><span>${e.title}</span></span>`)
+        .join("");
       out.push({
         type: "positive",
         icon: "fa-fire",
-        title: "Eventos com alta procura",
-        html: `Lotação acima de 90%: <b>${lista}</b>. Avaliar abrir vagas extras em próximas edições.`,
+        title: "Alta procura (≥ 90%) Avaliar abrir vagas extras.",
+        html: `<div class="insight-chips">${chips}</div>`,
       });
     }
     if (vazios.length) {
-      const lista = vazios.map((e) => `${e.title} (${pct(taxaOcupacao(e))})`).join(", ");
+      const chips = vazios
+        .map((e) => `<span class="insight-chip"><b>${pct(taxaOcupacao(e))}</b><span>${e.title}</span></span>`)
+        .join("");
       out.push({
         type: "warn",
         icon: "fa-chair",
-        title: "Vagas ociosas",
-        html: `Ocupação abaixo de 50% em: <b>${lista}</b>. Reforçar divulgação ou ajustar oferta.`,
+        title: "Vagas ociosas (< 50%) Reforçar divulgação ou ajustar oferta.",
+        html: `<div class="insight-chips">${chips}</div>`,
       });
     }
   }

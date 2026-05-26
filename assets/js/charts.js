@@ -14,7 +14,7 @@ export const PALETTE = {
   red: "#c0392b",
   purple: "#6b4d9e",
   muted: "#6b7180",
-  grid: "rgba(22, 31, 54, 0.06)",
+  grid: "rgba(22, 31, 54, 0.04)",
   axis: "#9aa3b2",
   series: [
     "#3063ad", "#4dad33", "#d69a1f", "#6b4d9e",
@@ -33,20 +33,253 @@ function applyChartDefaults() {
   window.Chart.defaults.color = textPrimary;
   window.Chart.defaults.plugins.legend.labels.color = textMuted;
   window.Chart.defaults.plugins.legend.labels.usePointStyle = true;
-  window.Chart.defaults.plugins.legend.labels.boxWidth = 10;
-  window.Chart.defaults.plugins.legend.labels.boxHeight = 10;
-  window.Chart.defaults.plugins.legend.labels.padding = 16;
-  window.Chart.defaults.plugins.tooltip.backgroundColor = "rgba(22,31,54,0.95)";
+  window.Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  window.Chart.defaults.plugins.legend.labels.boxHeight = 8;
+  window.Chart.defaults.plugins.legend.labels.padding = 18;
+  window.Chart.defaults.plugins.legend.labels.font = { size: 11, weight: "600" };
+  window.Chart.defaults.plugins.tooltip.backgroundColor = "rgba(22,31,54,0.96)";
+  window.Chart.defaults.plugins.tooltip.titleColor = "#fafafa";
+  window.Chart.defaults.plugins.tooltip.bodyColor = "#cfd6e4";
   window.Chart.defaults.plugins.tooltip.titleFont = { weight: "700", size: 12 };
-  window.Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
-  window.Chart.defaults.plugins.tooltip.padding = 12;
-  window.Chart.defaults.plugins.tooltip.cornerRadius = 6;
-  window.Chart.defaults.plugins.tooltip.boxPadding = 6;
+  window.Chart.defaults.plugins.tooltip.bodyFont = { size: 12, weight: "500" };
+  window.Chart.defaults.plugins.tooltip.padding = { top: 10, right: 14, bottom: 10, left: 14 };
+  window.Chart.defaults.plugins.tooltip.cornerRadius = 10;
+  window.Chart.defaults.plugins.tooltip.boxPadding = 8;
   window.Chart.defaults.plugins.tooltip.usePointStyle = true;
-  window.Chart.defaults.elements.bar.borderRadius = 6;
+  window.Chart.defaults.plugins.tooltip.displayColors = true;
+  window.Chart.defaults.plugins.tooltip.caretPadding = 10;
+  window.Chart.defaults.plugins.tooltip.borderColor = "rgba(255,255,255,0.08)";
+  window.Chart.defaults.plugins.tooltip.borderWidth = 1;
+  window.Chart.defaults.animation = { duration: 900, easing: "easeOutQuart" };
+  window.Chart.defaults.animations = {
+    numbers: { duration: 900, easing: "easeOutQuart" },
+    colors: { duration: 400 },
+  };
+  window.Chart.defaults.elements.bar.borderRadius = 8;
   window.Chart.defaults.elements.bar.borderSkipped = false;
 }
 applyChartDefaults();
+
+// ============================================================================
+// Helpers visuais — gradientes, sombras, profundidade
+// ============================================================================
+
+// Cria gradiente vertical (barras top→bottom) a partir de uma cor sólida
+function vGradient(ctx, area, color, opts = {}) {
+  if (!area) return color;
+  const { darkenBottom = 0.18, lightenTop = 0.05 } = opts;
+  const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+  g.addColorStop(0, lighten(color, lightenTop));
+  g.addColorStop(0.55, color);
+  g.addColorStop(1, darken(color, darkenBottom));
+  return g;
+}
+// Gradiente horizontal (barras laterais left→right)
+function hGradient(ctx, area, color, opts = {}) {
+  if (!area) return color;
+  const { darkenStart = 0.10, lightenEnd = 0.10 } = opts;
+  const g = ctx.createLinearGradient(area.left, 0, area.right, 0);
+  g.addColorStop(0, darken(color, darkenStart));
+  g.addColorStop(1, lighten(color, lightenEnd));
+  return g;
+}
+// Gradiente radial para donut/pie (centro mais claro → borda mais escura)
+function radialGradient(ctx, x, y, r0, r1, color) {
+  const g = ctx.createRadialGradient(x, y, r0, x, y, r1);
+  g.addColorStop(0, lighten(color, 0.18));
+  g.addColorStop(0.55, color);
+  g.addColorStop(1, darken(color, 0.20));
+  return g;
+}
+// Gradiente para área de linha (fill suave)
+function areaGradient(ctx, area, color) {
+  if (!area) return color + "22";
+  const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+  g.addColorStop(0, color + "55");
+  g.addColorStop(0.6, color + "20");
+  g.addColorStop(1, color + "00");
+  return g;
+}
+
+// Manipulação de cor (hex → rgb com offset)
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
+function lighten(hex, amount) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgb(${clamp(r + (255 - r) * amount)},${clamp(g + (255 - g) * amount)},${clamp(b + (255 - b) * amount)})`;
+}
+function darken(hex, amount) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgb(${clamp(r * (1 - amount))},${clamp(g * (1 - amount))},${clamp(b * (1 - amount))})`;
+}
+
+// Plugin: sombra suave para barras (efeito de profundidade)
+const barShadowPlugin = {
+  id: "barShadow",
+  beforeDatasetsDraw(chart) {
+    const { ctx } = chart;
+    ctx.save();
+    ctx.shadowColor = "rgba(22,31,54,0.18)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4;
+  },
+  afterDatasetsDraw(chart) {
+    chart.ctx.restore();
+  },
+};
+
+// Plugin: faz a barra ativa "crescer" no hover (espessura + glow), efeito similar ao hoverOffset do donut
+const barHoverGrowPlugin = {
+  id: "barHoverGrow",
+  afterDatasetsDraw(chart, _args, opts) {
+    if (!opts || opts.enabled === false) return;
+    const active = chart.tooltip?.getActiveElements?.();
+    if (!active || !active.length) return;
+    const isHorizontal = chart.options.indexAxis === "y";
+    const grow = opts.grow ?? 6;          // pixels a crescer em cada lado (largura total +12)
+    const glowColor = opts.glow || "rgba(48,99,173,0.35)";
+    const { ctx } = chart;
+
+    active.forEach((el) => {
+      const bar = el.element;
+      const ds = chart.data.datasets[el.datasetIndex];
+      const i = el.index;
+      // Pega propriedades originais da barra
+      const { x, y, base, width, height } = bar.getProps(["x", "y", "base", "width", "height"], true);
+
+      // Resolve cor de hover (pode ser função em scriptable)
+      let fill = ds.hoverBackgroundColor || ds.backgroundColor;
+      if (typeof fill === "function") {
+        fill = fill({ chart, dataIndex: i, datasetIndex: el.datasetIndex, dataset: ds, parsed: { x, y } });
+      }
+
+      ctx.save();
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = isHorizontal ? 0 : 4;
+      ctx.shadowOffsetX = isHorizontal ? 4 : 0;
+      ctx.fillStyle = fill || "rgba(48,99,173,1)";
+
+      // Calcula retângulo expandido e desenha com cantos arredondados
+      let rx, ry, rw, rh;
+      if (isHorizontal) {
+        const top = y - height / 2 - grow;
+        const h = height + grow * 2;
+        const left = Math.min(base, x);
+        const w = Math.abs(x - base);
+        rx = left; ry = top; rw = w; rh = h;
+      } else {
+        const left = x - width / 2 - grow;
+        const w = width + grow * 2;
+        const top = Math.min(base, y);
+        const h = Math.abs(y - base);
+        rx = left; ry = top; rw = w; rh = h;
+      }
+      const r = Math.min(opts.radius ?? 8, Math.abs(rw) / 2, Math.abs(rh) / 2);
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(rx, ry, rw, rh, r);
+      } else {
+        // fallback manual
+        ctx.moveTo(rx + r, ry);
+        ctx.lineTo(rx + rw - r, ry);
+        ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + r);
+        ctx.lineTo(rx + rw, ry + rh - r);
+        ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - r, ry + rh);
+        ctx.lineTo(rx + r, ry + rh);
+        ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - r);
+        ctx.lineTo(rx, ry + r);
+        ctx.quadraticCurveTo(rx, ry, rx + r, ry);
+        ctx.closePath();
+      }
+      ctx.fill();
+      ctx.restore();
+    });
+  },
+};
+
+// Plugin: data labels para barras (mostra valor na ponta da barra)
+const barDataLabelsPlugin = {
+  id: "barDataLabels",
+  afterDatasetsDraw(chart, _args, opts) {
+    if (!opts || opts.enabled === false) return;
+    const { ctx, scales } = chart;
+    const isHorizontal = chart.options.indexAxis === "y";
+    const suffix = opts.suffix || "";
+    const color = opts.color || (getComputedStyle(document.documentElement).getPropertyValue("--text-primary").trim() || "#161f36");
+
+    ctx.save();
+    ctx.font = "600 11px Manrope, sans-serif";
+    ctx.textBaseline = "middle";
+    chart.data.datasets.forEach((ds, di) => {
+      const meta = chart.getDatasetMeta(di);
+      if (meta.hidden) return;
+      meta.data.forEach((bar, i) => {
+        const value = ds.data[i];
+        if (value == null) return;
+        const label = (opts.format ? opts.format(value) : value) + suffix;
+        const { x, y, base } = bar.getProps(["x", "y", "base"], true);
+        ctx.fillStyle = color;
+        if (isHorizontal) {
+          ctx.textAlign = "left";
+          ctx.fillText(label, x + 6, y);
+        } else {
+          ctx.textAlign = "center";
+          ctx.fillText(label, x, y - 6);
+        }
+      });
+    });
+    ctx.restore();
+  },
+};
+
+// Plugin: texto central no donut (% ou contagem)
+const donutCenterPlugin = {
+  id: "donutCenter",
+  afterDraw(chart, _args, opts) {
+    if (!opts || !opts.text) return;
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
+    const cx = (chartArea.left + chartArea.right) / 2;
+    const cy = (chartArea.top + chartArea.bottom) / 2;
+    const css = getComputedStyle(document.documentElement);
+    const primary = css.getPropertyValue("--text-primary").trim() || "#161f36";
+    const muted = css.getPropertyValue("--text-muted").trim() || "#6b7180";
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = primary;
+    ctx.font = `700 ${opts.size || 22}px "Fraunces", "Manrope", sans-serif`;
+    ctx.fillText(opts.text, cx, cy - (opts.subtitle ? 8 : 0));
+    if (opts.subtitle) {
+      ctx.fillStyle = muted;
+      ctx.font = "600 10px Manrope, sans-serif";
+      ctx.fillText(opts.subtitle.toUpperCase(), cx, cy + 14);
+    }
+    ctx.restore();
+  },
+};
+
+// Plugin: sombra para donut/pie (efeito de elevação)
+const donutShadowPlugin = {
+  id: "donutShadow",
+  beforeDatasetsDraw(chart) {
+    const { ctx } = chart;
+    ctx.save();
+    ctx.shadowColor = "rgba(22,31,54,0.22)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 6;
+  },
+  afterDatasetsDraw(chart) {
+    chart.ctx.restore();
+  },
+};
 
 const _instances = new Map();
 
@@ -95,6 +328,67 @@ function shorten(s, n) {
   if (!s) return "";
   return s.length > n ? s.slice(0, n - 1) + "..." : s;
 }
+
+// Abreviador inteligente para nomes de órgãos públicos.
+// Aplica regras conhecidas (SMU. X, CGM, etc.) e trunca o restante.
+function shortenOrg(s, n = 28) {
+  if (!s) return "";
+  const original = String(s).trim();
+  // Aplica SEMPRE os padrões de abreviação (não pula para nomes curtos —
+  // queremos "Sec." mesmo quando o nome inteiro caberia)
+
+  // Padrões conhecidos — capturam o "sufixo significativo" e prefixam com sigla curta
+  // "Municipal" é descartado (não agrega), mantendo "Sec. <Nome>"
+  const patterns = [
+    { re: /^Secretaria\s+Municipal\s+(?:da|de|do|das|dos)?\s*(.+)$/i, prefix: "Sec. " },
+    { re: /^Secretaria\s+(?:da|de|do|das|dos)?\s*(.+)$/i, prefix: "Sec. " },
+    { re: /^Controladoria\s+Geral\s+do\s+Munic[ií]pio$/i, full: "Controladoria Geral" },
+    { re: /^Controladoria\s+Geral\s+(?:do|de|da)?\s*(.+)$/i, prefix: "Controladoria " },
+    { re: /^Procuradoria\s+Geral\s+do\s+Munic[ií]pio$/i, full: "Procuradoria Geral" },
+    { re: /^Procuradoria\s+(?:Geral|da|de|do)?\s*(.+)$/i, prefix: "Proc. " },
+    { re: /^Chefia\s+de\s+Gabinete$/i, full: "Chefia de Gabinete" },
+    { re: /^Departamento\s+(?:Municipal|de|do|da|dos|das)?\s*(.+)$/i, prefix: "Dep. " },
+    { re: /^Diretoria\s+(?:de|do|da|dos|das)?\s*(.+)$/i, prefix: "Dir. " },
+    { re: /^Superintend[êe]ncia\s+(?:de|do|da|dos|das)?\s*(.+)$/i, prefix: "Sup. " },
+    { re: /^Coordenadoria\s+(?:de|do|da|dos|das)?\s*(.+)$/i, prefix: "Coord. " },
+    { re: /^Fundac[ãa]o\s+(?:Municipal|de|do|da|dos|das)?\s*(.+)$/i, prefix: "Fund. " },
+    { re: /^Instituto\s+(?:Municipal|de|do|da|dos|das)?\s*(.+)$/i, prefix: "Inst. " },
+    { re: /^Autarquia\s+(?:Municipal|de|do|da|dos|das)?\s*(.+)$/i, prefix: "Aut. " },
+    { re: /^Empresa\s+(?:Municipal|de|do|da|dos|das)?\s*(.+)$/i, prefix: "Emp. " },
+    { re: /^Gabinete\s+(?:do|da|de)?\s*(.+)$/i, prefix: "Gab. " },
+    { re: /^Comiss[ãa]o\s+(?:de|do|da|dos|das)?\s*(.+)$/i, prefix: "Com. " },
+    { re: /^Conselho\s+(?:Municipal|de|do|da|dos|das)?\s*(.+)$/i, prefix: "Cons. " },
+  ];
+
+  // Stopwords pt-BR que não agregam significado e podem ser removidas em apertos
+  const stop = new Set(["de", "da", "do", "das", "dos", "e", "a", "o", "para", "por", "em", "no", "na", "nos", "nas", "com"]);
+
+  // Remove preposições/artigos do INÍCIO do tail (case-insensitive)
+  // Ex.: "de Desenvolvimento Econômico" → "Desenvolvimento Econômico"
+  const stripLeadingPreps = (t) => {
+    let out = t.trim();
+    // remove até 3 prefixos consecutivos (cobre casos raros tipo "do da")
+    for (let i = 0; i < 3; i++) {
+      const m = out.match(/^(?:de|da|do|das|dos|e|a|o)\s+(.+)$/i);
+      if (!m) break;
+      out = m[1];
+    }
+    return out;
+  };
+
+  for (const p of patterns) {
+    const m = original.match(p.re);
+    if (m) {
+      if (p.full) return p.full;
+      const tail = stripLeadingPreps(m[1]);
+      // Capitaliza primeira letra se veio minúsculo (raro mas possível)
+      const tailCap = tail.charAt(0).toUpperCase() + tail.slice(1);
+      return p.prefix + tailCap;
+    }
+  }
+  // Sem padrão conhecido: devolve original
+  return original;
+}
 function formatShortDate(iso) {
   if (!iso) return "";
   const parts = String(iso).split("-");
@@ -110,9 +404,9 @@ const baseScales = () => ({
   },
   y: {
     beginAtZero: true,
-    grid: { color: PALETTE.grid, drawTicks: false },
+    grid: { color: PALETTE.grid, drawTicks: false, lineWidth: 1 },
     border: { display: false },
-    ticks: { color: PALETTE.axis, font: { size: 11 }, padding: 8 },
+    ticks: { color: PALETTE.axis, font: { size: 11 }, padding: 8, maxTicksLimit: 5 },
   },
 });
 
@@ -128,8 +422,20 @@ export function barInscritosVsPresentes(id, eventos) {
     data: {
       labels: filtered.map((e) => shorten(e.title, 22)),
       datasets: [
-        { label: "Inscritos", data: filtered.map((e) => e.totalInscritos), backgroundColor: PALETTE.blue, barThickness: "flex", maxBarThickness: 32 },
-        { label: "Presentes", data: filtered.map((e) => e.totalPresentes), backgroundColor: PALETTE.green, barThickness: "flex", maxBarThickness: 32 },
+        {
+          label: "Inscritos",
+          data: filtered.map((e) => e.totalInscritos),
+          backgroundColor: (c) => vGradient(c.chart.ctx, c.chart.chartArea, PALETTE.blue),
+          hoverBackgroundColor: (c) => vGradient(c.chart.ctx, c.chart.chartArea, PALETTE.blueLight),
+          barThickness: "flex", maxBarThickness: 36, borderRadius: 8,
+        },
+        {
+          label: "Presentes",
+          data: filtered.map((e) => e.totalPresentes),
+          backgroundColor: (c) => vGradient(c.chart.ctx, c.chart.chartArea, PALETTE.green),
+          hoverBackgroundColor: (c) => vGradient(c.chart.ctx, c.chart.chartArea, PALETTE.greenLight),
+          barThickness: "flex", maxBarThickness: 36, borderRadius: 8,
+        },
       ],
     },
     options: {
@@ -139,6 +445,7 @@ export function barInscritosVsPresentes(id, eventos) {
       plugins: { legend: { position: "bottom", align: "start" } },
       scales: baseScales(),
     },
+    plugins: [barShadowPlugin],
   }, isEmpty, "Sem eventos com inscrições para comparar.");
 }
 
@@ -153,8 +460,17 @@ export function barTaxaPresenca(id, eventos) {
       datasets: [{
         label: "% Presença",
         data: filtered.map((e) => e.taxaPresenca),
-        backgroundColor: filtered.map((e) => cor(e.taxaPresenca)),
-        maxBarThickness: 28,
+        backgroundColor: (c) => {
+          const i = c.dataIndex;
+          if (i == null || !c.chart.chartArea) return cor(filtered[i ?? 0]?.taxaPresenca ?? 0);
+          return hGradient(c.chart.ctx, c.chart.chartArea, cor(filtered[i].taxaPresenca));
+        },
+        hoverBackgroundColor: (c) => {
+          const i = c.dataIndex;
+          if (i == null || !c.chart.chartArea) return cor(filtered[i ?? 0]?.taxaPresenca ?? 0);
+          return hGradient(c.chart.ctx, c.chart.chartArea, cor(filtered[i].taxaPresenca), { darkenStart: 0, lightenEnd: 0.2 });
+        },
+        maxBarThickness: 30, borderRadius: 8,
       }],
     },
     options: {
@@ -180,26 +496,38 @@ export function barTaxaPresenca(id, eventos) {
         },
       },
     },
+    plugins: [barShadowPlugin],
   }, isEmpty, "Nenhum evento realizado com taxa calculável.");
 }
 
 export function donutPresenca(id, presentes, ausentes) {
   const isEmpty = (presentes + ausentes) === 0;
+  const colors = [PALETTE.green, PALETTE.red];
   return _mount(id, {
     type: "doughnut",
     data: {
       labels: ["Presentes", "Ausentes"],
       datasets: [{
         data: [presentes, ausentes],
-        backgroundColor: [PALETTE.green, PALETTE.red],
-        borderWidth: 0,
-        hoverOffset: 8,
+        backgroundColor: (c) => {
+          const area = c.chart.chartArea;
+          if (!area) return colors[c.dataIndex ?? 0];
+          const cx = (area.left + area.right) / 2;
+          const cy = (area.top + area.bottom) / 2;
+          const r = Math.min(area.width, area.height) / 2;
+          return radialGradient(c.chart.ctx, cx, cy, r * 0.5, r, colors[c.dataIndex]);
+        },
+        hoverOffset: 14,
+        borderWidth: 2,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff",
+        borderJoinStyle: "round",
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       cutout: "62%",
+      animation: { animateScale: true, animateRotate: true, duration: 900 },
       plugins: {
         legend: { position: "bottom" },
         tooltip: {
@@ -213,6 +541,7 @@ export function donutPresenca(id, presentes, ausentes) {
         },
       },
     },
+    plugins: [donutShadowPlugin],
   }, isEmpty, "Sem check-ins registrados.");
 }
 
@@ -223,49 +552,115 @@ export function barSecretarias(id, entries, opts = {}) {
   return _mount(id, {
     type: "bar",
     data: {
-      labels: slice.map((s) => shorten(s.nome, 30)),
+      labels: slice.map((s) => shortenOrg(s.nome, 26)),
       datasets: [{
         label: "Inscrições",
         data: slice.map((s) => s.qtd),
-        backgroundColor: slice.map((_, i) => PALETTE.series[i % PALETTE.series.length]),
-        maxBarThickness: 26,
+        backgroundColor: (c) => {
+          const i = c.dataIndex;
+          if (i == null || !c.chart.chartArea) return PALETTE.series[(i ?? 0) % PALETTE.series.length];
+          const base = PALETTE.series[i % PALETTE.series.length];
+          return horizontal ? hGradient(c.chart.ctx, c.chart.chartArea, base) : vGradient(c.chart.ctx, c.chart.chartArea, base);
+        },
+        hoverBackgroundColor: (c) => {
+          const i = c.dataIndex;
+          if (i == null || !c.chart.chartArea) return PALETTE.series[(i ?? 0) % PALETTE.series.length];
+          const base = PALETTE.series[i % PALETTE.series.length];
+          return horizontal
+            ? hGradient(c.chart.ctx, c.chart.chartArea, base, { darkenStart: 0, lightenEnd: 0.22 })
+            : vGradient(c.chart.ctx, c.chart.chartArea, base, { lightenTop: 0.15 });
+        },
+        maxBarThickness: 28, borderRadius: 8,
       }],
     },
     options: {
       indexAxis: horizontal ? "y" : "x",
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: horizontal ? { right: 36, top: 8, bottom: 8 } : { top: 18, left: 8, right: 8 } },
+      interaction: { mode: "nearest", axis: horizontal ? "y" : "x", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart", delay: (c) => (c.type === "data" && c.mode === "default" ? c.dataIndex * 60 : 0) },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => " " + ctx.parsed[horizontal ? "x" : "y"] + " inscrição(ões)" } },
+        tooltip: {
+          callbacks: {
+            title: (items) => slice[items[0].dataIndex]?.nome || items[0].label,
+            label: (ctx) => " " + ctx.parsed[horizontal ? "x" : "y"] + " inscrição(ões)",
+          },
+        },
+        barDataLabels: { enabled: true, suffix: "", color: undefined },
+        barHoverGrow: { enabled: true, grow: 5, radius: 8, glow: "rgba(48,99,173,0.32)" },
       },
       scales: horizontal
         ? {
-            x: { beginAtZero: true, grid: { color: PALETTE.grid, drawTicks: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11 } } },
-            y: { grid: { display: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11 } } },
+            x: { display: false, beginAtZero: true, grid: { display: false }, border: { display: false } },
+            y: {
+              grid: { display: false },
+              border: { display: false },
+              afterFit(scale) {
+                // Mede o texto real de cada label para reservar a largura mínima necessária
+                const ctx = scale.chart.ctx;
+                const labels = (scale.ticks || []).map((t, i) => {
+                  const original = slice[i]?.nome || t.label;
+                  return shortenOrg(original, 999); // sem corte, deixa o nome completo abreviado
+                });
+                ctx.save();
+                ctx.font = "600 11px Manrope, sans-serif";
+                const max = labels.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
+                ctx.restore();
+                const chartW = scale.chart.width || 320;
+                // Cap em 55% da largura para não esmagar as barras
+                const desired = Math.min(Math.ceil(max) + 24, Math.round(chartW * 0.55));
+                if (scale.width < desired) scale.width = desired;
+              },
+              ticks: {
+                color: PALETTE.axis,
+                font: { size: 11, weight: "600" },
+                padding: 10,
+                autoSkip: false,
+                crossAlign: "far",
+                callback(value) {
+                  const original = slice[value]?.nome || this.getLabelForValue(value);
+                  return shortenOrg(original, 999);
+                },
+              },
+            },
           }
         : baseScales(),
     },
+    plugins: [barShadowPlugin, barDataLabelsPlugin, barHoverGrowPlugin],
   }, isEmpty, "Sem dados de secretarias.");
 }
 
 export function pieTurmas(id, entries) {
   const isEmpty = entries.length === 0;
+  const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
   return _mount(id, {
     type: "doughnut",
     data: {
-      labels: entries.map((t) => shorten(t.nome, 36)),
+      labels: entries.map((t) => shortenOrg(t.nome, 30)),
       datasets: [{
         data: entries.map((t) => t.qtd),
-        backgroundColor: entries.map((_, i) => PALETTE.series[i % PALETTE.series.length]),
-        borderWidth: 0,
-        hoverOffset: 8,
+        backgroundColor: (c) => {
+          const area = c.chart.chartArea;
+          const base = PALETTE.series[c.dataIndex % PALETTE.series.length];
+          if (!area) return base;
+          const cx = (area.left + area.right) / 2;
+          const cy = (area.top + area.bottom) / 2;
+          const r = Math.min(area.width, area.height) / 2;
+          return radialGradient(c.chart.ctx, cx, cy, r * 0.45, r, base);
+        },
+        hoverOffset: 14,
+        borderWidth: 2,
+        borderColor: surface,
+        borderJoinStyle: "round",
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: "55%",
+      cutout: "58%",
+      animation: { animateScale: true, animateRotate: true, duration: 900 },
       plugins: {
         legend: { position: "bottom", labels: { font: { size: 11 } } },
         tooltip: {
@@ -279,11 +674,34 @@ export function pieTurmas(id, entries) {
         },
       },
     },
+    plugins: [donutShadowPlugin],
   }, isEmpty, "Evento sem subdivisão em turmas.");
 }
 
 export function lineTimeline(id, points, label = "Inscrições") {
   const isEmpty = !points || points.length === 0;
+  const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
+
+  // Plugin local: linha vertical de crosshair no hover
+  const crosshairPlugin = {
+    id: "lineCrosshair",
+    afterDraw(chart) {
+      const active = chart.tooltip?.getActiveElements?.();
+      if (!active || !active.length) return;
+      const { ctx, chartArea } = chart;
+      const x = active[0].element.x;
+      ctx.save();
+      ctx.strokeStyle = "rgba(48,99,173,0.25)";
+      ctx.setLineDash([3, 4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, chartArea.top);
+      ctx.lineTo(x, chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+    },
+  };
+
   return _mount(id, {
     type: "line",
     data: {
@@ -292,24 +710,68 @@ export function lineTimeline(id, points, label = "Inscrições") {
         label,
         data: points.map(([, v]) => v),
         fill: true,
-        backgroundColor: "rgba(48, 99, 173, 0.12)",
+        backgroundColor: (c) => areaGradient(c.chart.ctx, c.chart.chartArea, PALETTE.blue),
         borderColor: PALETTE.blue,
-        borderWidth: 2,
-        tension: 0.35,
-        pointBackgroundColor: PALETTE.blue,
-        pointRadius: 3,
-        pointHoverRadius: 6,
+        borderWidth: 3,
+        tension: 0.4,
+        pointBackgroundColor: surface,
+        pointBorderColor: PALETTE.blue,
+        pointBorderWidth: 2.5,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointHoverBackgroundColor: PALETTE.blue,
+        pointHoverBorderColor: surface,
+        pointHoverBorderWidth: 3,
+        clip: false,
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      interaction: { mode: "index", intersect: false },
+      layout: { padding: { top: 12, right: 12, left: 4, bottom: 4 } },
+      animation: {
+        duration: 1100,
+        easing: "easeOutQuart",
+        x: { from: (ctx) => (ctx.type === "data" && ctx.mode === "default" && !ctx.dropped ? ctx.xStarted ? ctx.x : (ctx.xStarted = true, ctx.x) : undefined) },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => `Data: ${items[0].label}`,
+            label: (ctx) => ` ${ctx.parsed.y} inscrição(ões)`,
+          },
+        },
+      },
       scales: {
-        x: { grid: { display: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 10 } } },
-        y: { beginAtZero: true, grid: { color: PALETTE.grid, drawTicks: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11 } } },
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: PALETTE.axis, font: { size: 10, weight: "600" }, padding: 6 },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: PALETTE.grid, drawTicks: false, lineWidth: 1 },
+          border: { display: false },
+          ticks: { color: PALETTE.axis, font: { size: 11 }, padding: 8, maxTicksLimit: 5, precision: 0 },
+        },
       },
     },
+    plugins: [
+      {
+        id: "lineGlow",
+        beforeDatasetDraw(chart) {
+          const { ctx } = chart;
+          ctx.save();
+          ctx.shadowColor = "rgba(48,99,173,0.40)";
+          ctx.shadowBlur = 14;
+          ctx.shadowOffsetY = 6;
+        },
+        afterDatasetDraw(chart) { chart.ctx.restore(); },
+      },
+      crosshairPlugin,
+    ],
   }, isEmpty, "Sem registros de data de inscrição.");
 }
 
@@ -324,76 +786,155 @@ export function radarComparativo(id, comparativos) {
     c.taxaPresenca ?? 0,
     Math.round((c.nSecretarias / maxSec) * 100),
   ];
+  const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
   return _mount(id, {
     type: "radar",
     data: {
       labels: ["Inscritos (rel.)", "Presentes (rel.)", "Taxa de presença %", "Diversidade secret. (rel.)"],
-      datasets: comparativos.map((c, i) => ({
-        label: shorten(c.title, 26),
-        data: norm(c),
-        borderColor: PALETTE.series[i % PALETTE.series.length],
-        backgroundColor: PALETTE.series[i % PALETTE.series.length] + "33",
-        pointBackgroundColor: PALETTE.series[i % PALETTE.series.length],
-        pointRadius: 3,
-        borderWidth: 2,
-      })),
+      datasets: comparativos.map((c, i) => {
+        const color = PALETTE.series[i % PALETTE.series.length];
+        return {
+          label: shorten(c.title, 26),
+          data: norm(c),
+          borderColor: color,
+          backgroundColor: color + "26",
+          hoverBackgroundColor: color + "44",
+          pointBackgroundColor: surface,
+          pointBorderColor: color,
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointHoverBackgroundColor: color,
+          pointHoverBorderColor: surface,
+          pointHoverBorderWidth: 3,
+          borderWidth: 2.5,
+          tension: 0.15,
+        };
+      }),
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
+      interaction: { mode: "point", intersect: false },
+      animation: { duration: 1000, easing: "easeOutQuart" },
+      layout: { padding: 8 },
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, boxHeight: 8, padding: 16, font: { size: 11, weight: "600" } },
+        },
+        tooltip: {
+          callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.r}` },
+        },
+      },
       scales: {
         r: {
           suggestedMin: 0, suggestedMax: 100,
           ticks: { display: false, stepSize: 25 },
-          grid: { color: "rgba(22,31,54,0.10)" },
-          angleLines: { color: "rgba(22,31,54,0.10)" },
-          pointLabels: { font: { size: 11, weight: "600" }, color: PALETTE.muted },
+          grid: { color: "rgba(22,31,54,0.08)", lineWidth: 1 },
+          angleLines: { color: "rgba(22,31,54,0.10)", lineWidth: 1 },
+          pointLabels: { font: { size: 11, weight: "700" }, color: PALETTE.muted, padding: 8 },
         },
       },
     },
+    plugins: [{
+      id: "radarGlow",
+      beforeDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.shadowColor = "rgba(22,31,54,0.18)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 3;
+      },
+      afterDatasetsDraw(chart) { chart.ctx.restore(); },
+    }],
   }, isEmpty, "Selecione 2 ou mais eventos para comparar.");
 }
 
 export function barGrupoComparativo(id, comparativos) {
   const isEmpty = comparativos.length === 0;
+  const makeBg = (color) => (c) => c.chart.chartArea ? vGradient(c.chart.ctx, c.chart.chartArea, color) : color;
+  const makeHover = (color) => (c) => c.chart.chartArea ? vGradient(c.chart.ctx, c.chart.chartArea, color, { lightenTop: 0.18 }) : color;
   return _mount(id, {
     type: "bar",
     data: {
       labels: comparativos.map((c) => shorten(c.title, 22)),
       datasets: [
-        { label: "Inscritos", data: comparativos.map((c) => c.inscritos), backgroundColor: PALETTE.blue, maxBarThickness: 32 },
-        { label: "Presentes", data: comparativos.map((c) => c.presentes), backgroundColor: PALETTE.green, maxBarThickness: 32 },
-        { label: "Ausentes", data: comparativos.map((c) => c.ausentes), backgroundColor: PALETTE.red, maxBarThickness: 32 },
+        { label: "Inscritos", data: comparativos.map((c) => c.inscritos), backgroundColor: makeBg(PALETTE.blue), hoverBackgroundColor: makeHover(PALETTE.blue), maxBarThickness: 32, borderRadius: 8 },
+        { label: "Presentes", data: comparativos.map((c) => c.presentes), backgroundColor: makeBg(PALETTE.green), hoverBackgroundColor: makeHover(PALETTE.green), maxBarThickness: 32, borderRadius: 8 },
+        { label: "Ausentes", data: comparativos.map((c) => c.ausentes), backgroundColor: makeBg(PALETTE.red), hoverBackgroundColor: makeHover(PALETTE.red), maxBarThickness: 32, borderRadius: 8 },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
+      layout: { padding: { top: 18, left: 8, right: 8 } },
+      interaction: { mode: "nearest", axis: "x", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart", delay: (c) => (c.type === "data" && c.mode === "default" ? c.dataIndex * 60 : 0) },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            title: (items) => comparativos[items[0].dataIndex]?.title || items[0].label,
+          },
+        },
+        barDataLabels: { enabled: true, suffix: "" },
+        barHoverGrow: { enabled: true, grow: 4, radius: 8, glow: "rgba(48,99,173,0.30)" },
+      },
       scales: baseScales(),
     },
+    plugins: [barShadowPlugin, barDataLabelsPlugin, barHoverGrowPlugin],
   }, isEmpty, "Selecione eventos para comparar.");
 }
 
 export function barGroupedByCategory(id, labels, datasets, opts = {}) {
   const { indexAxis = "x" } = opts;
   const isEmpty = labels.length === 0;
+  // Aplica gradiente + hover claro a cada dataset preservando a cor base
+  const enriched = datasets.map((ds) => {
+    const base = ds.backgroundColor || PALETTE.blue;
+    const color = typeof base === "string" ? base : PALETTE.blue;
+    return {
+      ...ds,
+      backgroundColor: (c) => {
+        if (!c.chart.chartArea) return color;
+        return indexAxis === "y"
+          ? hGradient(c.chart.ctx, c.chart.chartArea, color)
+          : vGradient(c.chart.ctx, c.chart.chartArea, color);
+      },
+      hoverBackgroundColor: (c) => {
+        if (!c.chart.chartArea) return color;
+        return indexAxis === "y"
+          ? hGradient(c.chart.ctx, c.chart.chartArea, color, { darkenStart: 0, lightenEnd: 0.22 })
+          : vGradient(c.chart.ctx, c.chart.chartArea, color, { lightenTop: 0.18 });
+      },
+      borderRadius: ds.borderRadius ?? 8,
+      maxBarThickness: ds.maxBarThickness ?? 28,
+    };
+  });
   return _mount(id, {
     type: "bar",
-    data: { labels: labels.map((l) => shorten(l, 28)), datasets },
+    data: { labels: labels.map((l) => shorten(l, 28)), datasets: enriched },
     options: {
       indexAxis,
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
+      layout: { padding: indexAxis === "y" ? { right: 24, top: 8, bottom: 8 } : { top: 18, left: 8, right: 8 } },
+      interaction: { mode: "nearest", axis: indexAxis === "y" ? "y" : "x", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart", delay: (c) => (c.type === "data" && c.mode === "default" ? c.dataIndex * 50 : 0) },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: { callbacks: { title: (items) => labels[items[0].dataIndex] || items[0].label } },
+        barHoverGrow: { enabled: true, grow: 4, radius: 8, glow: "rgba(48,99,173,0.28)" },
+      },
       scales:
         indexAxis === "y"
           ? {
               x: { beginAtZero: true, grid: { color: PALETTE.grid, drawTicks: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11 } } },
-              y: { grid: { display: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11 } } },
+              y: { grid: { display: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11, weight: "600" }, padding: 8 } },
             }
           : baseScales(),
     },
+    plugins: [barShadowPlugin, barHoverGrowPlugin],
   }, isEmpty, "Sem dados.");
 }
