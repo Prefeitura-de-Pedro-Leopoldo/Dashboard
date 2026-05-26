@@ -1,0 +1,92 @@
+{
+  "_doc": "Metadados por planilha. Chave = nome do arquivo .xlsx em assets/docs/relatorios/. Se uma planilha não tiver entrada aqui, o build usa o nome do arquivo como título/id.",
+  "eventos": {
+    "Lista de participantes - workshop-sei-2026-04.xlsx": {
+      "id": "workshop-sei-usar",
+      "title": "Workshop SEI! Usar na prática",
+      "tituloCurto": "Workshop SEI! Usar na prática",
+      "date": "2026-04-24",
+      "dateRaw": "Data: 24/04/2026 08h30 - 17h",
+      "time": "08h30",
+      "local": "Local: Av. Lincoln Diogo Viana, 830, Avenida Lincoln Diogo Viana",
+      "city": "Pedro Leopoldo",
+      "vagas": 80,
+      "grupo": null
+    },
+    "Lista de participantes - comissao-recursal-2026-05-t1.xlsx": {
+      "id": "comissao-recursal-1-turma-2026-05",
+      "title": "Formação para Membros da Comissão Recursal - 1ª Turma",
+      "tituloCurto": "Formação para Membros da Comissão Recursal - 1ª turma",
+      "date": "2026-05-07",
+      "dateRaw": "2026-05-07",
+      "time": "",
+      "local": "Pedro Leopoldo",
+      "city": "Pedro Leopoldo",
+      "vagas": 4,
+      "grupo": null
+    },
+    "Lista de participantes - Fundamentos da Gestão Pública.xlsx": {
+      "id": "fundamentos-da-gestao-publica",
+      "title": "Fundamentos da Gestão Pública",
+      "tituloCurto": "Fundamentos da Gestão Pública",
+      "date": "2026-05-14",
+      "dateRaw": "Data: 14/05/2026 09h",
+      "time": "09h",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
+      "city": "Pedro Leopoldo",
+      "vagas": 80,
+      "grupo": {
+        "id": "fundamentos-gestao-publica-2026-05-t1",
+        "titulo": "Fundamentos da Gestão Pública",
+        "turma": 1,
+        "modulo": 1
+      }
+    },
+    "Lista de participantes - mapa-gerenciamento-risco-2026-05-t1.xlsx": {
+      "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",
+      "title": "Elaboração do Mapa de Gerenciamento de Risco 1ª TURMA",
+      "tituloCurto": "Elaboração do Mapa de Gerenciamento de Risco - 1ª turma",
+      "date": "2026-05-20",
+      "dateRaw": "Data: 20/05/2026 14h",
+      "time": "14h",
+      "local": "Local: Prefeitura Municipal de Pedro Leopoldo, Rua Doutor Cristiano Otoni",
+      "city": "Pedro Leopoldo",
+      "vagas": 12,
+      "grupo": {
+        "id": "mapa-gerenciamento-risco-2026-05",
+        "titulo": "Elaboração do Mapa de Gerenciamento de Risco",
+        "turma": 1,
+        "modulo": null
+      }
+    },
+    "Lista de participantes - mapa-gerenciamento-risco-2026-05-t2.xlsx": {
+      "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-2-turma",
+      "title": "Elaboração do Mapa de Gerenciamento de Risco 2ª TURMA",
+      "tituloCurto": "Elaboração do Mapa de Gerenciamento de Risco - 2ª turma",
+      "date": "2026-05-20",
+      "dateRaw": "Data: 20/05/2026 15h",
+      "time": "15h",
+      "local": "Local: Prefeitura Municipal de Pedro Leopoldo, Rua Doutor Cristiano Otoni",
+      "city": "Pedro Leopoldo",
+      "vagas": 12,
+      "grupo": {
+        "id": "mapa-gerenciamento-risco-2026-05",
+        "titulo": "Elaboração do Mapa de Gerenciamento de Risco",
+        "turma": 2,
+        "modulo": null
+      }
+    },
+    "Lista de participantes - comunicacao-que-aproxima-2026-05.xlsx": {
+      "id": "comunicacao-que-aproxima",
+      "title": "Comunicação que aproxima",
+      "tituloCurto": "Comunicação que aproxima: O papel do servidor na construção da confiança pública",
+      "date": "2026-05-21",
+      "dateRaw": "Data: 21/05/2026 09h",
+      "time": "09h",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
+      "city": "Pedro Leopoldo",
+      "vagas": 40,
+      "grupo": null
+    }
+  }
+}

@@ -7,10 +7,13 @@ import { loadData, getEvento } from "./data.js";
 import {
   resumoGlobal,
   rankingSecretarias,
+  rankingEvasaoSecretarias,
   comparativoEventos,
   taxaPresenca,
   participacaoPorSecretaria,
+  evasaoPorSecretariaEvento,
   distribuicaoPorTurma,
+  consolidarPorGrupo,
 } from "./metrics.js";
 import {
   barInscritosVsPresentes,
@@ -19,6 +22,7 @@ import {
   barSecretarias,
   pieTurmas,
   lineTimeline,
+  lineEvolucaoEventos,
   radarComparativo,
   barGrupoComparativo,
   barGroupedByCategory,
@@ -102,7 +106,11 @@ const VIEW_GROUPS = {
 async function reloadData() {
   showDashboardSkeleton();
   try {
-    state.data = await loadData();
+    const raw = await loadData();
+    // Consolida eventos com mesmo grupo (turmas/módulos) em um único evento agregado.
+    // Mantém referência aos eventos originais em `_turmas` caso seja preciso o detalhe.
+    state.data = { ...raw, eventos: consolidarPorGrupo(raw.eventos || []) };
+    state.dataRaw = raw;
     renderAll();
   } catch (err) {
     document.getElementById("mainContent").innerHTML = `
@@ -347,6 +355,14 @@ function renderDashboard() {
     barTaxaPresenca("chartGlobalTaxa", realizados);
     barSecretarias("chartGlobalSec", ranking);
     donutPresenca("chartGlobalDonut", resumo.totalPresentes, resumo.totalAusentes);
+    barSecretarias("chartGlobalEvasao", rankingEvasaoSecretarias(eventos), {
+      datasetLabel: "Faltas",
+      unitLabel: "falta(s)",
+      tooltipExtra: (s) =>
+        `${s.inscritos} inscrito(s) · ${s.presentes} presente(s) · evasão ${s.taxaEvasao}%`,
+      emptyLabel: "Sem evasão registrada.",
+    });
+    lineEvolucaoEventos("chartGlobalEvo", realizados);
     return;
   }
 
@@ -431,7 +447,18 @@ function renderDashboard() {
   const renderGrid = () => {
     const shown = Math.min(state.eventGridShown, gruposEventos.length);
     const cardsHtml = gruposEventos.slice(0, shown)
-      .map((g) => (g.eventos.length > 1 ? renderCourseCard(g) : renderEventCard(g.eventos[0])))
+      .map((g) => {
+        const ev = g.eventos[0];
+        const turmas = ev._turmas || [];
+        // Se o evento foi consolidado a partir de 2+ turmas, exibe o course card
+        if (turmas.length > 1) {
+          return renderCourseCard({
+            grupo: ev.grupo,
+            eventos: turmas,
+          });
+        }
+        return g.eventos.length > 1 ? renderCourseCard(g) : renderEventCard(ev);
+      })
       .join("");
     grid.innerHTML = cardsHtml;
 
@@ -520,33 +547,54 @@ function renderEventBlock(ev) {
     </div>
 
     <div class="view-tabs__panel" data-tab-panel="distribuicoes" ${active === "distribuicoes" ? "" : "hidden"}>
-      <div class="grid-3">
+      <!-- Linha 1: Top Participação + Top Evasão deste evento -->
+      <div class="grid-2">
         <div class="card">
-          <div class="card__header"><div><h3>Presença</h3><p>Compareceram vs Faltaram.</p></div></div>
-          <div class="chart-wrap"><canvas id="chartEvDonut"></canvas></div>
+          <div class="card__header"><div><h3>Top Secretarias com Mais Participação</h3><p>Inscritos por secretaria neste evento.</p></div></div>
+          <div class="chart-wrap lg"><canvas id="chartEvSec"></canvas></div>
         </div>
         <div class="card">
-          <div class="card__header"><div><h3>Distribuição por turma</h3><p>Por tipo de ingresso.</p></div></div>
-          <div class="chart-wrap"><canvas id="chartEvTurmas"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card__header"><div><h3>Top secretarias</h3><p>Inscritos por secretaria.</p></div></div>
-          <div class="chart-wrap"><canvas id="chartEvSec"></canvas></div>
+          <div class="card__header"><div><h3>Top Secretarias com Mais Evasão</h3><p>Inscritos que não compareceram, por secretaria.</p></div></div>
+          <div class="chart-wrap lg"><canvas id="chartEvEvasao"></canvas></div>
         </div>
       </div>
+
+      <!-- Linha 2: Presença + Distribuição por turma -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card__header"><div><h3>Presença</h3><p>Compareceram vs faltaram.</p></div></div>
+          <div class="chart-wrap lg"><canvas id="chartEvDonut"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card__header"><div><h3>Distribuição por turma</h3><p>Inscritos por turma.</p></div></div>
+          <div class="chart-wrap lg"><canvas id="chartEvTurmas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Linha 3: Curva de inscrições (full-width) -->
       <div class="card">
         <div class="card__header"><div><h3>Curva de inscrições</h3><p>Inscrições por dia até o evento.</p></div></div>
-        <div class="chart-wrap"><canvas id="chartEvTimeline"></canvas></div>
+        <div class="chart-wrap lg"><canvas id="chartEvTimeline"></canvas></div>
       </div>
     </div>
 
     <div class="view-tabs__panel" data-tab-panel="participantes" ${active === "participantes" ? "" : "hidden"}>
-      <div class="table-wrap">
-        <div class="table-wrap__head">
-          <h3><i class="fas fa-users"></i> Participantes deste evento</h3>
-          <span class="card__header-meta">${ev.participantes.length} pessoa(s)</span>
+      <div class="grid-2 participantes-grid">
+        <div class="table-wrap">
+          <div class="table-wrap__head">
+            <h3><i class="fas fa-circle-check" style="color: var(--green-600)"></i> Presentes</h3>
+            <span class="card__header-meta">${(ev.participantes || []).filter((p) => p.presente).length} pessoa(s)</span>
+          </div>
+          <div id="evPresentesTable"></div>
         </div>
-        <div id="evParticipantsTable"></div>
+
+        <div class="table-wrap">
+          <div class="table-wrap__head">
+            <h3><i class="fas fa-circle-xmark" style="color: var(--red)"></i> Faltou</h3>
+            <span class="card__header-meta">${(ev.participantes || []).filter((p) => !p.presente).length} pessoa(s)</span>
+          </div>
+          <div id="evFaltouTable"></div>
+        </div>
       </div>
     </div>
   `;
@@ -554,7 +602,10 @@ function renderEventBlock(ev) {
   wireTabs(tabsKey, () => renderEventBlock(ev));
 
   if (active === "participantes") {
-    renderPaginatedTable("evParticipantsTable", ev.participantes, `ev-${ev.id}`);
+    const presentes = (ev.participantes || []).filter((p) => p.presente);
+    const faltou = (ev.participantes || []).filter((p) => !p.presente);
+    renderPaginatedTable("evPresentesTable", presentes, `ev-${ev.id}-presentes`);
+    renderPaginatedTable("evFaltouTable", faltou, `ev-${ev.id}-faltou`);
   }
 
   if (active === "resumo") {
@@ -563,6 +614,7 @@ function renderEventBlock(ev) {
     donutPresenca("chartEvDonut", ev.totalPresentes, ev.totalAusentes);
     pieTurmas("chartEvTurmas", distribuicaoPorTurma(ev));
     barSecretarias("chartEvSec", participacaoPorSecretaria(ev).sort((a, b) => b.qtd - a.qtd));
+    barSecretarias("chartEvEvasao", evasaoPorSecretariaEvento(ev));
     lineTimeline("chartEvTimeline", ev.timelineInscricoes || [], "Inscrições no dia");
   }
 }
@@ -976,12 +1028,12 @@ function renderViewSecretarias() {
       </div>
     </div>
 
-    <div class="grid-2">
+    <div class="grid-2 secretarias-grid">
       <div class="card">
         <div class="card__header"><div><h3>Distribuição global</h3><p>Inscrições por secretaria (todos os eventos).</p></div></div>
-        <div class="chart-wrap lg"><canvas id="secChart"></canvas></div>
+        <div class="chart-wrap" id="secChartWrap"><canvas id="secChart"></canvas></div>
       </div>
-      <div class="table-wrap" style="margin-bottom:0;">
+      <div class="table-wrap" id="secRankingWrap" style="margin-bottom:0;">
         <div class="table-wrap__head">
           <h3><i class="fas fa-list-ol"></i> Ranking detalhado</h3>
           <span class="card__header-meta">${ranking.length} secretaria(s)</span>
@@ -990,6 +1042,17 @@ function renderViewSecretarias() {
       </div>
     </div>
   `;
+  // Tabela com altura natural; o CSS Grid (.secretarias-grid) iguala os
+  // dois cards automaticamente via align-items: stretch. O gráfico usa
+  // o card pai como referência de altura (100%).
+  const tableWrap = document.getElementById("secRankingWrap");
+  if (tableWrap) {
+    const scroll = tableWrap.querySelector(".table-scroll");
+    if (scroll) {
+      scroll.style.maxHeight = "none";
+      scroll.style.overflow = "visible";
+    }
+  }
   barSecretarias("secChart", ranking, { limit: 15 });
 }
 
@@ -1663,9 +1726,11 @@ function renderViewCertificados() {
           <i class="fas fa-arrow-left"></i> Voltar
         </button>
         <div class="wizard__nav-meta" id="certStepMeta"></div>
-        <button class="btn btn--accent" id="certNext" ${state.certStep === 3 ? "hidden" : ""}>
-          Próximo <i class="fas fa-arrow-right"></i>
-        </button>
+        ${state.certStep === 3 ? "" : `
+          <button class="btn btn--accent" id="certNext">
+            Próximo <i class="fas fa-arrow-right"></i>
+          </button>
+        `}
       </div>
     </div>
   `;
@@ -1693,6 +1758,8 @@ function renderViewCertificados() {
         // Troca de evento invalida a seleção feita para o anterior.
         state._certSelectedIds = [];
         state._certSelectedCount = 0;
+        // Autopreenche os campos do certificado a partir do evento.
+        autoFillCertFromEvent(evSel.value);
       });
     }
     setupCertUpload();
@@ -1709,16 +1776,92 @@ function renderViewCertificados() {
       el.addEventListener("input", save);
       el.addEventListener("change", save);
     });
+    // Autopreenchimento inicial: se há evento selecionado e os campos estão
+    // vazios (ou nunca foram tocados), preenche a partir do evento.
+    if (state.certEventId && state.certSource === "evento") {
+      autoFillCertFromEvent(state.certEventId, { onlyEmpty: true });
+    }
+  }
+
+  // Função utilitária para autopreencher os campos do certificado.
+  // opts.onlyEmpty=true só sobrescreve quando o campo está vazio (não pisa em edições do usuário).
+  function autoFillCertFromEvent(eventId, opts = {}) {
+    if (!eventId) return;
+    const onlyEmpty = !!opts.onlyEmpty;
+    const planilhasManifest = (state.certManifest && state.certManifest.planilhas) || [];
+    const planilha = planilhasManifest.find((p) => p.id === eventId);
+    if (!planilha) return;
+
+    // Match com o eventos-data.json para puxar data/horário precisos
+    const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const tNorm = norm(planilha.titulo);
+    const evMeta = (state.data?.eventos || []).find((ev) => {
+      const t = norm(ev.title);
+      const f = norm(ev.fonte);
+      return (t && (tNorm.includes(t) || t.includes(tNorm))) ||
+             (planilha.arquivo && f && f === norm(planilha.arquivo));
+    });
+
+    const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+    let dia = "", mes = "", ano = "";
+    if (evMeta?.date) {
+      const [y, m, d] = String(evMeta.date).split("-");
+      if (d) dia = String(parseInt(d, 10));
+      if (m) mes = MESES[parseInt(m, 10) - 1] || "";
+      if (y) ano = y;
+    }
+    // Estima carga horária a partir do dateRaw (ex.: "Data: 24/04/2026 08h30 - 17h")
+    let carga = "";
+    if (evMeta?.dateRaw) {
+      const m = String(evMeta.dateRaw).match(/(\d{1,2})[h:](\d{0,2})\s*[-–às]+\s*(\d{1,2})[h:]?(\d{0,2})/i);
+      if (m) {
+        const ini = parseInt(m[1], 10) + (parseInt(m[2] || "0", 10) / 60);
+        const fim = parseInt(m[3], 10) + (parseInt(m[4] || "0", 10) / 60);
+        if (Number.isFinite(ini) && Number.isFinite(fim) && fim > ini) {
+          carga = String(Math.round(fim - ini));
+        }
+      }
+    }
+
+    const setField = (id, value) => {
+      const el = document.getElementById(id);
+      if (!el || !value) return;
+      if (onlyEmpty && el.value && el.value.trim() !== "") return;
+      el.value = value;
+      state.certForm = state.certForm || {};
+      state.certForm[id] = value;
+    };
+    setField("certCurso", planilha.titulo);
+    setField("certDia", dia);
+    setField("certMes", mes);
+    setField("certAno", ano);
+    if (carga) setField("certCarga", carga);
   }
 
   // Etapa 2 — tabela e seleção
   if (state.certStep === 2) {
-    document.getElementById("certBusca").addEventListener("input", populateCertTable);
+    document.getElementById("certBusca").addEventListener("input", () => {
+      state._certPage = 1;
+      populateCertTable();
+    });
     document.getElementById("certSelAll").addEventListener("click", () => {
+      // Seleciona TODOS os elegíveis filtrados (não só os da página atual)
+      const list = getCertParticipantes();
+      const busca = (document.getElementById("certBusca")?.value || "").toLowerCase();
+      const filtered = busca
+        ? list.filter((p) =>
+            (p.nome || "").toLowerCase().includes(busca) ||
+            (p.secretaria || "").toLowerCase().includes(busca))
+        : list;
+      state._certSelectedIds = filtered.map((_, i) => i);
+      state._certSelectedCount = filtered.length;
+      // Atualiza checks visíveis
       document.querySelectorAll(".cert-row-check").forEach((c) => (c.checked = true));
       updateCertEmitCount();
     });
     document.getElementById("certSelNone").addEventListener("click", () => {
+      state._certSelectedIds = [];
+      state._certSelectedCount = 0;
       document.querySelectorAll(".cert-row-check").forEach((c) => (c.checked = false));
       updateCertEmitCount();
     });
@@ -1851,10 +1994,15 @@ function goToCertStep(step) {
       if (el) state.certForm[id] = el.value;
     });
   }
-  // Salva selecionados ao sair da etapa 2
+  // Salva selecionados ao sair da etapa 2.
+  // ATENÇÃO: faz MERGE com seleções de outras páginas (paginação).
   if (state.certStep === 2) {
-    state._certSelectedIds = [...document.querySelectorAll(".cert-row-check:checked")]
-      .map((c) => parseInt(c.dataset.idx, 10));
+    const checks = document.querySelectorAll(".cert-row-check");
+    const visibleIdx = [...checks].map((c) => parseInt(c.dataset.idx, 10));
+    const visibleSet = new Set(visibleIdx);
+    const checkedVisible = [...checks].filter((c) => c.checked).map((c) => parseInt(c.dataset.idx, 10));
+    const prev = (state._certSelectedIds || []).filter((id) => !visibleSet.has(id));
+    state._certSelectedIds = [...new Set([...prev, ...checkedVisible])];
     state._certSelectedCount = state._certSelectedIds.length;
   }
   state.certStep = step;
@@ -2097,25 +2245,29 @@ async function loadCertManifest() {
 }
 
 /**
- * Baixa e parseia a planilha .xlsx de um evento (por id do manifesto),
- * guardando os elegíveis em cache. Reaproveita o parser do upload.
+ * Carrega elegíveis de um evento a partir do eventos-data.json (já pré-buildado
+ * por scripts/build-data.mjs). O id do manifesto agora coincide com o id do
+ * evento no JSON, então é uma simples lookup + filtro de presentes.
  */
 async function loadSystemPlanilha(id) {
   state.certSystemCache = state.certSystemCache || {};
   if (!id) return [];
   if (state.certSystemCache[id]) return state.certSystemCache[id];
 
-  const planilhas = (state.certManifest && state.certManifest.planilhas) || [];
-  const entry = planilhas.find((p) => p.id === id);
-  if (!entry) return [];
+  if (!state.data) state.data = await loadData();
 
-  const url = "assets/docs/relatorios/" + encodeURIComponent(entry.arquivo);
-  const res = await fetch(url, { cache: "no-cache" });
-  if (!res.ok) throw new Error(`Falha ao ler ${entry.arquivo} (HTTP ${res.status})`);
-  const buf = await res.arrayBuffer();
-  const wb = window.XLSX.read(new Uint8Array(buf), { type: "array" });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const participantes = parseSheetParticipantes(sheet);
+  const evento = (state.data.eventos || []).find((e) => e.id === id);
+  if (!evento) throw new Error(`Evento "${id}" não encontrado no eventos-data.json. Rode "npm run build".`);
+
+  const participantes = (evento.participantes || [])
+    .filter((p) => p.presente && p.nome && p.nome !== "(sem nome)")
+    .map((p) => ({
+      nome: p.nome,
+      email: p.email || "",
+      secretaria: p.secretaria || "",
+      turma: p.turma || "",
+      presente: true,
+    }));
   state.certSystemCache[id] = participantes;
   return participantes;
 }
@@ -2172,18 +2324,44 @@ function populateCertTable() {
     return;
   }
 
+  // Paginação: 5 por página. Mantém estado entre renders.
+  const PAGE_SIZE = 5;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (state._certPage == null) state._certPage = 1;
+  if (state._certPage > totalPages) state._certPage = totalPages;
+  const page = state._certPage;
+  const start = (page - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
   const savedIds = new Set(state._certSelectedIds || []);
-  const rows = filtered.map((p, i) => `
+  // Mapeia o índice REAL (em `filtered`) na checkbox para que select-all e
+  // a emissão continuem coerentes mesmo paginando.
+  const rows = pageItems.map((p, i) => {
+    const realIdx = start + i;
+    return `
     <tr>
-      <td><input type="checkbox" class="cert-row-check" data-idx="${i}" ${savedIds.has(i) ? "checked" : ""} /></td>
+      <td><input type="checkbox" class="cert-row-check" data-idx="${realIdx}" ${savedIds.has(realIdx) ? "checked" : ""} /></td>
       <td class="cell-name">${escapeHtml(p.nome)}</td>
       <td class="col-hide-sm">${escapeHtml(p.email || "")}</td>
-      <td class="col-hide-md">${escapeHtml(p.turma || "")}</td>
+      <td class="col-hide-md cell-turma" title="${escapeHtml(p.turma || "")}">${escapeHtml(p.turma || "")}</td>
       <td>${escapeHtml(p.secretaria || "")}</td>
       <td><span class="cell-status green"><i class="fas fa-check"></i> Elegível</span></td>
       <td><span class="cell-status muted">A emitir</span></td>
     </tr>
-  `).join("");
+  `;}).join("");
+
+  const from = start + 1;
+  const to = start + pageItems.length;
+  const pagerHtml = totalPages > 1 ? `
+    <div class="pager" data-pager-scope="cert">
+      <span class="pager__info"><b>${from}–${to}</b> de <b>${filtered.length}</b></span>
+      <div class="pager__controls">
+        <button type="button" class="pager__btn ${page === 1 ? "is-disabled" : ""}" data-cert-page="${page - 1}" ${page === 1 ? "disabled" : ""}><i class="fas fa-chevron-left"></i></button>
+        <span class="pager__current"><b>${page}</b> / ${totalPages}</span>
+        <button type="button" class="pager__btn ${page === totalPages ? "is-disabled" : ""}" data-cert-page="${page + 1}" ${page === totalPages ? "disabled" : ""}><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  ` : "";
 
   document.getElementById("certTable").innerHTML = `
     <div class="table-scroll">
@@ -2202,7 +2380,20 @@ function populateCertTable() {
         <tbody>${rows}</tbody>
       </table>
     </div>
+    ${pagerHtml}
   `;
+
+  // Wire pager
+  document.querySelectorAll("[data-cert-page]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const p = parseInt(btn.dataset.certPage, 10);
+      if (Number.isFinite(p) && p >= 1 && p <= totalPages) {
+        state._certPage = p;
+        populateCertTable();
+      }
+    });
+  });
 
   document.getElementById("certHeadCheck").addEventListener("change", (e) => {
     document.querySelectorAll(".cert-row-check").forEach((c) => (c.checked = e.target.checked));
@@ -2217,13 +2408,18 @@ function populateCertTable() {
 }
 
 function updateCertEmitCount() {
-  // Na etapa 2 conta direto dos checkboxes; na etapa 3 usa o state salvo
+  // Na etapa 2 atualiza state com base nas checkboxes visíveis (página atual),
+  // preservando seleções das outras páginas (merge).
   let n;
   const checks = document.querySelectorAll(".cert-row-check");
   if (checks.length) {
-    n = document.querySelectorAll(".cert-row-check:checked").length;
-    state._certSelectedIds = [...document.querySelectorAll(".cert-row-check:checked")]
-      .map((c) => parseInt(c.dataset.idx, 10));
+    const visibleIdx = [...checks].map((c) => parseInt(c.dataset.idx, 10));
+    const visibleSet = new Set(visibleIdx);
+    const checkedVisible = [...checks].filter((c) => c.checked).map((c) => parseInt(c.dataset.idx, 10));
+    // Mantém os selecionados de outras páginas + adiciona os checados desta página
+    const prev = (state._certSelectedIds || []).filter((id) => !visibleSet.has(id));
+    state._certSelectedIds = [...new Set([...prev, ...checkedVisible])];
+    n = state._certSelectedIds.length;
     state._certSelectedCount = n;
   } else {
     n = state._certSelectedCount || 0;
@@ -2393,24 +2589,39 @@ function renderViewAutoReport() {
   view.innerHTML = `
     <div class="auto-report-layout">
       <div class="auto-report-form">
-        <div class="card auto-report-intro">
-          <div class="card__header">
-            <div>
-              <h3><i class="fas fa-magic-wand-sparkles" style="color:var(--brand-primary)"></i> Geração automática</h3>
-              <p>Faça upload das duas planilhas e clique em <b>Gerar PDF</b>. Todo o conteúdo do relatório (título, datas, métricas, gráficos, análises e conclusão) é extraído automaticamente.</p>
-            </div>
-          </div>
-        </div>
-
         <div class="grid-2">
           <div class="card">
-            <div class="card__header"><div><h3>1. Lista de participantes</h3><p>XLSX exportado do sistema de inscrições.</p></div></div>
-            <label class="dropzone" id="arDropPart">
-              <input type="file" id="arFilePart" accept=".xlsx,.xls,.csv" />
-              <div class="dropzone__icon"><i class="fas fa-users"></i></div>
-              <div class="dropzone__title" id="arDropPartTitle">${s.participantes ? escapeHtml(s.participantes.fileName) : "Clique ou arraste a planilha"}</div>
-              <div class="dropzone__sub" id="arDropPartSub">${s.participantes ? `${s.participantes.totalInscritos} inscritos · ${s.participantes.totalPresentes} presentes` : "XLSX, XLS ou CSV"}</div>
-            </label>
+            <div class="card__header"><div><h3>1. Lista de participantes</h3><p>Selecione um evento já carregado ou envie a planilha.</p></div></div>
+            <div class="source-tabs" role="tablist" aria-label="Origem dos participantes">
+              <button type="button" class="source-tab is-active" data-ar-source="evento" role="tab">
+                <i class="fas fa-calendar-day"></i> Evento do sistema
+              </button>
+              <button type="button" class="source-tab" data-ar-source="upload" role="tab">
+                <i class="fas fa-file-arrow-up"></i> Enviar planilha
+              </button>
+            </div>
+
+            <div data-ar-pane="evento">
+              <label class="filter" style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:var(--fs-2xs);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:var(--tracking-wider);color:var(--text-muted);">Evento</span>
+                <select id="arEventSelect" class="event-picker__select">
+                  <option value="">— selecione —</option>
+                  ${(state.data?.eventos || []).slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((ev) => `
+                    <option value="${ev.id}" ${s.participantes?.fromEventId === ev.id ? "selected" : ""}>${escapeHtml(ev.title)}${ev.date ? " · " + formatDateBR(ev.date) : ""}</option>
+                  `).join("")}
+                </select>
+              </label>
+              <div id="arEventSummary" class="ar-event-summary">${s.participantes?.fromEventId ? renderArEventSummary(s.participantes) : `<p class="ar-event-summary__empty"><i class="fas fa-circle-info"></i> Escolha um evento já carregado. Os dados de presença vêm direto dos relatórios consolidados.</p>`}</div>
+            </div>
+
+            <div data-ar-pane="upload" hidden>
+              <label class="dropzone" id="arDropPart">
+                <input type="file" id="arFilePart" accept=".xlsx,.xls,.csv" />
+                <div class="dropzone__icon"><i class="fas fa-users"></i></div>
+                <div class="dropzone__title" id="arDropPartTitle">${s.participantes && !s.participantes.fromEventId ? escapeHtml(s.participantes.fileName) : "Clique ou arraste a planilha"}</div>
+                <div class="dropzone__sub" id="arDropPartSub">${s.participantes && !s.participantes.fromEventId ? `${s.participantes.totalInscritos} inscritos · ${s.participantes.totalPresentes} presentes` : "XLSX, XLS ou CSV"}</div>
+              </label>
+            </div>
           </div>
 
           <div class="card">
@@ -2445,9 +2656,86 @@ function renderViewAutoReport() {
   `;
 
   setupAutoReportUploads();
+  setupAutoReportSourceTabs();
+  setupAutoReportEventPicker();
   document.getElementById("arGenerate").addEventListener("click", generateSatisfacaoPdf);
   document.getElementById("arGenerateDocx").addEventListener("click", generateSatisfacaoDocx);
   updateAutoReportSummary();
+}
+
+function setupAutoReportSourceTabs() {
+  const tabs = document.querySelectorAll("[data-ar-source]");
+  const panes = {
+    evento: document.querySelector('[data-ar-pane="evento"]'),
+    upload: document.querySelector('[data-ar-pane="upload"]'),
+  };
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const key = tab.dataset.arSource;
+      tabs.forEach((t) => t.classList.toggle("is-active", t === tab));
+      Object.entries(panes).forEach(([k, el]) => { if (el) el.hidden = k !== key; });
+    });
+  });
+}
+
+function setupAutoReportEventPicker() {
+  const sel = document.getElementById("arEventSelect");
+  if (!sel) return;
+  sel.addEventListener("change", () => {
+    const id = sel.value;
+    if (!id) {
+      state.autoReport.participantes = null;
+      document.getElementById("arEventSummary").innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-circle-info"></i> Escolha um evento já carregado.</p>`;
+      updateAutoReportSummary();
+      return;
+    }
+    const ev = (state.data?.eventos || []).find((e) => e.id === id);
+    if (!ev) return;
+    const totalInscritos = ev.totalInscritos || 0;
+    const totalPresentes = ev.totalPresentes || 0;
+    const totalAusentes = ev.totalAusentes ?? Math.max(0, totalInscritos - totalPresentes);
+    const capacidade = ev.vagas || totalInscritos;
+    state.autoReport.participantes = {
+      fromEventId: id,
+      fileName: `Evento: ${ev.title}`,
+      evento: ev.title,
+      data: ev.dateRaw || (ev.date ? formatDateBR(ev.date) : ""),
+      local: ev.local || "",
+      totalInscritos,
+      totalPresentes,
+      totalAusentes,
+      capacidade,
+      capacidadeInferida: !ev.vagas,
+      participantes: ev.participantes || [],
+      secretarias: ev.secretarias || {},
+      secretariasPresentes: ev.secretariasPresentes || {},
+    };
+    document.getElementById("arEventSummary").innerHTML = renderArEventSummary(state.autoReport.participantes);
+    updateAutoReportSummary();
+  });
+}
+
+function renderArEventSummary(p) {
+  if (!p) return "";
+  const taxa = p.totalInscritos ? ((p.totalPresentes / p.totalInscritos) * 100).toFixed(1) + "%" : "—";
+  const ocup = p.capacidade ? ((p.totalInscritos / p.capacidade) * 100).toFixed(1) + "%" : "—";
+  return `
+    <div class="ar-event-card">
+      <div class="ar-event-card__title">${escapeHtml(p.evento)}</div>
+      <div class="ar-event-card__meta">
+        ${p.data ? `<span><i class="fas fa-calendar"></i> ${escapeHtml(p.data)}</span>` : ""}
+        ${p.local ? `<span><i class="fas fa-location-dot"></i> ${escapeHtml(p.local)}</span>` : ""}
+      </div>
+      <div class="ar-event-card__metrics">
+        <div><span>Inscritos</span><b>${p.totalInscritos}</b></div>
+        <div><span>Presentes</span><b class="green">${p.totalPresentes}</b></div>
+        <div><span>Ausentes</span><b class="${p.totalAusentes > 0 ? "red" : ""}">${p.totalAusentes}</b></div>
+        <div><span>Taxa</span><b>${taxa}</b></div>
+        <div><span>Capacidade</span><b>${p.capacidade}${p.capacidadeInferida ? "*" : ""}</b></div>
+        <div><span>Ocupação</span><b>${ocup}</b></div>
+      </div>
+    </div>
+  `;
 }
 
 function updateAutoReportSummary() {

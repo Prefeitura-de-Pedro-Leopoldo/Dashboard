@@ -358,7 +358,55 @@ export function renderEventDetail(ev) {
           </div>
         </div>
       </div>
+
+      ${renderTurmasBreakdown(ev)}
     </section>
+  `;
+}
+
+// Detalhamento por turma quando o evento é consolidado (vem de um grupo com 2+ turmas)
+function renderTurmasBreakdown(ev) {
+  const turmas = ev._turmas;
+  if (!Array.isArray(turmas) || turmas.length < 2) return "";
+
+  const rows = turmas.map((t) => {
+    const tNum = t.grupo && (t.grupo.turma ?? null);
+    const mNum = t.grupo && (t.grupo.modulo ?? null);
+    const label = tNum != null ? `Turma ${tNum}` : mNum != null ? `Módulo ${mNum}` : t.title;
+    const tx = taxaPresenca(t);
+    const txClass = progressClass(tx);
+    const ocup = taxaOcupacao(t);
+    const ocupCls = ocup == null ? "na" : ocup >= 90 ? "green" : ocup >= 50 ? "" : "red";
+    const vagas = totalVagasOuIngressos(t);
+    return `
+      <div class="turma-row">
+        <div class="turma-row__head">
+          <span class="turma-row__label"><i class="fas fa-users-rectangle"></i> ${escapeHtml(label)}</span>
+          <span class="turma-row__date">${t.date ? formatDateBR(t.date) : ""}${t.time ? " · " + escapeHtml(t.time) : ""}</span>
+        </div>
+        <div class="turma-row__metrics">
+          <div class="turma-metric"><span>Vagas</span><b>${vagas != null ? fmt(vagas) : "—"}</b></div>
+          <div class="turma-metric"><span>Inscritos</span><b>${fmt(t.totalInscritos || 0)}</b></div>
+          <div class="turma-metric"><span>Presentes</span><b class="green">${fmt(t.totalPresentes || 0)}</b></div>
+          <div class="turma-metric"><span>Ausentes</span><b class="${(t.totalAusentes || 0) > 0 ? "red" : ""}">${fmt(t.totalAusentes || 0)}</b></div>
+          <div class="turma-metric"><span>Ocupação</span><b class="${ocupCls}">${ocup != null ? pct(ocup) : "—"}</b></div>
+          <div class="turma-metric"><span>Presença</span><b class="${txClass}">${pct(tx)}</b></div>
+        </div>
+        <div class="progress" aria-label="Taxa de presença">
+          <div class="progress__fill ${txClass}" style="width:${tx ?? 0}%"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <div class="event-detail__turmas">
+      <div class="event-detail__turmas-head">
+        <h3><i class="fas fa-layer-group"></i> Detalhamento por turma</h3>
+        <span class="event-detail__turmas-sub">${turmas.length} turmas neste curso</span>
+      </div>
+      <div class="event-detail__turmas-grid">${rows}</div>
+    </div>
   `;
 }
 
@@ -404,7 +452,7 @@ export function renderParticipantsTable(participantes, opts = {}) {
       <td class="col-hide-sm">${emailCell}</td>
       <td class="col-hide-md cell-turma" title="${escapeHtml(p.turma || "")}">${escapeHtml(p.turma || "-")}</td>
       <td>${escapeHtml(p.secretaria || "-")}</td>
-      <td>
+      <td class="col-presence">
         <span class="cell-status ${p.presente ? "green" : "red"}">
           <i class="fas ${p.presente ? "fa-check" : "fa-xmark"}"></i>
           ${p.presente ? "Presente" : "Faltou"}
@@ -425,7 +473,7 @@ export function renderParticipantsTable(participantes, opts = {}) {
             <th class="col-hide-sm">E-mail</th>
             <th class="col-hide-md">Turma</th>
             <th>Secretaria</th>
-            <th>Presença</th>
+            <th class="col-presence">Presença</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>

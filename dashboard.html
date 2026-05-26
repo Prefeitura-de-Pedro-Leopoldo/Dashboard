@@ -169,18 +169,37 @@
 
               <!-- Aba 2: Gráficos consolidados -->
               <div class="view-tabs__panel" data-tab-panel="charts" hidden>
+                <!-- Linha 1: Inscritos vs Presentes (full-width) -->
                 <div class="card">
                   <div class="card__header">
                     <div><h3>Inscritos vs Presentes</h3><p>Comparativo direto por evento.</p></div>
                   </div>
                   <div class="chart-wrap" id="wrap-globalBar"><canvas id="chartGlobalBar"></canvas></div>
                 </div>
-                <div class="grid-3">
+
+                <!-- Linha 2: Top Participação + Top Evasão -->
+                <div class="grid-2">
                   <div class="card">
                     <div class="card__header">
-                      <div><h3>Ranking de secretarias</h3><p>Soma de inscrições.</p></div>
+                      <div><h3>Top Secretarias com Mais Participação</h3><p>Soma de inscrições em todos os eventos.</p></div>
                     </div>
                     <div class="chart-wrap lg" id="wrap-globalSec"><canvas id="chartGlobalSec"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card__header">
+                      <div><h3>Top Secretarias com Mais Evasão</h3><p>Inscritos que não compareceram, somados em todos os eventos realizados.</p></div>
+                    </div>
+                    <div class="chart-wrap lg" id="wrap-globalEvasao"><canvas id="chartGlobalEvasao"></canvas></div>
+                  </div>
+                </div>
+
+                <!-- Linha 3: Taxa de presença + Presença consolidada -->
+                <div class="grid-2">
+                  <div class="card">
+                    <div class="card__header">
+                      <div><h3>Taxa de presença</h3><p>Por evento.</p></div>
+                    </div>
+                    <div class="chart-wrap lg" id="wrap-globalTaxa"><canvas id="chartGlobalTaxa"></canvas></div>
                   </div>
                   <div class="card">
                     <div class="card__header">
@@ -188,12 +207,14 @@
                     </div>
                     <div class="chart-wrap lg" id="wrap-globalDonut"><canvas id="chartGlobalDonut"></canvas></div>
                   </div>
-                  <div class="card">
-                    <div class="card__header">
-                      <div><h3>Taxa de presença</h3><p>Por evento.</p></div>
-                    </div>
-                    <div class="chart-wrap lg" id="wrap-globalTaxa"><canvas id="chartGlobalTaxa"></canvas></div>
+                </div>
+
+                <!-- Linha 4: Evolução temporal (full-width) -->
+                <div class="card">
+                  <div class="card__header">
+                    <div><h3>Evolução temporal</h3><p>Inscritos e presentes ao longo do tempo, em ordem cronológica.</p></div>
                   </div>
+                  <div class="chart-wrap lg" id="wrap-globalEvo"><canvas id="chartGlobalEvo"></canvas></div>
                 </div>
               </div>
             </section>

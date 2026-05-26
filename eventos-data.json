@@ -1,6 +1,6 @@
 {
-  "geradoEm": "2026-05-21T14:21:26.233634",
-  "fonte": "docs/eventos/*.xlsx",
+  "geradoEm": "2026-05-26T19:31:47.289Z",
+  "fonte": "assets/docs/relatorios/Lista de participantes - *.xlsx",
   "eventos": [
     {
       "id": "workshop-sei-usar",
@@ -17,12 +17,12 @@
       "totalAusentes": 13,
       "taxaPresenca": 83.5,
       "turmas": {
-        "Turma Manhã: 24/04/2026 de 08:30 às 12:00": 40,
-        "Turma Tarde: 24/04/2026 de 13:30 às 17:00": 39
+        "Turma Manhã - 08:30 Às 12:00": 40,
+        "Turma Tarde - 13:30 Às 17:00": 39
       },
       "turmasPresentes": {
-        "Turma Manhã: 24/04/2026 de 08:30 às 12:00": 35,
-        "Turma Tarde: 24/04/2026 de 13:30 às 17:00": 31
+        "Turma Manhã - 08:30 Às 12:00": 35,
+        "Turma Tarde - 13:30 Às 17:00": 31
       },
       "secretarias": {
         "Secretaria Municipal de Educação": 47,
@@ -91,7 +91,7 @@
         {
           "nome": "Débora Silva",
           "email": "debora.silva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -103,7 +103,7 @@
         {
           "nome": "JULIANA SOARES GONÇALVES",
           "email": "jsgoncalves@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -115,7 +115,7 @@
         {
           "nome": "MARCOS ANTONIO DE ALCANTARA",
           "email": "marcos.alcantara@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -127,7 +127,7 @@
         {
           "nome": "ANA MARIA DA COSTA",
           "email": "ana.costa@pl.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -139,7 +139,7 @@
         {
           "nome": "ANDRESSA CARNEIRO",
           "email": "andressa.carneiro@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -151,7 +151,7 @@
         {
           "nome": "LEILANE ALVES BARBOSA",
           "email": "leilane.barbosa@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -163,7 +163,7 @@
         {
           "nome": "Ione de Bastos",
           "email": "ione.bastos@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -175,7 +175,7 @@
         {
           "nome": "Ana Myrrha",
           "email": "ana.myrrha@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -187,7 +187,7 @@
         {
           "nome": "Cláudia Rocha de Souza",
           "email": "claudia.souza@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -199,7 +199,7 @@
         {
           "nome": "Ivana Mércia Savoi Silva",
           "email": "ivana.silva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -211,7 +211,7 @@
         {
           "nome": "Luciane Costa Silva Vieira",
           "email": "luciane.vieira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -223,7 +223,7 @@
         {
           "nome": "Ana Alice Araújo",
           "email": "ana.nazareno@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -235,7 +235,7 @@
         {
           "nome": "TANIA MARIA RODRIGUES",
           "email": "tania.rodrigues@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -247,7 +247,7 @@
         {
           "nome": "Isabela Tavares",
           "email": "isabela.santana@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -259,7 +259,7 @@
         {
           "nome": "Antonele Vieira Medeiros",
           "email": "antonelemedeiros@gmail.com",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -271,7 +271,7 @@
         {
           "nome": "MARIA LETICIA BARBOSA GONCALVES",
           "email": "maria.goncalves@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -283,7 +283,7 @@
         {
           "nome": "CRISTIANE DANIELLE DE SOUZA ANDRADE",
           "email": "cristiane.andrade@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -295,7 +295,7 @@
         {
           "nome": "Daniela Silva Fernandes",
           "email": "daniela.fernandes@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -307,7 +307,7 @@
         {
           "nome": "SIMONE APARECIDA SANTOS DINIZ",
           "email": "sasdiniz@pedroleopoldo.gov.mg.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -319,7 +319,7 @@
         {
           "nome": "Graziela Trindade",
           "email": "graziela.trindade@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -331,7 +331,7 @@
         {
           "nome": "SIMONE SANTOS",
           "email": "ssantos@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -343,7 +343,7 @@
         {
           "nome": "ANDRESSA FLORES SARAIVA SILVA",
           "email": "afssilva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -355,7 +355,7 @@
         {
           "nome": "Denise Aparecida Costa Gonçalves",
           "email": "decostagoncalves@gmail.com",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -367,7 +367,7 @@
         {
           "nome": "Luciana cristina Da Costa Ramalho Alves",
           "email": "lccralves@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -379,7 +379,7 @@
         {
           "nome": "Danielle Angélica da Luz e Silva",
           "email": "danielle_plp@yahoo.com.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -391,7 +391,7 @@
         {
           "nome": "Elica Cristina",
           "email": "ecrsilva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -403,7 +403,7 @@
         {
           "nome": "FABIANA CRISTINA ALVES TORRES",
           "email": "fabiana.torres@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -415,7 +415,7 @@
         {
           "nome": "Elias Marques",
           "email": "eliasmarques1986@gmail.com",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -427,7 +427,7 @@
         {
           "nome": "NÚBIA ARAÚJO",
           "email": "nubiaplaraujo@gmail.com",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -439,7 +439,7 @@
         {
           "nome": "Rafaela Barros",
           "email": "rsbarros@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -451,7 +451,7 @@
         {
           "nome": "Priscila Mendes",
           "email": "pmendes@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -463,7 +463,7 @@
         {
           "nome": "Jussara Da Silva Mayer Ribeiro",
           "email": "jsmribeiro@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -475,7 +475,7 @@
         {
           "nome": "Vanice Souza Oliveira",
           "email": "vsoliveira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -487,7 +487,7 @@
         {
           "nome": "Michele Cecilia da silva vieira vieira",
           "email": "michelececilia10@gmail.com",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -499,7 +499,7 @@
         {
           "nome": "VIVIANE PEDROSO DOMINGUES CARDOSO",
           "email": "viviane.cardoso@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -511,7 +511,7 @@
         {
           "nome": "VANI DE OLIVEIRA",
           "email": "vanioliveira172@gmail.com",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -523,7 +523,7 @@
         {
           "nome": "Jessica Neves",
           "email": "jessica.neves@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -535,7 +535,7 @@
         {
           "nome": "daiany roberta",
           "email": "daiany.esteves@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -547,7 +547,7 @@
         {
           "nome": "Tatiana Martins Costa",
           "email": "tatiana.costa@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -559,7 +559,7 @@
         {
           "nome": "Leonela Eler",
           "email": "leonelaapoliana@bol.com.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -571,7 +571,7 @@
         {
           "nome": "DIVA MARQUES",
           "email": "diva.marques@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -583,7 +583,7 @@
         {
           "nome": "Fabricia Mara Ramos Fonseca",
           "email": "fabriciamarapl@hotmail.com",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -595,7 +595,7 @@
         {
           "nome": "Edilamar Silva",
           "email": "edilamar.silva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -607,7 +607,7 @@
         {
           "nome": "Inara Assis",
           "email": "inara.assis@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -619,7 +619,7 @@
         {
           "nome": "MICHELI FERREIRA DO CARMO SANTOS FERREIRA",
           "email": "micheli.santos@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -631,7 +631,7 @@
         {
           "nome": "Daniela Eduardo Rodrigues Vicente",
           "email": "tiadanieduardo@gmail.com",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -643,7 +643,7 @@
         {
           "nome": "Marilene Almeida",
           "email": "marilene.almeida@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -655,7 +655,7 @@
         {
           "nome": "JoãoCarlos Lages Silva",
           "email": "jclsilva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Manhã: 24/04/2026 de 08:30 às 12:00",
+          "turma": "Turma Manhã - 08:30 Às 12:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -667,7 +667,7 @@
         {
           "nome": "Cynthia Andrade Pinto",
           "email": "cynthia.andrade@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -679,7 +679,7 @@
         {
           "nome": "JOYCE CRISTINA BARRETO SILVA LELES",
           "email": "joyce.leles@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -691,7 +691,7 @@
         {
           "nome": "Júnia Teixeira",
           "email": "junia.teixeira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -703,7 +703,7 @@
         {
           "nome": "CRISTINA CABRAL DA SILVA",
           "email": "cristina.silva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -715,7 +715,7 @@
         {
           "nome": "Priscila Oliveira dos Santos",
           "email": "priiods@gmail.com",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -727,7 +727,7 @@
         {
           "nome": "RITA CRISTINA MORAES GONÇALVES",
           "email": "rita.goncalves@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -739,7 +739,7 @@
         {
           "nome": "JULIANA CRISTINA DIOGO",
           "email": "juliana.diogo@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -751,7 +751,7 @@
         {
           "nome": "Vânia Reis",
           "email": "vania.reis@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -763,7 +763,7 @@
         {
           "nome": "ALANA CADETE ALVES",
           "email": "alana.alves@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -775,7 +775,7 @@
         {
           "nome": "Cleise Figueiredo dos Santos Santos",
           "email": "cfsantos@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -787,7 +787,7 @@
         {
           "nome": "Monica Cruz Vieira",
           "email": "monica.vieira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Controladoria Geral do Município",
           "cargo": null,
           "matricula": null,
@@ -799,7 +799,7 @@
         {
           "nome": "João Pedro Corrêa Peixoto",
           "email": "joao.correa@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Controladoria Geral do Município",
           "cargo": null,
           "matricula": null,
@@ -811,7 +811,7 @@
         {
           "nome": "Luana De Almeida e Câmara Chebly",
           "email": "luana.chebly@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -823,7 +823,7 @@
         {
           "nome": "Renata Barbosa de Magalhães",
           "email": "rbmagalhaes@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -835,7 +835,7 @@
         {
           "nome": "JULIANA HELENA GOMES",
           "email": "juliana.gomes@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Desenvolvimento Econômico",
           "cargo": null,
           "matricula": null,
@@ -847,7 +847,7 @@
         {
           "nome": "Aline Gonçalves de Souza",
           "email": "user-anonymous-266ed181676e68452b53ce37dbf2b3a4ef5bc23d",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Saúde",
           "cargo": null,
           "matricula": null,
@@ -859,7 +859,7 @@
         {
           "nome": "Roni Nazário de Oliveira",
           "email": "rnoliveira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Saúde",
           "cargo": null,
           "matricula": null,
@@ -871,7 +871,7 @@
         {
           "nome": "Joyce Goulart Souza",
           "email": "jgsouza@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Saúde",
           "cargo": null,
           "matricula": null,
@@ -883,7 +883,7 @@
         {
           "nome": "Andréia Cristina Coités Corrêa",
           "email": "andreia.coites@gmail.com",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Saúde",
           "cargo": null,
           "matricula": null,
@@ -895,7 +895,7 @@
         {
           "nome": "Elizete Angela Mata",
           "email": "elizete.mata@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -907,7 +907,7 @@
         {
           "nome": "Geralda da Conceição Moreira",
           "email": "geralda.costa@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -919,7 +919,7 @@
         {
           "nome": "MARIA LOURDES",
           "email": "maria.reis@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -931,7 +931,7 @@
         {
           "nome": "Monica Márcia Lopes Francisco de Oliveira de Oliveira",
           "email": "monica.oliveira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -943,7 +943,7 @@
         {
           "nome": "SORAIA GONÇALVES FERREIRA",
           "email": "soraia.ferreira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -955,7 +955,7 @@
         {
           "nome": "Rafaela Aparecida da Silva",
           "email": "rafaela.silva@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -967,7 +967,7 @@
         {
           "nome": "Regina FERREIRA",
           "email": "regbblima@gmail.com",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -979,7 +979,7 @@
         {
           "nome": "Eugenio Barbosa Oliveira",
           "email": "eugboliveira@gmail.com",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
           "cargo": null,
           "matricula": null,
@@ -991,7 +991,7 @@
         {
           "nome": "Ketylin Franciny dos Santos Lima",
           "email": "ketylin.lima@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Chefia de Gabinete",
           "cargo": null,
           "matricula": null,
@@ -1003,7 +1003,7 @@
         {
           "nome": "CASSIO TEIXEIRA",
           "email": "cassioatpl@gmail.com",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -1015,7 +1015,7 @@
         {
           "nome": "Juliana Storino Pereira",
           "email": "juliana.pereira@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -1027,7 +1027,7 @@
         {
           "nome": "Thayagne Faustino",
           "email": "thayagne.faustino@pedroleopoldo.mg.gov.br",
-          "turma": "Turma Tarde: 24/04/2026 de 13:30 às 17:00",
+          "turma": "Turma Tarde - 13:30 Às 17:00",
           "secretaria": "Secretaria Municipal de Educação",
           "cargo": null,
           "matricula": null,
@@ -1055,7 +1055,7 @@
       "totalAprovados": 4,
       "totalPresentes": 4,
       "totalAusentes": 0,
-      "taxaPresenca": 100.0,
+      "taxaPresenca": 100,
       "turmas": {},
       "turmasPresentes": {},
       "secretarias": {
@@ -1087,7 +1087,7 @@
           "dataInscricao": "2026-05-19T15:46:12"
         },
         {
-          "nome": "Cynara de Araújo Silva",
+          "nome": "Cynara de Araújo Silva dos Santos",
           "email": "cynara.silva@pedroleopoldo.mg.gov.br",
           "turma": null,
           "secretaria": "Secretaria Municipal de Gestão e Finanças",
@@ -1124,7 +1124,7 @@
         }
       ],
       "vagas": 4,
-      "taxaOcupacao": 100.0,
+      "taxaOcupacao": 100,
       "fonte": "Lista de participantes - comissao-recursal-2026-05-t1.xlsx",
       "grupo": null
     },
@@ -1661,7 +1661,7 @@
       "totalAprovados": 9,
       "totalPresentes": 9,
       "totalAusentes": 0,
-      "taxaPresenca": 100.0,
+      "taxaPresenca": 100,
       "turmas": {},
       "turmasPresentes": {},
       "secretarias": {
@@ -1804,7 +1804,7 @@
         }
       ],
       "vagas": 12,
-      "taxaOcupacao": 75.0,
+      "taxaOcupacao": 75,
       "fonte": "Lista de participantes - mapa-gerenciamento-risco-2026-05-t1.xlsx",
       "grupo": {
         "id": "mapa-gerenciamento-risco-2026-05",
@@ -1826,7 +1826,7 @@
       "totalAprovados": 5,
       "totalPresentes": 5,
       "totalAusentes": 0,
-      "taxaPresenca": 100.0,
+      "taxaPresenca": 100,
       "turmas": {},
       "turmasPresentes": {},
       "secretarias": {
@@ -1935,21 +1935,27 @@
       "turmas": {},
       "turmasPresentes": {},
       "secretarias": {
-        "Secretaria Municipal de Gestão e Finanças": 17,
+        "Secretaria Municipal de Gestão e Finanças": 18,
         "Controladoria Geral do Município": 3,
         "Secretaria Municipal de Governo": 3,
         "Chefia de Gabinete": 2,
         "Secretaria Municipal de Desenvolvimento Social": 1,
         "Secretaria Municipal de Segurança Pública": 1,
-        "Gabinete do Vice-Prefeito": 1
+        "Gabinete do Vice-Prefeito": 1,
+        "Secretaria Municipal de Bem Estar": 1,
+        "Gabinete do Prefeito": 1,
+        "Secretaria Municipal de Obras": 1
       },
       "secretariasPresentes": {
-        "Secretaria Municipal de Gestão e Finanças": 16,
+        "Secretaria Municipal de Gestão e Finanças": 17,
         "Controladoria Geral do Município": 3,
         "Secretaria Municipal de Governo": 3,
         "Secretaria Municipal de Segurança Pública": 1,
         "Gabinete do Vice-Prefeito": 1,
-        "Chefia de Gabinete": 1
+        "Chefia de Gabinete": 1,
+        "Secretaria Municipal de Bem Estar": 1,
+        "Gabinete do Prefeito": 1,
+        "Secretaria Municipal de Obras": 1
       },
       "timelineInscricoes": [
         [
@@ -1962,7 +1968,7 @@
         ],
         [
           "2026-05-21",
-          3
+          7
         ]
       ],
       "timelineCheckins": [],
@@ -2307,53 +2313,53 @@
           "nome": "Alessandra Maria do Nascimento Araújo",
           "email": "alessandranascimentoaraujo3@gmail.com",
           "turma": null,
-          "secretaria": null,
-          "cargo": null,
-          "matricula": null,
+          "secretaria": "Secretaria Municipal de Bem Estar",
+          "cargo": "DCA 01",
+          "matricula": "36040",
           "pagamento": null,
           "presente": true,
           "dataCheckin": null,
-          "dataInscricao": null
+          "dataInscricao": "2026-05-21T09:24:21"
         },
         {
           "nome": "Auricelio Alves de Souza Sobrinho",
           "email": "auricelio.souza@pedroleopoldo.mg.gov.br",
           "turma": null,
-          "secretaria": null,
-          "cargo": null,
-          "matricula": null,
+          "secretaria": "Secretaria Municipal de Gestão e Finanças",
+          "cargo": "Secretário adjunto de gestão administrativa",
+          "matricula": "35087",
           "pagamento": null,
           "presente": true,
           "dataCheckin": null,
-          "dataInscricao": null
+          "dataInscricao": "2026-05-21T09:24:21"
         },
         {
           "nome": "Hugor Simão Oliveira Silva",
           "email": "hugor812010@gmail.com",
           "turma": null,
-          "secretaria": null,
-          "cargo": null,
-          "matricula": null,
+          "secretaria": "Gabinete do Prefeito",
+          "cargo": "Chefe de gabinete",
+          "matricula": "35056",
           "pagamento": null,
           "presente": true,
           "dataCheckin": null,
-          "dataInscricao": null
+          "dataInscricao": "2026-05-21T09:24:21"
         },
         {
           "nome": "Suelen Lorraine Sodré Pimentel",
           "email": "suelen.pimentel@pedroleopoldo.mg.gov.br",
           "turma": null,
-          "secretaria": null,
-          "cargo": null,
-          "matricula": null,
+          "secretaria": "Secretaria Municipal de Obras",
+          "cargo": "DCA 05",
+          "matricula": "36061",
           "pagamento": null,
           "presente": true,
           "dataCheckin": null,
-          "dataInscricao": null
+          "dataInscricao": "2026-05-21T09:24:21"
         }
       ],
       "vagas": 40,
-      "taxaOcupacao": 80.0,
+      "taxaOcupacao": 80,
       "fonte": "Lista de participantes - comunicacao-que-aproxima-2026-05.xlsx",
       "grupo": null
     }
@@ -2369,7 +2375,7 @@
     "taxaPresencaGlobal": 87.4,
     "taxaOcupacaoGlobal": 73.2,
     "rankingSecretarias": {
-      "Secretaria Municipal de Gestão e Finanças": 78,
+      "Secretaria Municipal de Gestão e Finanças": 79,
       "Secretaria Municipal de Educação": 50,
       "Secretaria Municipal de Saúde": 12,
       "Controladoria Geral do Município": 6,
@@ -2379,7 +2385,10 @@
       "Secretaria Municipal de Desenvolvimento Social": 2,
       "Secretaria Municipal de Meio Ambiente": 2,
       "Secretaria Municipal de Segurança Pública": 2,
-      "Gabinete do Vice-Prefeito": 1
+      "Gabinete do Vice-Prefeito": 1,
+      "Secretaria Municipal de Bem Estar": 1,
+      "Gabinete do Prefeito": 1,
+      "Secretaria Municipal de Obras": 1
     }
   }
 }

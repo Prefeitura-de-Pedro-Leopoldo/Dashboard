@@ -2,5 +2,12 @@
   "name": "dashboard",
   "version": "1.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-data.mjs",
+    "build:data": "node scripts/build-data.mjs"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
 }

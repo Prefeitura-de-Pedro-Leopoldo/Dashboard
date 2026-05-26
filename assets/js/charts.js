@@ -699,7 +699,14 @@ export function donutPresenca(id, presentes, ausentes) {
 }
 
 export function barSecretarias(id, entries, opts = {}) {
-  const { horizontal = true, limit = 10 } = opts;
+  const {
+    horizontal = true,
+    limit = 10,
+    datasetLabel = "Inscrições",
+    unitLabel = "inscrição(ões)",
+    tooltipExtra = null, // (entry) => string[] adicionais
+    emptyLabel = "Sem dados de secretarias.",
+  } = opts;
   const slice = entries.slice(0, limit);
   const isEmpty = slice.length === 0;
   return _mount(id, {
@@ -707,7 +714,7 @@ export function barSecretarias(id, entries, opts = {}) {
     data: {
       labels: slice.map((s) => shortenOrg(s.nome, 26)),
       datasets: [{
-        label: "Inscrições",
+        label: datasetLabel,
         data: slice.map((s) => s.qtd),
         backgroundColor: (c) => {
           const i = c.dataIndex;
@@ -723,7 +730,7 @@ export function barSecretarias(id, entries, opts = {}) {
             ? hGradient(c.chart.ctx, c.chart.chartArea, base, { darkenStart: 0, lightenEnd: 0.22 })
             : vGradient(c.chart.ctx, c.chart.chartArea, base, { lightenTop: 0.15 });
         },
-        maxBarThickness: 28, borderRadius: 8,
+        maxBarThickness: 32, borderRadius: 8,
       }],
     },
     options: {
@@ -738,7 +745,13 @@ export function barSecretarias(id, entries, opts = {}) {
         tooltip: {
           callbacks: {
             title: (items) => slice[items[0].dataIndex]?.nome || items[0].label,
-            label: (ctx) => " " + ctx.parsed[horizontal ? "x" : "y"] + " inscrição(ões)",
+            label: (ctx) => " " + ctx.parsed[horizontal ? "x" : "y"] + " " + unitLabel,
+            afterLabel: tooltipExtra
+              ? (ctx) => {
+                  const extra = tooltipExtra(slice[ctx.dataIndex]);
+                  return Array.isArray(extra) ? extra : (extra ? [extra] : []);
+                }
+              : undefined,
           },
         },
         barDataLabels: { enabled: true, suffix: "", color: undefined },
@@ -782,7 +795,7 @@ export function barSecretarias(id, entries, opts = {}) {
         : baseScales(),
     },
     plugins: [barShadowPlugin, barDataLabelsPlugin, barHoverGrowPlugin],
-  }, isEmpty, "Sem dados de secretarias.");
+  }, isEmpty, emptyLabel);
 }
 
 export function pieTurmas(id, entries) {
@@ -829,6 +842,148 @@ export function pieTurmas(id, entries) {
     },
     plugins: [donutShadowPlugin],
   }, isEmpty, "Evento sem subdivisão em turmas.");
+}
+
+/**
+ * Evolução temporal de eventos: 2 séries (inscritos e presentes) ao longo do tempo.
+ * `eventos` deve estar ordenado cronologicamente crescente (mais antigo → recente).
+ */
+export function lineEvolucaoEventos(id, eventos) {
+  const isEmpty = !eventos || eventos.length < 2;
+  const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
+
+  const labels = eventos.map((e) => shortenEvent(e.title));
+  const inscritos = eventos.map((e) => e.totalInscritos || 0);
+  const presentes = eventos.map((e) => e.totalPresentes || 0);
+
+  // Crosshair vertical pontilhado, igual ao lineTimeline
+  const crosshairPlugin = {
+    id: "evoCrosshair",
+    afterDraw(chart) {
+      const active = chart.tooltip?.getActiveElements?.();
+      if (!active || !active.length) return;
+      const { ctx, chartArea } = chart;
+      const x = active[0].element.x;
+      ctx.save();
+      ctx.strokeStyle = "rgba(48,99,173,0.25)";
+      ctx.setLineDash([3, 4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, chartArea.top);
+      ctx.lineTo(x, chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+    },
+  };
+
+  return _mount(id, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Inscritos",
+          data: inscritos,
+          fill: true,
+          backgroundColor: (c) => areaGradient(c.chart.ctx, c.chart.chartArea, PALETTE.blue),
+          borderColor: PALETTE.blue,
+          borderWidth: 3,
+          tension: 0.4,
+          pointBackgroundColor: surface,
+          pointBorderColor: PALETTE.blue,
+          pointBorderWidth: 2.5,
+          pointRadius: 5,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: PALETTE.blue,
+          pointHoverBorderColor: surface,
+          pointHoverBorderWidth: 3,
+          clip: false,
+          // valor real do evento para usar no tooltip
+          _eventos: eventos,
+        },
+        {
+          label: "Presentes",
+          data: presentes,
+          fill: true,
+          backgroundColor: (c) => areaGradient(c.chart.ctx, c.chart.chartArea, PALETTE.green),
+          borderColor: PALETTE.green,
+          borderWidth: 3,
+          tension: 0.4,
+          pointBackgroundColor: surface,
+          pointBorderColor: PALETTE.green,
+          pointBorderWidth: 2.5,
+          pointRadius: 5,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: PALETTE.green,
+          pointHoverBorderColor: surface,
+          pointHoverBorderWidth: 3,
+          clip: false,
+          _eventos: eventos,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      layout: { padding: { top: 12, right: 12, left: 4, bottom: 4 } },
+      animation: { duration: 1100, easing: "easeOutQuart" },
+      plugins: {
+        legend: { position: "bottom", align: "start" },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const ev = eventos[items[0]?.dataIndex];
+              if (!ev) return items[0]?.label || "";
+              const data = ev.date ? new Date(ev.date).toLocaleDateString("pt-BR") : "";
+              return ev.title + (data ? ` · ${data}` : "");
+            },
+            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y}`,
+            afterBody: (items) => {
+              const ev = eventos[items[0]?.dataIndex];
+              if (!ev) return "";
+              const taxa = ev.taxaPresenca != null ? ev.taxaPresenca.toFixed(1) + "%" : "—";
+              return [``, `Taxa de presença: ${taxa}`];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            color: PALETTE.axis,
+            font: { size: 10, weight: "600" },
+            autoSkip: false,
+            maxRotation: 30,
+            minRotation: 30,
+            padding: 6,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: PALETTE.grid, drawTicks: false, lineWidth: 1 },
+          border: { display: false },
+          ticks: { color: PALETTE.axis, font: { size: 11 }, padding: 8, maxTicksLimit: 5, precision: 0 },
+        },
+      },
+    },
+    plugins: [
+      {
+        id: "evoGlow",
+        beforeDatasetDraw(chart) {
+          const { ctx } = chart;
+          ctx.save();
+          ctx.shadowColor = "rgba(22,31,54,0.20)";
+          ctx.shadowBlur = 12;
+          ctx.shadowOffsetY = 5;
+        },
+        afterDatasetDraw(chart) { chart.ctx.restore(); },
+      },
+      crosshairPlugin,
+    ],
+  }, isEmpty, "Selecione 2 ou mais eventos para visualizar a evolução.");
 }
 
 export function lineTimeline(id, points, label = "Inscrições") {
