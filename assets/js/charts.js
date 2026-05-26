@@ -203,6 +203,42 @@ const barHoverGrowPlugin = {
   },
 };
 
+// Plugin: grade pontilhada (estilo crosshair) — desenha antes das barras
+// opts.axis: "x" desenha linhas verticais, "y" desenha linhas horizontais
+const dottedGridXPlugin = {
+  id: "dottedGridX",
+  beforeDatasetsDraw(chart, _args, opts) {
+    if (!opts || opts.enabled === false) return;
+    const axis = opts.axis || "x";
+    const scale = chart.scales[axis];
+    if (!scale) return;
+    const { ctx, chartArea } = chart;
+    const ticks = scale.ticks || [];
+    ctx.save();
+    ctx.strokeStyle = opts.color || "rgba(48, 99, 173, 0.25)";
+    ctx.lineWidth = opts.lineWidth || 1;
+    ctx.setLineDash(opts.dash || [3, 4]);
+    ticks.forEach((t, i) => {
+      if (axis === "x") {
+        const x = scale.getPixelForTick(i);
+        if (x < chartArea.left || x > chartArea.right) return;
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+      } else {
+        const y = scale.getPixelForTick(i);
+        if (y < chartArea.top || y > chartArea.bottom) return;
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(chartArea.right, y);
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+  },
+};
+
 // Plugin: data labels para barras (mostra valor na ponta da barra)
 const barDataLabelsPlugin = {
   id: "barDataLabels",
@@ -389,6 +425,61 @@ function shortenOrg(s, n = 28) {
   // Sem padrão conhecido: devolve original
   return original;
 }
+// Abreviador para títulos de eventos — extrai o tópico principal
+// (suficiente como label de gráfico; o tooltip mostra o nome completo).
+function shortenEvent(s) {
+  if (!s) return "";
+  let out = String(s).trim();
+
+  // Padrões: descarta o prefixo institucional e mantém só o tópico
+  const eventPatterns = [
+    { re: /^Workshop\s+(.+)$/i, replacement: "$1" },
+    { re: /^Forma[çc][ãa]o\s+para\s+Membros\s+(?:da|de|do)\s+(.+)$/i, replacement: "$1" },
+    { re: /^Forma[çc][ãa]o\s+(?:em|de|para)\s+(.+)$/i, replacement: "$1" },
+    { re: /^Fundamentos\s+(?:da|de|do)\s+(.+)$/i, replacement: "$1" },
+    { re: /^Elabora[çc][ãa]o\s+(?:do|da|de)\s+(.+)$/i, replacement: "$1" },
+    { re: /^Curso\s+(?:de|sobre)\s+(.+)$/i, replacement: "$1" },
+    { re: /^Capacita[çc][ãa]o\s+(?:em|de|para)\s+(.+)$/i, replacement: "$1" },
+    { re: /^Palestra\s+(?:sobre|de)?\s*(.+)$/i, replacement: "$1" },
+    { re: /^Semin[áa]rio\s+(?:de|sobre)?\s*(.+)$/i, replacement: "$1" },
+  ];
+
+  for (const p of eventPatterns) {
+    if (p.re.test(out)) {
+      out = out.replace(p.re, p.replacement);
+      break;
+    }
+  }
+
+  // Remove "Mapa de" no início (após o pattern já ter cortado "Elaboração do")
+  out = out.replace(/^Mapa\s+de\s+/i, "");
+
+  // Normaliza sufixos de turma em qualquer formato → "T1", "T2"...
+  // Casos: "- 1ª Turma", "1ª Turma", "1ª TURMA", "Turma 1", "TURMA 2", "1a Turma"
+  out = out.replace(/\s*[-·]?\s*(\d+)\s*[ªa°º]\s*TURMA\b\.?/gi, " T$1");
+  out = out.replace(/\bTURMA\s+(\d+)\b/gi, "T$1");
+  out = out.replace(/\s+TURMA\s*$/i, "");
+  // Limpa espaços duplicados
+  out = out.replace(/\s{2,}/g, " ");
+
+  return out.trim();
+}
+
+// Quebra string em array de linhas (Chart.js renderiza array como múltiplas linhas)
+function wrapLabel(s, maxPerLine = 18) {
+  if (!s) return "";
+  const words = String(s).split(/\s+/);
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    if (!cur) { cur = w; continue; }
+    if ((cur + " " + w).length <= maxPerLine) cur += " " + w;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines.length > 1 ? lines : s;
+}
+
 function formatShortDate(iso) {
   if (!iso) return "";
   const parts = String(iso).split("-");
@@ -420,7 +511,7 @@ export function barInscritosVsPresentes(id, eventos) {
   return _mount(id, {
     type: "bar",
     data: {
-      labels: filtered.map((e) => shorten(e.title, 22)),
+      labels: filtered.map((e) => shortenEvent(e.title)),
       datasets: [
         {
           label: "Inscritos",
@@ -441,11 +532,36 @@ export function barInscritosVsPresentes(id, eventos) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 8 } },
-      plugins: { legend: { position: "bottom", align: "start" } },
-      scales: baseScales(),
+      layout: { padding: { top: 16, left: 8, right: 8, bottom: 8 } },
+      interaction: { mode: "index", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart" },
+      plugins: {
+        legend: { position: "bottom", align: "start" },
+        tooltip: { callbacks: { title: (items) => filtered[items[0].dataIndex]?.title || items[0].label } },
+        dottedGridX: { enabled: true, axis: "y", color: "rgba(48, 99, 173, 0.25)", dash: [3, 4], lineWidth: 1 },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            color: PALETTE.axis,
+            font: { size: 10, weight: "600" },
+            autoSkip: false,
+            maxRotation: 35,
+            minRotation: 35,
+            padding: 4,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: PALETTE.axis, font: { size: 11 }, padding: 8, maxTicksLimit: 5 },
+        },
+      },
     },
-    plugins: [barShadowPlugin],
+    plugins: [barShadowPlugin, dottedGridXPlugin],
   }, isEmpty, "Sem eventos com inscrições para comparar.");
 }
 
@@ -456,7 +572,7 @@ export function barTaxaPresenca(id, eventos) {
   return _mount(id, {
     type: "bar",
     data: {
-      labels: filtered.map((e) => shorten(e.title, 28)),
+      labels: filtered.map((e) => shortenEvent(e.title)),
       datasets: [{
         label: "% Presença",
         data: filtered.map((e) => e.taxaPresenca),
@@ -477,26 +593,63 @@ export function barTaxaPresenca(id, eventos) {
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { right: 12 } },
+      layout: { padding: { right: 60, top: 8, bottom: 8, left: 4 } },
+      interaction: { mode: "nearest", axis: "y", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart", delay: (c) => (c.type === "data" && c.mode === "default" ? c.dataIndex * 60 : 0) },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => " " + ctx.parsed.x.toFixed(1) + "%" } },
+        tooltip: {
+          callbacks: {
+            title: (items) => filtered[items[0].dataIndex]?.title || items[0].label,
+            label: (ctx) => " " + ctx.parsed.x.toFixed(1) + "%",
+          },
+        },
+        barDataLabels: { enabled: true, suffix: "%", format: (v) => Number.isInteger(v) ? v : v.toFixed(1) },
+        barHoverGrow: { enabled: true, grow: 5, radius: 8, glow: "rgba(48,99,173,0.32)" },
+        dottedGridX: { enabled: true, color: "rgba(48, 99, 173, 0.25)", dash: [3, 4], lineWidth: 1 },
       },
       scales: {
         x: {
           beginAtZero: true, max: 100,
-          ticks: { callback: (v) => v + "%", color: PALETTE.axis, font: { size: 11 } },
-          grid: { color: PALETTE.grid, drawTicks: false },
+          ticks: {
+            callback: (v) => v + "%",
+            color: PALETTE.axis,
+            font: { size: 11 },
+            stepSize: 25,
+            maxTicksLimit: 5,
+          },
+          grid: { display: false },
           border: { display: false },
         },
         y: {
           grid: { display: false },
           border: { display: false },
-          ticks: { color: PALETTE.axis, font: { size: 11 } },
+          afterFit(scale) {
+            const ctx = scale.chart.ctx;
+            const labels = (scale.ticks || []).map((t, i) => shortenEvent(filtered[i]?.title || t.label));
+            ctx.save();
+            ctx.font = "600 11px Manrope, sans-serif";
+            const max = labels.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
+            ctx.restore();
+            const chartW = scale.chart.width || 320;
+            const desired = Math.min(Math.ceil(max) + 24, Math.round(chartW * 0.55));
+            if (scale.width < desired) scale.width = desired;
+          },
+          ticks: {
+            color: PALETTE.axis,
+            font: { size: 11, weight: "600" },
+            padding: 10,
+            autoSkip: false,
+            crossAlign: "far",
+            callback(value) {
+              const original = filtered[value]?.title || this.getLabelForValue(value);
+              return shortenEvent(original);
+            },
+          },
         },
       },
     },
-    plugins: [barShadowPlugin],
+    plugins: [barShadowPlugin, barDataLabelsPlugin, barHoverGrowPlugin, dottedGridXPlugin],
   }, isEmpty, "Nenhum evento realizado com taxa calculável.");
 }
 
@@ -780,34 +933,58 @@ export function radarComparativo(id, comparativos) {
   const maxInsc = Math.max(...comparativos.map((c) => c.inscritos), 1);
   const maxPres = Math.max(...comparativos.map((c) => c.presentes), 1);
   const maxSec = Math.max(...comparativos.map((c) => c.nSecretarias), 1);
-  const norm = (c) => [
-    Math.round((c.inscritos / maxInsc) * 100),
-    Math.round((c.presentes / maxPres) * 100),
-    c.taxaPresenca ?? 0,
-    Math.round((c.nSecretarias / maxSec) * 100),
+
+  // Cada eixo normalizado para 0–100 com explicação clara no tooltip
+  const axes = [
+    {
+      label: "Inscritos",
+      get: (c) => Math.round((c.inscritos / maxInsc) * 100),
+      raw: (c) => `${c.inscritos} inscritos`,
+    },
+    {
+      label: "Presentes",
+      get: (c) => Math.round((c.presentes / maxPres) * 100),
+      raw: (c) => `${c.presentes} presentes`,
+    },
+    {
+      label: "Taxa de presença",
+      get: (c) => Math.round(c.taxaPresenca ?? 0),
+      raw: (c) => `${(c.taxaPresenca ?? 0).toFixed(1)}% de presença`,
+    },
+    {
+      label: "Secretarias",
+      get: (c) => Math.round((c.nSecretarias / maxSec) * 100),
+      raw: (c) => `${c.nSecretarias} secretarias representadas`,
+    },
   ];
+
   const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
   return _mount(id, {
     type: "radar",
     data: {
-      labels: ["Inscritos (rel.)", "Presentes (rel.)", "Taxa de presença %", "Diversidade secret. (rel.)"],
+      labels: axes.map((a) => a.label),
       datasets: comparativos.map((c, i) => {
         const color = PALETTE.series[i % PALETTE.series.length];
+        // Quando há muitos eventos, reduz o preenchimento para evitar sobreposição confusa
+        const many = comparativos.length > 3;
+        const fillAlpha = many ? "14" : "26";
+        const hoverAlpha = many ? "30" : "44";
         return {
-          label: shorten(c.title, 26),
-          data: norm(c),
+          label: shortenEvent(c.title),
+          data: axes.map((a) => a.get(c)),
+          _comp: c,
           borderColor: color,
-          backgroundColor: color + "26",
-          hoverBackgroundColor: color + "44",
+          backgroundColor: color + fillAlpha,
+          hoverBackgroundColor: color + hoverAlpha,
           pointBackgroundColor: surface,
           pointBorderColor: color,
           pointBorderWidth: 2,
-          pointRadius: 4,
+          pointRadius: many ? 3 : 4,
           pointHoverRadius: 7,
           pointHoverBackgroundColor: color,
           pointHoverBorderColor: surface,
           pointHoverBorderWidth: 3,
-          borderWidth: 2.5,
+          borderWidth: many ? 2 : 2.5,
           tension: 0.15,
         };
       }),
@@ -815,29 +992,148 @@ export function radarComparativo(id, comparativos) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { mode: "point", intersect: false },
+      interaction: { mode: "point", intersect: true },
       animation: { duration: 1000, easing: "easeOutQuart" },
       layout: { padding: 8 },
       plugins: {
         legend: {
           position: "bottom",
-          labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, boxHeight: 8, padding: 16, font: { size: 11, weight: "600" } },
+          labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, boxHeight: 8, padding: 14, font: { size: 11, weight: "600" } },
+          // Hover na legenda: marca o dataset alvo via flag (lida pelo plugin radarHighlight)
+          onHover: (e, item, legend) => {
+            const ci = legend.chart;
+            if (ci.$highlightedDataset === item.datasetIndex) return;
+            ci.$highlightedDataset = item.datasetIndex;
+            ci.canvas.style.cursor = "pointer";
+            ci.update("none");
+          },
+          onLeave: (e, item, legend) => {
+            const ci = legend.chart;
+            if (ci.$highlightedDataset == null) return;
+            ci.$highlightedDataset = null;
+            ci.canvas.style.cursor = "default";
+            ci.update("none");
+          },
         },
         tooltip: {
-          callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.r}` },
+          mode: "point",
+          intersect: true,
+          callbacks: {
+            title: (items) => {
+              const it = items[0];
+              if (!it) return "";
+              const axisLabel = it.label || "";
+              return `${it.dataset.label} · ${axisLabel}`;
+            },
+            label: (ctx) => {
+              const comp = ctx.dataset._comp;
+              const axis = axes[ctx.dataIndex];
+              if (!comp || !axis) return ` ${ctx.parsed.r}`;
+              return " " + axis.raw(comp);
+            },
+            afterBody: (items) => {
+              const it = items[0];
+              if (!it) return "";
+              const chart = it.chart;
+              const axisIdx = it.dataIndex;
+              const axis = axes[axisIdx];
+              if (!axis) return "";
+              // Coleta valor real de todos os outros datasets neste eixo
+              const others = chart.data.datasets
+                .map((ds, i) => ({ label: ds.label, comp: ds._comp, isThis: i === it.datasetIndex }))
+                .filter((d) => d.comp && !d.isThis);
+              if (!others.length) return "";
+              const lines = ["", "Comparando com:"];
+              others.forEach((o) => lines.push(` • ${o.label}: ${axis.raw(o.comp)}`));
+              return lines;
+            },
+          },
         },
       },
       scales: {
         r: {
-          suggestedMin: 0, suggestedMax: 100,
-          ticks: { display: false, stepSize: 25 },
-          grid: { color: "rgba(22,31,54,0.08)", lineWidth: 1 },
-          angleLines: { color: "rgba(22,31,54,0.10)", lineWidth: 1 },
-          pointLabels: { font: { size: 11, weight: "700" }, color: PALETTE.muted, padding: 8 },
+          min: 0,
+          max: 100,
+          ticks: {
+            display: true,
+            stepSize: 25,
+            color: "rgba(154, 163, 178, 0.55)",
+            backdropColor: "transparent",
+            font: { size: 9, weight: "600" },
+            callback: (v) => v === 0 ? "" : v + "%",
+            showLabelBackdrop: false,
+            z: 1,
+          },
+          grid: { color: "rgba(48, 99, 173, 0.18)", lineWidth: 1, circular: true },
+          angleLines: { color: "rgba(48, 99, 173, 0.18)", lineWidth: 1 },
+          pointLabels: {
+            font: { size: 12, weight: "700" },
+            color: getComputedStyle(document.documentElement).getPropertyValue("--text-primary").trim() || "#161f36",
+            padding: 12,
+          },
         },
       },
     },
     plugins: [{
+      id: "radarHighlight",
+      beforeDatasetsDraw(chart) {
+        const target = chart.$highlightedDataset;
+        if (target == null) return;
+        chart.$origStyles = chart.$origStyles || chart.data.datasets.map((ds) => ({
+          backgroundColor: ds.backgroundColor,
+          borderColor: ds.borderColor,
+          borderWidth: ds.borderWidth,
+        }));
+        chart.data.datasets.forEach((ds, idx) => {
+          const baseColor = PALETTE.series[idx % PALETTE.series.length];
+          if (idx === target) {
+            // Mantém visual original do destacado, só leve realce na borda
+            const orig = chart.$origStyles[idx];
+            ds.backgroundColor = baseColor + "38";
+            ds.borderColor = baseColor;
+            ds.borderWidth = (orig.borderWidth || 2.5) + 0.5;
+          } else {
+            // Esmaece muito: borda visível mas sem preenchimento
+            ds.backgroundColor = baseColor + "00";
+            ds.borderColor = baseColor + "30";
+            ds.borderWidth = 1;
+          }
+        });
+      },
+      afterDatasetsDraw(chart) {
+        if (chart.$highlightedDataset == null && chart.$origStyles) {
+          chart.data.datasets.forEach((ds, idx) => {
+            const orig = chart.$origStyles[idx];
+            if (!orig) return;
+            ds.backgroundColor = orig.backgroundColor;
+            ds.borderColor = orig.borderColor;
+            ds.borderWidth = orig.borderWidth;
+          });
+          chart.$origStyles = null;
+        }
+      },
+    }, {
+      id: "radarBackdrop",
+      beforeDatasetsDraw(chart) {
+        const scale = chart.scales.r;
+        if (!scale) return;
+        const { ctx } = chart;
+        const cx = scale.xCenter;
+        const cy = scale.yCenter;
+        const rMax = scale.getDistanceFromCenterForValue(100);
+        ctx.save();
+        // Fundo radial sutil para destacar a área do radar
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rMax);
+        grad.addColorStop(0, "rgba(48, 99, 173, 0.05)");
+        grad.addColorStop(0.6, "rgba(48, 99, 173, 0.02)");
+        grad.addColorStop(1, "rgba(48, 99, 173, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rMax, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      },
+    }, {
       id: "radarGlow",
       beforeDatasetsDraw(chart) {
         const { ctx } = chart;
@@ -858,7 +1154,7 @@ export function barGrupoComparativo(id, comparativos) {
   return _mount(id, {
     type: "bar",
     data: {
-      labels: comparativos.map((c) => shorten(c.title, 22)),
+      labels: comparativos.map((c) => shortenEvent(c.title)),
       datasets: [
         { label: "Inscritos", data: comparativos.map((c) => c.inscritos), backgroundColor: makeBg(PALETTE.blue), hoverBackgroundColor: makeHover(PALETTE.blue), maxBarThickness: 32, borderRadius: 8 },
         { label: "Presentes", data: comparativos.map((c) => c.presentes), backgroundColor: makeBg(PALETTE.green), hoverBackgroundColor: makeHover(PALETTE.green), maxBarThickness: 32, borderRadius: 8 },

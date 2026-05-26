@@ -383,15 +383,26 @@ export function renderInsights(insights, opts = {}) {
 
 // ================ Tables ================
 
-export function renderParticipantsTable(participantes) {
+export function renderParticipantsTable(participantes, opts = {}) {
   if (!participantes.length) {
     return `<div class="empty-state"><i class="fas fa-users-slash"></i><h3>Sem participantes</h3><p>Este evento ainda não possui inscritos ou nenhum participante corresponde aos filtros.</p></div>`;
   }
-  const rows = participantes.map((p) => `
+  const { paginate = true, pageSize = 10, page = 1, scopeId = "default" } = opts;
+  const total = participantes.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const slice = paginate ? participantes.slice((currentPage - 1) * pageSize, currentPage * pageSize) : participantes;
+
+  const rows = slice.map((p) => {
+    const emailValid = p.email && !/^user-anonymous/i.test(p.email);
+    const emailCell = emailValid
+      ? escapeHtml(p.email)
+      : `<span class="cell-empty" title="E-mail não informado">—</span>`;
+    return `
     <tr>
       <td class="cell-name">${escapeHtml(p.nome || "-")}</td>
-      <td class="col-hide-sm">${escapeHtml(p.email || "-")}</td>
-      <td class="col-hide-md">${escapeHtml(p.turma || "-")}</td>
+      <td class="col-hide-sm">${emailCell}</td>
+      <td class="col-hide-md cell-turma" title="${escapeHtml(p.turma || "")}">${escapeHtml(p.turma || "-")}</td>
       <td>${escapeHtml(p.secretaria || "-")}</td>
       <td>
         <span class="cell-status ${p.presente ? "green" : "red"}">
@@ -400,7 +411,11 @@ export function renderParticipantsTable(participantes) {
         </span>
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
+
+  const pager = paginate && totalPages > 1 ? renderPager(currentPage, totalPages, total, pageSize, scopeId) : "";
+
   return `
     <div class="table-scroll">
       <table class="data">
@@ -415,6 +430,31 @@ export function renderParticipantsTable(participantes) {
         </thead>
         <tbody>${rows}</tbody>
       </table>
+    </div>
+    ${pager}
+  `;
+}
+
+function renderPager(current, totalPages, total, pageSize, scopeId) {
+  const from = (current - 1) * pageSize + 1;
+  const to = Math.min(current * pageSize, total);
+
+  const btn = (page, label, opts = {}) => {
+    const cls = ["pager__btn"];
+    if (opts.active) cls.push("is-active");
+    if (opts.disabled) cls.push("is-disabled");
+    return `<button type="button" class="${cls.join(" ")}" data-pager-scope="${scopeId}" data-pager-page="${page}" ${opts.disabled ? "disabled" : ""} aria-label="${opts.aria || label}">${label}</button>`;
+  };
+
+  // Pager minimalista: ← [atual / total] →
+  return `
+    <div class="pager" data-pager-scope="${scopeId}">
+      <span class="pager__info"><b>${from}–${to}</b> de <b>${total}</b></span>
+      <div class="pager__controls">
+        ${btn(current - 1, '<i class="fas fa-chevron-left"></i>', { disabled: current === 1, aria: "Página anterior" })}
+        <span class="pager__current"><b>${current}</b> / ${totalPages}</span>
+        ${btn(current + 1, '<i class="fas fa-chevron-right"></i>', { disabled: current === totalPages, aria: "Próxima página" })}
+      </div>
     </div>
   `;
 }

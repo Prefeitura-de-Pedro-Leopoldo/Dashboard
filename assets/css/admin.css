@@ -815,6 +815,15 @@ a:hover { color: var(--brand-primary-hover); }
 }
 .grid-2:last-child, .grid-3:last-child { margin-bottom: 0; }
 
+/* Stack vertical com mesmo respiro de um grid (full-width empilhado) */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.stack:last-child { margin-bottom: 0; }
+
 /* ================================================================
    CHARTS
    ================================================================ */
@@ -849,6 +858,20 @@ a:hover { color: var(--brand-primary-hover); }
   gap: var(--space-4);
   align-items: stretch;
 }
+.event-grid__more {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4);
+}
+.event-grid__more .btn {
+  padding: 10px 18px;
+  font-size: var(--fs-sm);
+}
+.event-grid__more .btn i {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.event-grid__more .btn:hover i { transform: translateY(2px); }
+.event-grid__more .btn:has(.fa-chevron-up):hover i { transform: translateY(-2px); }
 .event-card {
   --tone-color: var(--brand-primary);
   --tone-soft: var(--brand-soft-bg);
@@ -1810,6 +1833,109 @@ table.data tbody tr:last-child td { border-bottom: 0; }
 .cell-status.red { background: rgba(192, 57, 43, 0.12); color: var(--red); }
 .cell-status.muted { background: var(--surface-subtle); color: var(--text-muted); }
 
+/* Célula de turma — sempre em uma linha, trunca com ellipsis (tooltip via title) */
+.cell-turma {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+/* Célula sem dado válido (e-mail anônimo, campo nulo, etc.) */
+.cell-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  cursor: help;
+}
+
+/* ================================================================
+   PAGER (paginação de tabelas)
+   ================================================================ */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  flex-wrap: wrap;
+}
+.pager__info {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pager__info b { color: var(--text-primary); font-weight: var(--fw-semibold); }
+.pager__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pager__btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.pager__btn i { font-size: 0.7rem; }
+.pager__btn:hover:not(.is-disabled):not(.is-active) {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-soft-bg);
+}
+.pager__btn.is-active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--text-on-brand);
+  cursor: default;
+}
+.pager__btn.is-disabled,
+.pager__btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.pager__ellipsis {
+  padding: 0 4px;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  user-select: none;
+}
+.pager__current {
+  min-width: 56px;
+  padding: 0 12px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+.pager__current b {
+  color: var(--text-primary);
+  font-weight: var(--fw-bold);
+  margin-right: 2px;
+}
+@media (max-width: 480px) {
+  .pager { flex-direction: column; align-items: stretch; }
+  .pager__controls { justify-content: center; flex-wrap: wrap; }
+}
+
 /* Hide secondary columns on narrow screens to prevent horizontal scroll */
 @media (max-width: 900px) {
   table.data .col-hide-md { display: none; }
@@ -2691,6 +2817,18 @@ input[type="color"] {
 }
 .view-tabs__panel {
   animation: fadeSlide 0.22s ease;
+}
+/* Espaçamento generoso entre blocos de gráficos */
+.view-tabs__panel > .card + .card,
+.view-tabs__panel > .card + .grid-2,
+.view-tabs__panel > .card + .grid-3,
+.view-tabs__panel > .grid-2 + .card,
+.view-tabs__panel > .grid-2 + .grid-2,
+.view-tabs__panel > .grid-2 + .grid-3,
+.view-tabs__panel > .grid-3 + .card,
+.view-tabs__panel > .grid-3 + .grid-2,
+.view-tabs__panel > .grid-3 + .grid-3 {
+  margin-top: var(--space-6);
 }
 
 /* Pílulas para filtros (1 mês / 2 meses / 3 meses) */

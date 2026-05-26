@@ -171,8 +171,12 @@ function setupSidebar() {
     }
   });
   try {
-    if (localStorage.getItem("egov_sidebar_collapsed") === "1") shell.classList.add("is-collapsed");
-  } catch (_) {}
+    // Default: colapsada. Só mantém aberta se o usuário marcou explicitamente "0".
+    const pref = localStorage.getItem("egov_sidebar_collapsed");
+    if (pref !== "0") shell.classList.add("is-collapsed");
+  } catch (_) {
+    shell.classList.add("is-collapsed");
+  }
 }
 
 function setupUserChrome() {
@@ -221,6 +225,30 @@ function navigate(view) {
 // ================ Helpers de UI: Tabs internas ================
 // state.viewTabs[viewName] guarda a aba ativa de cada pagina
 state.viewTabs = state.viewTabs || {};
+// Estado de paginação por escopo (e.g. "ev-{id}", "participantes-global")
+state.pagerPages = state.pagerPages || {};
+
+function renderPaginatedTable(containerId, participantes, scopeId, opts = {}) {
+  const pageSize = opts.pageSize || 10;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const draw = () => {
+    const page = state.pagerPages[scopeId] || 1;
+    container.innerHTML = renderParticipantsTable(participantes, { paginate: true, pageSize, page, scopeId });
+    container.querySelectorAll(`[data-pager-scope="${scopeId}"][data-pager-page]`).forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const p = parseInt(btn.dataset.pagerPage, 10);
+        if (!Number.isFinite(p) || p < 1) return;
+        state.pagerPages[scopeId] = p;
+        draw();
+      });
+    });
+  };
+  // Reseta para página 1 se o total mudou (filtros / novo evento)
+  if (!state.pagerPages[scopeId]) state.pagerPages[scopeId] = 1;
+  draw();
+}
 
 function renderTabsNav(viewKey, tabs) {
   const active = state.viewTabs[viewKey] || tabs[0].id;
@@ -308,8 +336,13 @@ function renderDashboard() {
   wireTabs("dashboard", () => renderDashboard());
 
   if (activeTab === "charts") {
-    // Charts globais: passamos somente realizados onde faz sentido
-    const realizados = eventos.filter((e) => e.status === "realizado");
+    // Charts globais: somente realizados, limitados aos 8 mais recentes
+    const realizados = eventos
+      .filter((e) => e.status === "realizado")
+      .slice()
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+      .slice(0, 8)
+      .reverse(); // cronológico crescente no gráfico (mais antigo → mais recente)
     barInscritosVsPresentes("chartGlobalBar", realizados);
     barTaxaPresenca("chartGlobalTaxa", realizados);
     barSecretarias("chartGlobalSec", ranking);
@@ -347,42 +380,97 @@ function renderDashboard() {
 
   // Eventos com vínculo de curso (grupo) viram um card de curso com as
   // turmas/módulos listados; os demais seguem como card de evento normal.
-  const gruposEventos = agruparEventos(eventos);
-  document.getElementById("eventGrid").innerHTML = gruposEventos
-    .map((g) => (g.eventos.length > 1 ? renderCourseCard(g) : renderEventCard(g.eventos[0])))
-    .join("");
+  // Ordenados do mais recente para o mais antigo; inicia mostrando 4.
+  const parseDateSafe = (d) => {
+    if (!d) return 0;
+    const t = Date.parse(d);
+    return Number.isFinite(t) ? t : 0;
+  };
+  const gruposEventos = agruparEventos(eventos).slice().sort((a, b) => {
+    const da = Math.max(0, ...a.eventos.map((e) => parseDateSafe(e.date)));
+    const db = Math.max(0, ...b.eventos.map((e) => parseDateSafe(e.date)));
+    return db - da;
+  });
+  const grid = document.getElementById("eventGrid");
+  if (!grid) return;
+  const PAGE = 4;
+  if (state.eventGridShown == null) state.eventGridShown = PAGE;
 
-  document.querySelectorAll(".event-card").forEach((card) =>
-    card.addEventListener("click", (e) => {
-      if (e.target.closest("[data-action]")) return;
-      state.selectedEventId = card.dataset.event;
-      navigate("eventos");
-    })
-  );
-  document.querySelectorAll(".course-card__turma").forEach((b) =>
-    b.addEventListener("click", () => {
-      state.selectedEventId = b.dataset.event;
-      navigate("eventos");
-    })
-  );
-  document.querySelectorAll('[data-action="detalhe"]').forEach((b) =>
-    b.addEventListener("click", (e) => {
-      e.stopPropagation();
-      state.selectedEventId = b.dataset.event;
-      navigate("eventos");
-    })
-  );
-  document.querySelectorAll('[data-action="certificados"]').forEach((b) =>
-    b.addEventListener("click", (e) => {
-      e.stopPropagation();
-      // O card conhece o evento do eventos-data.json; a planilha correspondente
-      // é resolvida pelo campo "fonte" assim que o manifesto carregar.
-      const ev = getEvento(state.data, b.dataset.event);
-      state.certPendingArquivo = ev ? ev.fonte : null;
-      state.certSource = "evento";
-      navigate("certificados");
-    })
-  );
+  const wireEventCards = () => {
+    document.querySelectorAll(".event-card").forEach((card) =>
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("[data-action]")) return;
+        state.selectedEventId = card.dataset.event;
+        navigate("eventos");
+      })
+    );
+    document.querySelectorAll(".course-card__turma").forEach((b) =>
+      b.addEventListener("click", () => {
+        state.selectedEventId = b.dataset.event;
+        navigate("eventos");
+      })
+    );
+    document.querySelectorAll('[data-action="detalhe"]').forEach((b) =>
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.selectedEventId = b.dataset.event;
+        navigate("eventos");
+      })
+    );
+    document.querySelectorAll('[data-action="certificados"]').forEach((b) =>
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const ev = getEvento(state.data, b.dataset.event);
+        state.certPendingArquivo = ev ? ev.fonte : null;
+        state.certSource = "evento";
+        navigate("certificados");
+      })
+    );
+  };
+
+  const renderGrid = () => {
+    const shown = Math.min(state.eventGridShown, gruposEventos.length);
+    const cardsHtml = gruposEventos.slice(0, shown)
+      .map((g) => (g.eventos.length > 1 ? renderCourseCard(g) : renderEventCard(g.eventos[0])))
+      .join("");
+    grid.innerHTML = cardsHtml;
+
+    const remaining = gruposEventos.length - shown;
+    const host = grid.parentElement;
+    const existing = host && host.querySelector(".event-grid__more");
+    if (existing) existing.remove();
+    let more = "";
+    if (remaining > 0) {
+      more = `<div class="event-grid__more">
+        <button type="button" class="btn" id="eventGridMore">
+          <i class="fas fa-chevron-down"></i> Ver mais (${remaining} restante${remaining === 1 ? "" : "s"})
+        </button>
+      </div>`;
+    } else if (shown > PAGE) {
+      more = `<div class="event-grid__more">
+        <button type="button" class="btn" id="eventGridLess">
+          <i class="fas fa-chevron-up"></i> Recolher
+        </button>
+      </div>`;
+    }
+    if (more && host) host.insertAdjacentHTML("beforeend", more);
+
+    const moreBtn = document.getElementById("eventGridMore");
+    if (moreBtn) moreBtn.addEventListener("click", () => {
+      state.eventGridShown += PAGE;
+      renderGrid();
+    });
+    const lessBtn = document.getElementById("eventGridLess");
+    if (lessBtn) lessBtn.addEventListener("click", () => {
+      state.eventGridShown = PAGE;
+      renderGrid();
+      grid.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    wireEventCards();
+  };
+
+  renderGrid();
 }
 
 // ================ ANÁLISE POR EVENTO ================
@@ -458,12 +546,16 @@ function renderEventBlock(ev) {
           <h3><i class="fas fa-users"></i> Participantes deste evento</h3>
           <span class="card__header-meta">${ev.participantes.length} pessoa(s)</span>
         </div>
-        ${renderParticipantsTable(ev.participantes)}
+        <div id="evParticipantsTable"></div>
       </div>
     </div>
   `;
 
   wireTabs(tabsKey, () => renderEventBlock(ev));
+
+  if (active === "participantes") {
+    renderPaginatedTable("evParticipantsTable", ev.participantes, `ev-${ev.id}`);
+  }
 
   if (active === "resumo") {
     document.getElementById("evInsights").innerHTML = renderInsights(gerarInsightsEvento(ev));
@@ -537,30 +629,26 @@ function renderCompareContent() {
   selected.forEach((e) => Object.keys(e.turmas || {}).forEach((t) => allTurmas.add(t)));
   const turmaLabels = [...allTurmas];
 
+  const manyEvents = selected.length >= 4;
+  const topGridCls = manyEvents ? "stack" : "grid-2";
+  const chartWrapCls = manyEvents ? "chart-wrap xl" : "chart-wrap lg";
+
   target.innerHTML = `
-    <div class="grid-2">
+    <div class="${topGridCls}">
       <div class="card">
         <div class="card__header"><div><h3>Volume comparado</h3><p>Inscritos, presentes e ausentes.</p></div></div>
-        <div class="chart-wrap lg"><canvas id="cmpBar"></canvas></div>
+        <div class="${chartWrapCls}"><canvas id="cmpBar"></canvas></div>
       </div>
       <div class="card">
-        <div class="card__header"><div><h3>Perfil relativo</h3><p>Métricas normalizadas em radar.</p></div></div>
-        <div class="chart-wrap lg"><canvas id="cmpRadar"></canvas></div>
+        <div class="card__header"><div><h3>Perfil comparativo</h3><p><b>Quanto maior a área, melhor o evento.</b> Cada ponta mostra um critério (Inscritos, Presentes, Taxa de presença, Secretarias). O evento com o melhor valor em cada critério toca a borda (100%); os demais aparecem proporcionalmente menores.</p></div></div>
+        <div class="${chartWrapCls}"><canvas id="cmpRadar"></canvas></div>
       </div>
     </div>
 
-    ${secLabels.length || turmaLabels.length ? `
-      <div class="grid-2">
-        ${secLabels.length ? `
-          <div class="card">
-            <div class="card__header"><div><h3>Por secretaria</h3><p>Inscrições por secretaria em cada evento.</p></div></div>
-            <div class="chart-wrap lg"><canvas id="cmpSec"></canvas></div>
-          </div>` : ""}
-        ${turmaLabels.length ? `
-          <div class="card">
-            <div class="card__header"><div><h3>Por turma</h3><p>Distribuição por turma.</p></div></div>
-            <div class="chart-wrap lg"><canvas id="cmpTurma"></canvas></div>
-          </div>` : ""}
+    ${secLabels.length ? `
+      <div class="card">
+        <div class="card__header"><div><h3>Por secretaria</h3><p>Inscrições por secretaria em cada evento.</p></div></div>
+        <div class="${chartWrapCls}"><canvas id="cmpSec"></canvas></div>
       </div>` : ""}
 
     <div class="table-wrap">
@@ -583,15 +671,6 @@ function renderCompareContent() {
       maxBarThickness: 22,
     }));
     barGroupedByCategory("cmpSec", secLabels, datasets, { indexAxis: "y" });
-  }
-  if (turmaLabels.length) {
-    const datasets = selected.map((e, i) => ({
-      label: e.title.length > 22 ? e.title.slice(0, 20) + "..." : e.title,
-      data: turmaLabels.map((t) => (e.turmas || {})[t] || 0),
-      backgroundColor: PALETTE.series[i % PALETTE.series.length],
-      maxBarThickness: 32,
-    }));
-    barGroupedByCategory("cmpTurma", turmaLabels, datasets, { indexAxis: "x" });
   }
 }
 

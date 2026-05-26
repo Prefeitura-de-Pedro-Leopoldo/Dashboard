@@ -169,32 +169,30 @@
 
               <!-- Aba 2: Gráficos consolidados -->
               <div class="view-tabs__panel" data-tab-panel="charts" hidden>
-                <div class="grid-2">
-                  <div class="card">
-                    <div class="card__header">
-                      <div><h3>Inscritos vs Presentes</h3><p>Comparativo direto por evento.</p></div>
-                    </div>
-                    <div class="chart-wrap lg" id="wrap-globalBar"><canvas id="chartGlobalBar"></canvas></div>
+                <div class="card">
+                  <div class="card__header">
+                    <div><h3>Inscritos vs Presentes</h3><p>Comparativo direto por evento.</p></div>
                   </div>
-                  <div class="card">
-                    <div class="card__header">
-                      <div><h3>Taxa de presença</h3><p>Verde &ge; 80% &middot; Âmbar 60-79% &middot; Vermelho &lt; 60%.</p></div>
-                    </div>
-                    <div class="chart-wrap lg" id="wrap-globalTaxa"><canvas id="chartGlobalTaxa"></canvas></div>
-                  </div>
+                  <div class="chart-wrap" id="wrap-globalBar"><canvas id="chartGlobalBar"></canvas></div>
                 </div>
-                <div class="grid-2">
+                <div class="grid-3">
                   <div class="card">
                     <div class="card__header">
-                      <div><h3>Ranking de secretarias</h3><p>Soma de inscrições de todos os eventos.</p></div>
+                      <div><h3>Ranking de secretarias</h3><p>Soma de inscrições.</p></div>
                     </div>
                     <div class="chart-wrap lg" id="wrap-globalSec"><canvas id="chartGlobalSec"></canvas></div>
                   </div>
                   <div class="card">
                     <div class="card__header">
-                      <div><h3>Presença consolidada</h3><p>Distribuição global de comparecimento.</p></div>
+                      <div><h3>Presença consolidada</h3><p>Distribuição global.</p></div>
                     </div>
                     <div class="chart-wrap lg" id="wrap-globalDonut"><canvas id="chartGlobalDonut"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card__header">
+                      <div><h3>Taxa de presença</h3><p>Por evento.</p></div>
+                    </div>
+                    <div class="chart-wrap lg" id="wrap-globalTaxa"><canvas id="chartGlobalTaxa"></canvas></div>
                   </div>
                 </div>
               </div>
