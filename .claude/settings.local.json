@@ -1,14 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm pkg *)",
-      "Bash(npm i *)",
-      "Bash(node -e \"const X=require\\('xlsx'\\);const wb=X.readFile\\('assets/docs/relatorios/Lista de participantes - workshop-sei-2026-04.xlsx'\\);const s=wb.Sheets[wb.SheetNames[0]];const j=X.utils.sheet_to_json\\(s,{header:1,defval:''}\\);for\\(let i=0;i<14;i++\\)console.log\\(i,JSON.stringify\\(j[i]\\)\\);console.log\\('---header row sample---'\\);console.log\\(JSON.stringify\\(j[8]||j[7]\\)\\);\")",
-      "Bash(node -e \"const d=require\\('./eventos-data.json'\\);d.eventos.forEach\\(e=>console.log\\(JSON.stringify\\({id:e.id,title:e.title,date:e.date,dateRaw:e.dateRaw,time:e.time,local:e.local,city:e.city,vagas:e.vagas,grupo:e.grupo,fonte:e.fonte}\\)\\)\\)\")",
-      "Bash(npm run *)",
-      "Bash(node -e \"import\\('xlsx'\\).then\\(m=>{console.log\\(Object.keys\\(m\\)\\);console.log\\('default keys:',Object.keys\\(m.default||{}\\).slice\\(0,10\\)\\);console.log\\('readFile:',typeof \\(m.default&&m.default.readFile\\)\\);}\\)\")",
-      "Bash(node -e \"const d=require\\('./eventos-data.json'\\);console.log\\('resumo:',JSON.stringify\\(d.resumo,null,2\\)\\);console.log\\('eventos count:',d.eventos.length\\);d.eventos.forEach\\(e=>console.log\\(e.id,'-',e.totalInscritos,'/',e.totalPresentes,'-',Object.keys\\(e.secretarias\\).length,'sec'\\)\\);\")",
-      "Bash(node -e \"const d=require\\('./eventos-data.json'\\);const insc={},pres={};for\\(const e of d.eventos\\){if\\(e.status!=='realizado'\\)continue;for\\(const[k,v]of Object.entries\\(e.secretarias||{}\\)\\)insc[k]=\\(insc[k]||0\\)+v;for\\(const[k,v]of Object.entries\\(e.secretariasPresentes||{}\\)\\)pres[k]=\\(pres[k]||0\\)+v;}const r=Object.keys\\(insc\\).map\\(n=>{const i=insc[n],p=pres[n]||0;return{n,faltas:i-p,i,p,t:i?Math.round\\(\\(i-p\\)/i*1000\\)/10:0}}\\).filter\\(x=>x.faltas>0\\).sort\\(\\(a,b\\)=>b.faltas-a.faltas\\);r.forEach\\(x=>console.log\\(x.n,'→',x.faltas,'faltas \\(',x.p,'/',x.i,'·',x.t+'%\\)'\\)\\);\")"
+      "Bash(node *)"
     ]
   }
 }

@@ -2305,9 +2305,9 @@ async function loadSystemPlanilha(id) {
   if (!id) return [];
   if (state.certSystemCache[id]) return state.certSystemCache[id];
 
-  if (!state.data) state.data = await loadData();
+  if (!state.dataRaw) state.dataRaw = await loadData();
 
-  const evento = (state.data.eventos || []).find((e) => e.id === id);
+  const evento = (state.dataRaw.eventos || []).find((e) => e.id === id);
   if (!evento) throw new Error(`Evento "${id}" não encontrado no eventos-data.json. Rode "npm run build".`);
 
   const participantes = (evento.participantes || [])
@@ -2619,7 +2619,7 @@ async function emitCertificadosLote() {
 // ---------------- Envio automatico via Apps Script Web App ----------------
 // Cravados no codigo: usuario final so clica em "Enviar por e-mail".
 // Para atualizar a URL apos republicar o Apps Script, edite a constante abaixo.
-const CERT_WEBAPP_URL   = "https://script.google.com/a/macros/pedroleopoldo.mg.gov.br/s/AKfycbwAVbJ8bKzBpKSlSwPEsX815JJrTkhZu0mXwDccL6H9FrIc_g0kd3GCLiVtzZA29-Kc/exec";
+const CERT_WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbwAVbJ8bKzBpKSlSwPEsX815JJrTkhZu0mXwDccL6H9FrIc_g0kd3GCLiVtzZA29-Kc/exec";
 const CERT_WEBAPP_TOKEN = "7a6RTOQzWtpkIqJmhYP8xADSculgNy4K0sBLiG15oXFZMCen";
 const CERT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
