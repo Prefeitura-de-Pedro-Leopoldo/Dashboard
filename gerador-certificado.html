@@ -198,11 +198,145 @@
       }
       .field-row {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
         gap: 8px;
       }
       .field-row .field {
         margin-bottom: 0;
+      }
+
+      /* ============================================================
+         Painel de tipografia (gerador standalone)
+         ============================================================ */
+      .typo-panel {
+        margin-top: 16px;
+        background: #fff;
+        border: 1px solid var(--border, #e2e6ee);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(20, 30, 60, 0.06);
+      }
+      .typo-panel__head {
+        padding: 10px 14px;
+        background: linear-gradient(180deg, #f5f7fb, #eef2f8);
+        border-bottom: 1px solid #e2e6ee;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .typo-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #5d6b88;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #e2e6ee;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+      }
+      .typo-link input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 14px; height: 14px;
+        border: 1.5px solid #c8cfdc;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        display: inline-grid;
+        place-items: center;
+      }
+      .typo-link input[type="checkbox"]:checked {
+        background: #3063ad;
+        border-color: #3063ad;
+      }
+      .typo-link input[type="checkbox"]:checked::after {
+        content: "";
+        width: 4px; height: 8px;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg) translateY(-1px);
+      }
+      .typo-link:has(input:checked) {
+        background: rgba(48, 99, 173, 0.10);
+        border-color: #3063ad;
+        color: #3063ad;
+      }
+      .typo-panel__head strong {
+        display: block;
+        font-size: 0.85rem;
+        color: #1a3d70;
+        font-weight: 700;
+      }
+      .typo-panel__head small {
+        display: block;
+        margin-top: 2px;
+        font-size: 0.72rem;
+        color: #5d6b88;
+      }
+      .typo-panel__grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 16px;
+        padding: 14px;
+      }
+      .typo-control { display: flex; flex-direction: column; gap: 6px; }
+      .typo-control__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        color: #1a2238;
+      }
+      .typo-control__label { font-weight: 600; }
+      .typo-control__label .icon {
+        display: inline-block;
+        width: 16px;
+        text-align: center;
+        margin-right: 4px;
+      }
+      .typo-control__value {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: #3063ad;
+        background: rgba(48, 99, 173, 0.10);
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        min-width: 42px;
+        text-align: center;
+      }
+      .typo-control input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 4px;
+        background: #e2e6ee;
+        border-radius: 999px;
+        outline: none;
+        cursor: pointer;
+        margin: 0;
+      }
+      .typo-control input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px; height: 16px;
+        background: #3063ad;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(48, 99, 173, 0.35);
+      }
+      .typo-control input[type="range"]::-moz-range-thumb {
+        width: 16px; height: 16px;
+        background: #3063ad;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        cursor: pointer;
       }
 
       .actions {
@@ -590,6 +724,10 @@
               <input type="number" id="f-dia" min="1" max="31" placeholder="14" required />
             </div>
             <div class="field">
+              <label for="f-dia2">Segundo dia <small style="font-weight:400;opacity:.7">(opcional)</small></label>
+              <input type="number" id="f-dia2" min="1" max="31" placeholder="26" title="Cursos com 2 módulos no mesmo mês" />
+            </div>
+            <div class="field">
               <label for="f-mes">Mês</label>
               <select id="f-mes" required>
                 <option value="">Selecione</option>
@@ -616,6 +754,20 @@
           <div class="field">
             <label for="f-carga">Carga horária (em horas)</label>
             <input type="number" id="f-carga" min="1" placeholder="8" required />
+          </div>
+
+          <div class="typo-panel" id="typo-panel">
+            <div class="typo-panel__head">
+              <div>
+                <strong>🎨 Tipografia do certificado</strong>
+                <small>Ajuste o tamanho de cada texto individualmente.</small>
+              </div>
+              <label class="typo-link" title="Quando ativo, mover um slider ajusta todos juntos">
+                <input type="checkbox" id="typo-link" />
+                <span>🔗 Manter proporções</span>
+              </label>
+            </div>
+            <div class="typo-panel__grid" id="typo-grid"></div>
           </div>
 
           <div class="actions">
@@ -849,6 +1001,7 @@
           nome: document.getElementById("f-nome").value.trim() || "NOME COMPLETO DO PARTICIPANTE",
           curso: document.getElementById("f-curso").value.trim() || "TÍTULO DO CURSO",
           dia: document.getElementById("f-dia").value || "XX",
+          dia2: (document.getElementById("f-dia2") || {}).value || "",
           mes: document.getElementById("f-mes").value || "XXXX",
           ano: document.getElementById("f-ano").value || "XXXX",
           carga: document.getElementById("f-carga").value || "XX"
@@ -877,11 +1030,30 @@
         carga: { x: 0.26, y: 0.475 } // após "carga horária de", antes de "horas"
       }
 
-      // Largura máxima disponível para o nome do curso (fração da largura do
-      // canvas). Se o texto exceder, a fonte é reduzida proporcionalmente até
-      // caber, respeitando um tamanho mínimo. Ajuste se o modelo mudar.
-      const CURSO_MAX_WIDTH = 0.32
-      const CURSO_MIN_SCALE = 0.55
+      // Escala manual da fonte por campo, persistida em localStorage.
+      const TYPO_KEY = "egov-cert-typo-scales-v1"
+      const TYPO_FIELDS = [
+        { key: "nome",  label: "Nome completo",   icon: "👤" },
+        { key: "curso", label: "Título do curso", icon: "🎓" },
+        { key: "dia",   label: "Dia",             icon: "📅" },
+        { key: "mes",   label: "Mês",             icon: "🗓" },
+        { key: "ano",   label: "Ano",             icon: "#" },
+        { key: "carga", label: "Carga horária",   icon: "⏱" }
+      ]
+      const TYPO_MIN = 0.5, TYPO_MAX = 1.5
+      const TYPO_SCALES = { nome: 1, curso: 1, dia: 1, mes: 1, ano: 1, carga: 1 }
+      let TYPO_LINKED = false
+      try {
+        const saved = JSON.parse(localStorage.getItem(TYPO_KEY) || "{}")
+        TYPO_FIELDS.forEach(f => {
+          const v = parseFloat(saved[f.key])
+          if (Number.isFinite(v) && v >= TYPO_MIN && v <= TYPO_MAX) TYPO_SCALES[f.key] = v
+        })
+        TYPO_LINKED = !!saved.__linked
+      } catch (_) {}
+      function saveTypoScales() {
+        try { localStorage.setItem(TYPO_KEY, JSON.stringify({ ...TYPO_SCALES, __linked: TYPO_LINKED })) } catch (_) {}
+      }
 
       function render() {
         if (!tplReady) return
@@ -909,22 +1081,18 @@
         c.textBaseline = "middle"
         c.textAlign = "center"
 
-        c.fillText(d.nome, w * POS.nome.x, h * POS.nome.y)
-
-        // Auto-fit do curso: reduz a fonte se ultrapassar CURSO_MAX_WIDTH
-        const maxCursoPx = w * CURSO_MAX_WIDTH
-        let cursoSize = baseSize
-        if (c.measureText(d.curso).width > maxCursoPx) {
-          const scale = Math.max(CURSO_MIN_SCALE, maxCursoPx / c.measureText(d.curso).width)
-          cursoSize = baseSize * scale
-          c.font = `700 ${cursoSize}px ${fontFamily}`
+        // Cada campo tem sua própria escala de fonte (slider individual).
+        // dia2, se preenchido, vira "X e Y" no mesmo X de POS.dia.
+        const drawField = (key, text) => {
+          c.font = `700 ${baseSize * (TYPO_SCALES[key] || 1)}px ${fontFamily}`
+          c.fillText(text, w * POS[key].x, h * POS[key].y)
         }
-        c.fillText(d.curso, w * POS.curso.x, h * POS.curso.y, maxCursoPx)
-        c.font = `700 ${baseSize}px ${fontFamily}`
-        c.fillText(String(d.dia), w * POS.dia.x, h * POS.dia.y)
-        c.fillText(d.mes, w * POS.mes.x, h * POS.mes.y)
-        c.fillText(String(d.ano), w * POS.ano.x, h * POS.ano.y)
-        c.fillText(String(d.carga), w * POS.carga.x, h * POS.carga.y)
+        drawField("nome",  d.nome)
+        drawField("curso", d.curso)
+        drawField("dia",   d.dia2 ? `${d.dia} e ${d.dia2}` : String(d.dia))
+        drawField("mes",   d.mes)
+        drawField("ano",   String(d.ano))
+        drawField("carga", String(d.carga))
       }
 
       // ---------- Download ----------
@@ -980,6 +1148,57 @@
       document.getElementById("form").addEventListener("input", render)
       document.getElementById("btn-pdf").addEventListener("click", downloadPDF)
       document.getElementById("btn-png").addEventListener("click", downloadPNG)
+
+      // Painel de tipografia: monta 6 sliders (um por campo)
+      const typoGridEl = document.getElementById("typo-grid")
+      if (typoGridEl) {
+        typoGridEl.innerHTML = TYPO_FIELDS.map(f => {
+          const pct = Math.round((TYPO_SCALES[f.key] || 1) * 100)
+          return `
+            <div class="typo-control">
+              <div class="typo-control__head">
+                <span class="typo-control__label"><span class="icon">${f.icon}</span>${f.label}</span>
+                <span class="typo-control__value" data-typo-val="${f.key}">${pct}%</span>
+              </div>
+              <input type="range" data-typo="${f.key}" min="${Math.round(TYPO_MIN*100)}" max="${Math.round(TYPO_MAX*100)}" step="1" value="${pct}" />
+            </div>
+          `
+        }).join("")
+        const applyScale = (changedKey, pct) => {
+          const frac = pct / 100
+          if (TYPO_LINKED) {
+            TYPO_FIELDS.forEach(f => { TYPO_SCALES[f.key] = frac })
+            typoGridEl.querySelectorAll("input[data-typo]").forEach(other => {
+              other.value = String(pct)
+              const ov = typoGridEl.querySelector(`[data-typo-val="${other.dataset.typo}"]`)
+              if (ov) ov.textContent = pct + "%"
+            })
+          } else {
+            TYPO_SCALES[changedKey] = frac
+            const v = typoGridEl.querySelector(`[data-typo-val="${changedKey}"]`)
+            if (v) v.textContent = pct + "%"
+          }
+          render()
+        }
+        typoGridEl.querySelectorAll("input[data-typo]").forEach(el => {
+          const key = el.dataset.typo
+          el.addEventListener("input", () => applyScale(key, Number(el.value)))
+          el.addEventListener("change", saveTypoScales)
+        })
+        // Toggle "Manter proporções"
+        const linkEl = document.getElementById("typo-link")
+        if (linkEl) {
+          linkEl.checked = TYPO_LINKED
+          linkEl.addEventListener("change", () => {
+            TYPO_LINKED = linkEl.checked
+            if (TYPO_LINKED) {
+              const maxPct = Math.max(...TYPO_FIELDS.map(f => Math.round((TYPO_SCALES[f.key] || 1) * 100)))
+              applyScale(TYPO_FIELDS[0].key, maxPct)
+            }
+            saveTypoScales()
+          })
+        }
+      }
 
       // ============================================================
       // CSV Parser (minimo) - suporta virgula ou ponto-e-virgula,
@@ -1198,6 +1417,7 @@
             nome: row.nome,
             curso: row.curso,
             dia: row.dia,
+            dia2: row.dia2 || "",
             mes: row.mes.toLowerCase(),
             ano: row.ano,
             carga: row.carga_horaria

@@ -47,6 +47,80 @@ import {
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
 
+// ================ Modal (substitui alert/confirm nativos) ================
+// API: showAlert({title, message, type, confirmLabel}) -> Promise<void>
+//      showConfirm({title, message, type, confirmLabel, cancelLabel, danger}) -> Promise<boolean>
+// Apenas 1 modal por vez; ESC e clique no overlay fecham (confirm = cancela).
+let _activeModal = null
+function _closeModal(resolveValue) {
+  if (!_activeModal) return
+  const { overlay, resolve, escHandler } = _activeModal
+  document.removeEventListener("keydown", escHandler)
+  overlay.classList.add("is-closing")
+  _activeModal = null
+  setTimeout(() => overlay.remove(), 160)
+  resolve(resolveValue)
+}
+function _openModal({ title, message, type = "info", confirmLabel = "OK", cancelLabel = null, danger = false }) {
+  // Se já tem um aberto, fecha primeiro (cancela)
+  if (_activeModal) _closeModal(false)
+
+  const icons = {
+    info: "fa-circle-info",
+    success: "fa-circle-check",
+    warn: "fa-triangle-exclamation",
+    error: "fa-circle-exclamation",
+    confirm: "fa-circle-question"
+  }
+  const variant = cancelLabel ? "confirm" : type
+  const icon = icons[type] || icons.info
+
+  const overlay = document.createElement("div")
+  overlay.className = "app-modal__overlay"
+  overlay.setAttribute("role", "dialog")
+  overlay.setAttribute("aria-modal", "true")
+  overlay.innerHTML = `
+    <div class="app-modal app-modal--${variant}" style="position:relative">
+      <button type="button" class="app-modal__close" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+      <div class="app-modal__head">
+        <div class="app-modal__icon"><i class="fas ${icon}"></i></div>
+        <div class="app-modal__text">
+          ${title ? `<h3 class="app-modal__title">${escapeHtml(title)}</h3>` : ""}
+          <p class="app-modal__message">${escapeHtml(message || "").replace(/\n/g, "<br>")}</p>
+        </div>
+      </div>
+      <div class="app-modal__actions">
+        ${cancelLabel ? `<button type="button" class="app-modal__btn app-modal__btn--ghost" data-modal-cancel>${escapeHtml(cancelLabel)}</button>` : ""}
+        <button type="button" class="app-modal__btn ${danger ? "app-modal__btn--danger" : "app-modal__btn--primary"}" data-modal-confirm>${escapeHtml(confirmLabel)}</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(overlay)
+
+  return new Promise(resolve => {
+    const escHandler = (e) => { if (e.key === "Escape") _closeModal(cancelLabel ? false : undefined) }
+    _activeModal = { overlay, resolve, escHandler }
+    document.addEventListener("keydown", escHandler)
+
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) _closeModal(cancelLabel ? false : undefined) })
+    overlay.querySelector(".app-modal__close").addEventListener("click", () => _closeModal(cancelLabel ? false : undefined))
+    overlay.querySelector("[data-modal-confirm]").addEventListener("click", () => _closeModal(cancelLabel ? true : undefined))
+    const cancelBtn = overlay.querySelector("[data-modal-cancel]")
+    if (cancelBtn) cancelBtn.addEventListener("click", () => _closeModal(false))
+
+    // Foco no botão primário
+    setTimeout(() => overlay.querySelector("[data-modal-confirm]")?.focus(), 50)
+  })
+}
+function showAlert(opts) {
+  if (typeof opts === "string") opts = { message: opts }
+  return _openModal({ ...opts, cancelLabel: null })
+}
+function showConfirm(opts) {
+  if (typeof opts === "string") opts = { message: opts }
+  return _openModal({ type: "confirm", cancelLabel: "Cancelar", confirmLabel: "Confirmar", ...opts })
+}
+
 // ================ Auth gate ================
 const session = sessionStorage.getItem("egov_admin_session")
 if (!session) window.location.replace("login.html")
@@ -62,6 +136,8 @@ const userData = (() => {
 const state = {
   data: null,
   view: "dashboard",
+  _certTypoLinked: true,    // padrão: manter proporções entre os campos
+  _certDragEnabled: true,   // padrão: arrasta-e-solta ligado
   selectedEventId: null,
   compareIds: new Set(),
   reportFilters: { eventoId: "", secretaria: "", turma: "", busca: "" },
@@ -82,7 +158,8 @@ const CERT_TEMPLATES = [
   { id: "modelo-2", label: "Modelo 2", src: "assets/img/modelos_certificados/modelo2.png" },
   { id: "modelo-3", label: "Modelo 3", src: "assets/img/modelos_certificados/modelo3.png" },
   { id: "modelo-4", label: "Modelo 4", src: "assets/img/modelos_certificados/modelo4.png" },
-  { id: "modelo-5", label: "Modelo 5", src: "assets/img/modelos_certificados/modelo5.png" }
+  { id: "modelo-5", label: "Modelo 5", src: "assets/img/modelos_certificados/modelo5.png" },
+  { id: "modelo-6", label: "Modelo 6", src: "assets/img/modelos_certificados/modelo6.jpeg", hint: "Ideal para cursos com 2 datas" }
 ]
 const _certTemplateCache = {}
 
@@ -112,11 +189,11 @@ const _sharedPos34 = {
 }
 const _defaultPos5 = {
   nome:  { x: 0.54,                y: 0.34 },
-  curso: { x: 0.5272700357660243,  y: 0.3856354675895818 },
-  dia:   { x: 0.4383633791884603,  y: 0.42817747762464625 },
-  mes:   { x: 0.5978141407696032,  y: 0.4246273677140961 },
-  ano:   { x: 0.780976215152742,   y: 0.42515538875860986 },
-  carga: { x: 0.3271142472891076,  y: 0.470425951624058 },
+  curso: { x: 0.4684721285621191,  y: 0.38492365818360647 },
+  dia:   { x: 0.4459021454308956,  y: 0.4316981909541735 },
+  mes:   { x: 0.5930339846944069,  y: 0.4285587736287913 },
+  ano:   { x: 0.778617745248111,   y: 0.4286175667908371 },
+  carga: { x: 0.3220714047502807,  y: 0.4720777756471362 },
 }
 
 // >>> EDITE AQUI os defaults dos modelos 1 e 2 (cada um e independente) <<<
@@ -130,40 +207,70 @@ const _defaultPos1 = {
 };
 const _defaultPos2 = _clonePos(CERT_POS_DEFAULT);
 
+// Modelo 6 — específico para cursos com 2 datas. Tem POSIÇÃO PRÓPRIA para
+// dia2 (diferente de dia), então cada dia aparece em um lugar distinto na
+// linha "no dia X e Y de MES de ANO". Os outros modelos ignoram POS.dia2
+// e renderizam "X e Y" juntos em POS.dia.
+// Coordenadas iniciais derivadas de um ajuste manual prévio do modelo 6
+// (refeito pelo usuário via arrasta-e-solta e exportado do localStorage).
+const _defaultPos6 = {
+  nome:  { x: 0.5329486307975467,  y: 0.3428822877224162  },
+  curso: { x: 0.4053636787545341,  y: 0.38252836385487154 },
+  dia:   { x: 0.3584795910867044,  y: 0.4272828888296249  },
+  dia2:  { x: 0.4411716953437269,  y: 0.43021866521000807 },
+  mes:   { x: 0.6222967175035481,  y: 0.4283340015035414  },
+  ano:   { x: 0.7792784289227523,  y: 0.4272828888296249  },
+  carga: { x: 0.32287374625640497, y: 0.46964218392418033 }
+}
+
 const CERT_POS_BY_TEMPLATE = {
   "modelo-1": _defaultPos1,
   "modelo-2": _defaultPos2,
   "modelo-3": _sharedPos34,
   "modelo-4": _sharedPos34,
-  "modelo-5": _defaultPos5
+  "modelo-5": _defaultPos5,
+  "modelo-6": _defaultPos6
 }
 
-// Escala manual do tamanho da fonte do nome do curso por modelo (1.0 = base).
-// Permite encolher textos longos que não cabem no modelo, ou aumentar quando
-// houver folga. Persistido junto com as posições no localStorage.
-const CERT_CURSO_SCALE_DEFAULT = 1.0
-const CERT_CURSO_SCALE_MIN = 0.5
-const CERT_CURSO_SCALE_MAX = 1.3
-const CERT_CURSO_SCALE = {
-  "modelo-1": CERT_CURSO_SCALE_DEFAULT,
-  "modelo-2": CERT_CURSO_SCALE_DEFAULT,
-  "modelo-3": CERT_CURSO_SCALE_DEFAULT,
-  "modelo-4": CERT_CURSO_SCALE_DEFAULT,
-  "modelo-5": CERT_CURSO_SCALE_DEFAULT
+// Escalas manuais de fonte por campo e por modelo. 1.0 = tamanho base.
+// Campos suportados: nome, curso, dia, mes, ano, carga. Persistido no
+// localStorage. Modelos 3 e 4 compartilham (edição em um aplica nos dois).
+const CERT_SCALE_DEFAULT = 1.0
+const CERT_SCALE_MIN = 0.5
+const CERT_SCALE_MAX = 1.5
+const CERT_SCALE_FIELDS = ["nome", "curso", "dia", "mes", "ano", "carga"]
+const CERT_TEMPLATE_IDS = ["modelo-1", "modelo-2", "modelo-3", "modelo-4", "modelo-5", "modelo-6"]
+const CERT_FIELD_SCALES = {}
+CERT_SCALE_FIELDS.forEach(f => {
+  CERT_FIELD_SCALES[f] = {}
+  CERT_TEMPLATE_IDS.forEach(t => { CERT_FIELD_SCALES[f][t] = CERT_SCALE_DEFAULT })
+})
+function getFieldScale(tplId, field) {
+  const v = CERT_FIELD_SCALES[field] && CERT_FIELD_SCALES[field][tplId]
+  return typeof v === "number" && v > 0 ? v : CERT_SCALE_DEFAULT
 }
-function getCursoScale(tplId) {
-  const v = CERT_CURSO_SCALE[tplId]
-  return typeof v === "number" && v > 0 ? v : CERT_CURSO_SCALE_DEFAULT
-}
-function setCursoScale(tplId, v) {
-  const n = Math.max(CERT_CURSO_SCALE_MIN, Math.min(CERT_CURSO_SCALE_MAX, Number(v) || CERT_CURSO_SCALE_DEFAULT))
-  // Modelos 3 e 4 compartilham coordenadas — espelhe a escala também.
+function setFieldScale(tplId, field, v) {
+  if (!CERT_FIELD_SCALES[field]) return
+  const n = Math.max(CERT_SCALE_MIN, Math.min(CERT_SCALE_MAX, Number(v) || CERT_SCALE_DEFAULT))
   if (tplId === "modelo-3" || tplId === "modelo-4") {
-    CERT_CURSO_SCALE["modelo-3"] = n
-    CERT_CURSO_SCALE["modelo-4"] = n
+    CERT_FIELD_SCALES[field]["modelo-3"] = n
+    CERT_FIELD_SCALES[field]["modelo-4"] = n
   } else {
-    CERT_CURSO_SCALE[tplId] = n
+    CERT_FIELD_SCALES[field][tplId] = n
   }
+}
+function resetFieldScales(tplId) {
+  CERT_SCALE_FIELDS.forEach(f => setFieldScale(tplId, f, CERT_SCALE_DEFAULT))
+}
+
+// Formata "dia [e dia2] / mes / ano" para o resumo da emissão.
+function formatCertData(f) {
+  if (!f) return ""
+  const d1 = f.certDia
+  const d2 = f.certDia2
+  const dias = d1 && d2 ? `${d1} e ${d2}` : (d1 || "")
+  const partes = [dias, f.certMes, f.certAno].filter(Boolean)
+  return partes.join(" / ")
 }
 
 // Carrega ajustes salvos do localStorage (so para modelos 1, 2 e o compartilhado 3-5).
@@ -176,9 +283,31 @@ function loadCertPosOverrides() {
     if (saved["modelo-2"]) Object.assign(CERT_POS_BY_TEMPLATE["modelo-2"], saved["modelo-2"])
     if (saved["modelo-3"]) Object.assign(_sharedPos34, saved["modelo-3"]) // representa 3-4
     if (saved["modelo-5"]) Object.assign(_defaultPos5, saved["modelo-5"])
+    if (saved["modelo-6"]) Object.assign(_defaultPos6, saved["modelo-6"])
+    if (typeof saved.typoLinked === "boolean") state._certTypoLinked = saved.typoLinked
+    // Formato novo: { fieldScales: { curso: {modelo-1: 0.9, ...}, ... } }
+    if (saved.fieldScales && typeof saved.fieldScales === "object") {
+      CERT_SCALE_FIELDS.forEach(f => {
+        const src = saved.fieldScales[f]
+        if (!src || typeof src !== "object") return
+        CERT_TEMPLATE_IDS.forEach(t => {
+          if (typeof src[t] === "number") CERT_FIELD_SCALES[f][t] = src[t]
+        })
+      })
+    }
+    // Compat com formato antigo (cursoScale, dataScale aplicado a dia/mes/ano)
     if (saved.cursoScale && typeof saved.cursoScale === "object") {
-      Object.keys(CERT_CURSO_SCALE).forEach(k => {
-        if (typeof saved.cursoScale[k] === "number") CERT_CURSO_SCALE[k] = saved.cursoScale[k]
+      CERT_TEMPLATE_IDS.forEach(t => {
+        if (typeof saved.cursoScale[t] === "number") CERT_FIELD_SCALES.curso[t] = saved.cursoScale[t]
+      })
+    }
+    if (saved.dataScale && typeof saved.dataScale === "object") {
+      CERT_TEMPLATE_IDS.forEach(t => {
+        if (typeof saved.dataScale[t] === "number") {
+          CERT_FIELD_SCALES.dia[t] = saved.dataScale[t]
+          CERT_FIELD_SCALES.mes[t] = saved.dataScale[t]
+          CERT_FIELD_SCALES.ano[t] = saved.dataScale[t]
+        }
       })
     }
   } catch (_) {}
@@ -192,7 +321,9 @@ function saveCertPosOverrides() {
         "modelo-2": CERT_POS_BY_TEMPLATE["modelo-2"],
         "modelo-3": _sharedPos34, // representa 3-4
         "modelo-5": _defaultPos5,
-        cursoScale: CERT_CURSO_SCALE
+        "modelo-6": _defaultPos6,
+        fieldScales: CERT_FIELD_SCALES,
+        typoLinked: !!state._certTypoLinked
       })
     )
   } catch (_) {}
@@ -1367,7 +1498,7 @@ function getReportDatasets() {
 function exportCsv() {
   const { parts } = getReportDatasets()
   if (!parts.length) {
-    alert("Nenhum participante para exportar com os filtros atuais.")
+    showAlert({ title: "Nada para exportar", message: "Nenhum participante para exportar com os filtros atuais.", type: "warn" })
     return
   }
   const rows = [
@@ -1391,7 +1522,7 @@ function exportCsv() {
 function exportXlsx() {
   const { evs, ranking, parts } = getReportDatasets()
   if (!evs.length && !ranking.length && !parts.length) {
-    alert("Nada para exportar com os filtros atuais.")
+    showAlert({ title: "Nada para exportar", message: "Não há dados para exportar com os filtros atuais.", type: "warn" })
     return
   }
   const XLSX = window.XLSX
@@ -1442,7 +1573,7 @@ function exportXlsx() {
 function exportPdf() {
   const { evs, ranking, parts } = getReportDatasets()
   if (!evs.length && !ranking.length && !parts.length) {
-    alert("Nada para exportar com os filtros atuais.")
+    showAlert({ title: "Nada para exportar", message: "Não há dados para exportar com os filtros atuais.", type: "warn" })
     return
   }
   const { jsPDF } = window.jspdf
@@ -1789,9 +1920,18 @@ function renderCertPosEditor() {
   const P = getCertPos(tplId)
   const fields = getCertFormData()
 
+  // Lista de handles a renderizar: inclui dia2 só se o modelo tiver POS.dia2.
+  const handleFields = CERT_FIELDS.slice()
+  if (P.dia2) {
+    // insere dia2 logo após dia
+    const i = handleFields.findIndex(f => f.key === "dia")
+    handleFields.splice(i + 1, 0, { key: "dia2", label: "Segundo dia" })
+  }
+
   // (Re)monta os handles em cada chamada — a fonte do texto e a posicao podem mudar.
-  layer.innerHTML = CERT_FIELDS.map(({ key }) => {
-    const value = String(fields[key] ?? "").trim() || "—"
+  layer.innerHTML = handleFields.map(({ key }) => {
+    let value = String(fields[key] ?? "").trim() || "—"
+    if (key === "dia2" && !fields.dia2) value = "(2º dia)"
     return `
       <div class="cert-drag-handle" data-field="${key}"
            style="left:${(P[key].x * 100).toFixed(3)}%; top:${(P[key].y * 100).toFixed(3)}%">
@@ -1844,37 +1984,104 @@ function renderCertPosEditor() {
     el.addEventListener("pointercancel", end)
   })
 
-  // Toggle mostra/oculta camada
+  // Toggle mostra/oculta camada (default: ligado — persistido em state)
+  toggle.checked = state._certDragEnabled !== false
   const sync = () => {
+    state._certDragEnabled = toggle.checked
     layer.hidden = !toggle.checked
   }
   toggle.onchange = sync
   sync()
 
-  // Slider de escala da fonte do curso (por modelo, persistido)
-  const scaleEl = document.getElementById("certCursoScale")
-  const scaleVal = document.getElementById("certCursoScaleVal")
-  if (scaleEl && scaleVal) {
-    const current = Math.round(getCursoScale(tplId) * 100)
-    scaleEl.value = String(current)
-    scaleVal.textContent = current + "%"
-    scaleEl.oninput = () => {
-      const pct = Number(scaleEl.value)
-      scaleVal.textContent = pct + "%"
-      setCursoScale(tplId, pct / 100)
+  // Painel de tipografia: 1 slider por campo (nome, curso, dia, mes, ano, carga)
+  const typoGrid = document.getElementById("certTypoGrid")
+  if (typoGrid) {
+    const SCALE_FIELD_META = {
+      nome:  { label: "Nome completo", icon: "fa-user" },
+      curso: { label: "Título do curso", icon: "fa-graduation-cap" },
+      dia:   { label: "Dia", icon: "fa-1" },
+      mes:   { label: "Mês", icon: "fa-calendar" },
+      ano:   { label: "Ano", icon: "fa-hashtag" },
+      carga: { label: "Carga horária", icon: "fa-clock" }
+    }
+    typoGrid.innerHTML = CERT_SCALE_FIELDS.map(key => {
+      const meta = SCALE_FIELD_META[key]
+      const pct = Math.round(getFieldScale(tplId, key) * 100)
+      return `
+        <div class="cert-typo-control">
+          <div class="cert-typo-control__head">
+            <span class="cert-typo-control__label"><i class="fas ${meta.icon}"></i> ${meta.label}</span>
+            <span class="cert-typo-control__value" data-typo-val="${key}">${pct}%</span>
+          </div>
+          <input type="range" class="cert-typo-control__range" data-typo="${key}" min="${Math.round(CERT_SCALE_MIN*100)}" max="${Math.round(CERT_SCALE_MAX*100)}" step="1" value="${pct}" />
+        </div>
+      `
+    }).join("")
+    // Aplica um valor em um campo (e em todos se "manter proporções" ativo)
+    const applyScale = (changedKey, pct) => {
+      const fraction = pct / 100
+      if (state._certTypoLinked) {
+        CERT_SCALE_FIELDS.forEach(k => setFieldScale(tplId, k, fraction))
+        // Reflete em todos os sliders/valores
+        typoGrid.querySelectorAll("input[data-typo]").forEach(other => {
+          other.value = String(pct)
+          const otherVal = typoGrid.querySelector(`[data-typo-val="${other.dataset.typo}"]`)
+          if (otherVal) otherVal.textContent = pct + "%"
+        })
+      } else {
+        setFieldScale(tplId, changedKey, fraction)
+        const valEl = typoGrid.querySelector(`[data-typo-val="${changedKey}"]`)
+        if (valEl) valEl.textContent = pct + "%"
+      }
       refreshCertPreviewWithName()
     }
-    scaleEl.onchange = () => saveCertPosOverrides()
+
+    typoGrid.querySelectorAll("input[data-typo]").forEach(el => {
+      const key = el.dataset.typo
+      el.addEventListener("input", () => applyScale(key, Number(el.value)))
+      el.addEventListener("change", () => saveCertPosOverrides())
+    })
+
+    // Toggle "Manter proporções" (linked sliders)
+    const linkEl = document.getElementById("certTypoLink")
+    if (linkEl) {
+      linkEl.checked = !!state._certTypoLinked
+      linkEl.addEventListener("change", () => {
+        state._certTypoLinked = linkEl.checked
+        // Ao ativar, normaliza todos para a maior escala atual — assim entra
+        // em "proporção" sem fazer ninguém encolher.
+        if (linkEl.checked) {
+          const maxPct = Math.max(...CERT_SCALE_FIELDS.map(k => Math.round(getFieldScale(tplId, k) * 100)))
+          applyScale(CERT_SCALE_FIELDS[0], maxPct)
+        }
+        saveCertPosOverrides()
+      })
+    }
+
+    // Toggle de colapso (persistido em state)
+    const toggleBtn = document.getElementById("certTypoToggle")
+    const panel = document.getElementById("certTypoPanel")
+    if (toggleBtn && panel) {
+      const setCollapsed = (c) => {
+        panel.classList.toggle("is-collapsed", c)
+        toggleBtn.querySelector("i").className = c ? "fas fa-chevron-down" : "fas fa-chevron-up"
+      }
+      setCollapsed(state._certTypoCollapsed === true)
+      toggleBtn.onclick = () => {
+        state._certTypoCollapsed = !panel.classList.contains("is-collapsed")
+        setCollapsed(state._certTypoCollapsed)
+      }
+    }
   }
 
-  // Reset
+  // Reset (posições + escalas)
   if (resetBtn) {
     resetBtn.onclick = () => {
       Object.keys(CERT_POS_DEFAULT).forEach(k => {
         P[k].x = CERT_POS_DEFAULT[k].x
         P[k].y = CERT_POS_DEFAULT[k].y
       })
-      setCursoScale(tplId, CERT_CURSO_SCALE_DEFAULT)
+      resetFieldScales(tplId)
       saveCertPosOverrides()
       renderCertPosEditor()
       refreshCertPreviewWithName()
@@ -2001,6 +2208,10 @@ function renderViewCertificados() {
                 <input type="number" id="certDia" min="1" max="31" placeholder="14" />
               </div>
               <div class="filter">
+                <label for="certDia2">Segundo dia <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+                <input type="number" id="certDia2" min="1" max="31" placeholder="26" title="Para cursos com 2 módulos no mesmo mês (ex.: 14 e 26)" />
+              </div>
+              <div class="filter">
                 <label for="certMes">Mês</label>
                 <select id="certMes">
                   <option value="">Selecione</option>
@@ -2077,31 +2288,14 @@ function renderViewCertificados() {
               <div class="cert-template-picker__grid" id="certTemplateGrid">
                 ${CERT_TEMPLATES.map(
                   t => `
-                  <button type="button" class="cert-template-thumb ${(state.certTemplateId || "modelo-1") === t.id ? "is-active" : ""}" data-template="${t.id}" title="${escapeHtml(t.label)}">
+                  <button type="button" class="cert-template-thumb ${(state.certTemplateId || "modelo-1") === t.id ? "is-active" : ""}" data-template="${t.id}" title="${escapeHtml(t.hint ? t.label + " — " + t.hint : t.label)}">
                     <img src="${t.src}" alt="${escapeHtml(t.label)}" loading="lazy" />
                     <span class="cert-template-thumb__label">${escapeHtml(t.label)}</span>
+                    ${t.hint ? `<span class="cert-template-thumb__badge"><i class="fas fa-calendar-days"></i> 2 datas</span>` : ""}
                   </button>
                 `
                 ).join("")}
               </div>
-            </div>
-
-            <div class="cert-pos-toolbar">
-              <label class="cert-pos-toolbar__toggle">
-                <input type="checkbox" id="certPosEditToggle" />
-                <i class="fas fa-arrows-up-down-left-right"></i>
-                <span>Arrastar e soltar os campos</span>
-              </label>
-              <span class="cert-pos-toolbar__hint" id="certPosEditorHint"></span>
-              <label class="cert-pos-toolbar__scale" title="Tamanho da fonte do curso (use para encaixar títulos longos)" style="display:flex;align-items:center;gap:6px;font-size:.85rem;">
-                <i class="fas fa-text-height"></i>
-                <span>Fonte curso</span>
-                <input type="range" id="certCursoScale" min="50" max="130" step="1" style="width:120px" />
-                <span id="certCursoScaleVal" style="min-width:40px;text-align:right;font-variant-numeric:tabular-nums">100%</span>
-              </label>
-              <button type="button" class="btn btn--sm" id="certPosReset" title="Restaurar posições padrão">
-                <i class="fas fa-rotate-left"></i> Restaurar
-              </button>
             </div>
 
             <div class="canvas-frame canvas-frame--lg cert-canvas-stage" id="certCanvasStage">
@@ -2129,6 +2323,45 @@ function renderViewCertificados() {
               <button class="btn btn--primary btn--lg" id="certSend" disabled style="width:100%; margin-top: var(--space-3);">
                 <i class="fas fa-envelope"></i> Enviar por e-mail <span id="certSendCount">(0)</span>
               </button>
+            </div>
+
+            <!-- Caixa: editor de posições (arrastar e soltar) -->
+            <div class="card cert-pos-card">
+              <div class="cert-pos-card__row">
+                <label class="cert-pos-card__toggle">
+                  <input type="checkbox" id="certPosEditToggle" checked />
+                  <span class="cert-pos-card__switch" aria-hidden="true"></span>
+                  <span class="cert-pos-card__text">
+                    <strong><i class="fas fa-arrows-up-down-left-right"></i> Arrastar e soltar</strong>
+                    <small>Reposicione cada campo no certificado</small>
+                  </span>
+                </label>
+                <button type="button" class="btn btn--sm cert-pos-card__reset" id="certPosReset" title="Restaurar posições e fontes padrão">
+                  <i class="fas fa-rotate-left"></i>
+                </button>
+              </div>
+              <span class="cert-pos-card__hint" id="certPosEditorHint"></span>
+            </div>
+
+            <!-- Caixa: tipografia do modelo -->
+            <div class="card cert-typo-panel cert-typo-panel--side" id="certTypoPanel">
+              <div class="cert-typo-panel__head">
+                <div class="cert-typo-panel__title">
+                  <strong><i class="fas fa-text-height"></i> Tipografia do modelo</strong>
+                  <span class="cert-typo-panel__hint">Ajuste o tamanho de cada texto. Salvo por modelo.</span>
+                </div>
+                <button type="button" class="cert-typo-panel__toggle" id="certTypoToggle" title="Mostrar/ocultar">
+                  <i class="fas fa-chevron-up"></i>
+                </button>
+              </div>
+              <div class="cert-typo-panel__actions-row">
+                <label class="cert-typo-link" title="Quando ativo, mover um slider ajusta todos juntos — evita discrepância tipográfica">
+                  <input type="checkbox" id="certTypoLink" />
+                  <i class="fas fa-link"></i>
+                  <span>Manter proporções entre os campos</span>
+                </label>
+              </div>
+              <div class="cert-typo-panel__grid" id="certTypoGrid"></div>
             </div>
           </div>
         </div>
@@ -2179,7 +2412,7 @@ function renderViewCertificados() {
       })
     }
     setupCertUpload()
-    ;["certCurso", "certDia", "certMes", "certAno", "certCarga"].forEach(id => {
+    ;["certCurso", "certDia", "certDia2", "certMes", "certAno", "certCarga"].forEach(id => {
       const el = document.getElementById(id)
       if (!el) return
       // Restaura valor do state se existir
@@ -2417,6 +2650,7 @@ function ensureCertFormHidden() {
   host.innerHTML = `
     <input id="certCurso" value="${escapeHtml(f.certCurso || "")}" />
     <input id="certDia"   value="${escapeHtml(f.certDia || "")}" />
+    <input id="certDia2"  value="${escapeHtml(f.certDia2 || "")}" />
     <input id="certMes"   value="${escapeHtml(f.certMes || "")}" />
     <input id="certAno"   value="${escapeHtml(f.certAno || "")}" />
     <input id="certCarga" value="${escapeHtml(f.certCarga || "")}" />
@@ -2431,7 +2665,7 @@ function renderCertSummary() {
     <dl class="cert-summary-list">
       <div><dt>Origem</dt><dd>${state.certSource === "planilha" ? "Planilha enviada" : "Sistema (evento)"}</dd></div>
       <div><dt>Curso</dt><dd>${escapeHtml(f.certCurso || "—")}</dd></div>
-      <div><dt>Data</dt><dd>${escapeHtml([f.certDia, f.certMes, f.certAno].filter(Boolean).join(" / ") || "—")}</dd></div>
+      <div><dt>Data</dt><dd>${escapeHtml(formatCertData(f) || "—")}</dd></div>
       <div><dt>Carga horária</dt><dd>${escapeHtml(f.certCarga || "—")}h</dd></div>
       <div><dt>Elegíveis</dt><dd>${list.length} pessoa(s)</dd></div>
       <div><dt>Selecionados</dt><dd><strong>${selectedCount}</strong></dd></div>
@@ -2445,7 +2679,7 @@ function goToCertStep(step) {
   // valores recem-digitados sem evento change/blur sejam preservados).
   if (state.certStep === 1) {
     state.certForm = state.certForm || {}
-    ;["certCurso", "certDia", "certMes", "certAno", "certCarga"].forEach(id => {
+    ;["certCurso", "certDia", "certDia2", "certMes", "certAno", "certCarga"].forEach(id => {
       const el = document.getElementById(id)
       if (el) state.certForm[id] = el.value
     })
@@ -2952,6 +3186,7 @@ function getCertFormData(nomeOverride = null) {
     nome: nomeOverride || "NOME COMPLETO DO PARTICIPANTE",
     curso: pick("certCurso") || "TÍTULO DO CURSO",
     dia: pick("certDia") || "XX",
+    dia2: pick("certDia2"),
     mes: pick("certMes") || "XXXX",
     ano: pick("certAno") || "XXXX",
     carga: pick("certCarga") || "XX"
@@ -2973,18 +3208,30 @@ function drawCertificateInto(canvas, fields) {
   c.textAlign = "center"
   const tplId = state.certTemplateId || "modelo-1"
   const P = getCertPos(tplId)
-  c.fillText(fields.nome, w * P.nome.x, h * P.nome.y)
 
-  // Curso com escala manual (ajustável pelo usuário por modelo).
-  const cursoSize = baseSize * getCursoScale(tplId)
-  c.font = `700 ${cursoSize}px ${fontFamily}`
-  c.fillText(fields.curso, w * P.curso.x, h * P.curso.y)
-  c.font = `700 ${baseSize}px ${fontFamily}`
-
-  c.fillText(String(fields.dia), w * P.dia.x, h * P.dia.y)
-  c.fillText(fields.mes, w * P.mes.x, h * P.mes.y)
-  c.fillText(String(fields.ano), w * P.ano.x, h * P.ano.y)
-  c.fillText(String(fields.carga), w * P.carga.x, h * P.carga.y)
+  // Cada campo tem sua própria escala de fonte (configurável por modelo).
+  // Comportamento do dia2:
+  //  - Se o modelo tem POS.dia2 (ex.: modelo-6), dia e dia2 são desenhados
+  //    em posições separadas (template já tem "e" entre eles).
+  //  - Caso contrário, renderiza "X e Y" no MESMO ponto de POS.dia.
+  const drawField = (key, text) => {
+    const pos = P[key]
+    if (!pos) return
+    const size = baseSize * getFieldScale(tplId, key)
+    c.font = `700 ${size}px ${fontFamily}`
+    c.fillText(text, w * pos.x, h * pos.y)
+  }
+  drawField("nome", fields.nome)
+  drawField("curso", fields.curso)
+  if (P.dia2 && fields.dia2) {
+    drawField("dia", String(fields.dia))
+    drawField("dia2", String(fields.dia2))
+  } else {
+    drawField("dia", fields.dia2 ? `${fields.dia} e ${fields.dia2}` : String(fields.dia))
+  }
+  drawField("mes", fields.mes)
+  drawField("ano", String(fields.ano))
+  drawField("carga", String(fields.carga))
 }
 
 function renderCertPreview() {
@@ -3006,19 +3253,19 @@ function slug(s) {
 
 async function emitCertificadosLote() {
   if (!state.templateImg) {
-    alert("Template ainda carregando.")
+    showAlert({ title: "Aguarde", message: "O modelo do certificado ainda está carregando. Tente novamente em alguns segundos.", type: "info" })
     return
   }
   const fd = getCertFormData()
   if (!fd.curso || fd.curso === "TÍTULO DO CURSO" || !fd.mes || fd.mes === "XXXX" || !fd.ano || fd.ano === "XXXX" || !fd.dia || fd.dia === "XX") {
-    alert("Preencha curso, dia, mês, ano e carga horária antes de emitir.")
+    showAlert({ title: "Campos obrigatórios", message: "Preencha curso, dia, mês, ano e carga horária antes de emitir os certificados.", type: "warn" })
     return
   }
   // Garante que o que esta nas checkboxes visiveis esteja sincronizado em state.
   updateCertEmitCount()
   const selected = getCertSelectedParticipants()
   if (!selected.length) {
-    alert("Volte à etapa 2 e selecione ao menos um participante.")
+    showAlert({ title: "Nenhum participante selecionado", message: "Volte à etapa 2 e selecione ao menos um participante para emitir os certificados.", type: "warn" })
     return
   }
 
@@ -3102,25 +3349,25 @@ function _blobToBase64(blob) {
 
 async function enviarCertificadosLote() {
   if (!state.templateImg) {
-    alert("Template ainda carregando.")
+    showAlert({ title: "Aguarde", message: "O modelo do certificado ainda está carregando. Tente novamente em alguns segundos.", type: "info" })
     return
   }
   const fd = getCertFormData()
   if (!fd.curso || fd.curso === "TÍTULO DO CURSO" || !fd.mes || fd.mes === "XXXX" || !fd.ano || fd.ano === "XXXX" || !fd.dia || fd.dia === "XX") {
-    alert("Preencha curso, dia, mês, ano e carga horária antes de enviar.")
+    showAlert({ title: "Campos obrigatórios", message: "Preencha curso, dia, mês, ano e carga horária antes de enviar os e-mails.", type: "warn" })
     return
   }
   const url = CERT_WEBAPP_URL
   const token = CERT_WEBAPP_TOKEN
   if (!url || url.startsWith("COLE_AQUI") || !token) {
-    alert("Endpoint de envio nao configurado. Edite CERT_WEBAPP_URL em assets/js/app.js.")
+    showAlert({ title: "Configuração ausente", message: "Endpoint de envio não configurado. Edite CERT_WEBAPP_URL em assets/js/app.js antes de enviar e-mails.", type: "error" })
     return
   }
 
   updateCertEmitCount()
   const selected = getCertSelectedParticipants()
   if (!selected.length) {
-    alert("Selecione ao menos um participante.")
+    showAlert({ title: "Nenhum participante selecionado", message: "Selecione ao menos um participante antes de enviar.", type: "warn" })
     return
   }
 
@@ -3131,12 +3378,18 @@ async function enviarCertificadosLote() {
       .slice(0, 5)
       .map(p => p.nome)
       .join(", ")
-    alert(`${semEmail.length} selecionado(s) sem e-mail valido. Ex.: ${nomes}.\n\nCorrija na planilha de origem ou desmarque-os.`)
+    showAlert({ title: "E-mails inválidos", message: `${semEmail.length} selecionado(s) sem e-mail válido. Ex.: ${nomes}.\n\nCorrija na planilha de origem ou desmarque-os antes de enviar.`, type: "warn" })
     return
   }
 
-  if (!confirm(`Voce esta prestes a gerar e ENVIAR ${selected.length} certificado(s) por e-mail.\n\nCada destinatario recebera apenas o seu PDF. Continuar?`))
-    return
+  const ok = await showConfirm({
+    title: "Confirmar envio de e-mails",
+    message: `Você está prestes a gerar e ENVIAR ${selected.length} certificado(s) por e-mail.\n\nCada destinatário receberá apenas o seu PDF. Esta ação não pode ser desfeita. Continuar?`,
+    confirmLabel: `Enviar ${selected.length} e-mail(s)`,
+    cancelLabel: "Cancelar",
+    type: "confirm"
+  })
+  if (!ok) return
 
   const btnSend = document.getElementById("certSend")
   const btnZip = document.getElementById("certEmit")
@@ -3183,6 +3436,7 @@ async function enviarCertificadosLote() {
           pdfBase64,
           curso: fd.curso,
           dia: fd.dia,
+          dia2: fd.dia2 || "",
           mes: fd.mes,
           ano: fd.ano,
           carga: fd.carga

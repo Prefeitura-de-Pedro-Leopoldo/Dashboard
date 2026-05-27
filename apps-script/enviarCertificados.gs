@@ -175,8 +175,9 @@ function montarCorpoEmail(nome, ctx) {
   const linhaCurso = ctx.curso
     ? 'É com satisfação que enviamos o seu certificado de participação no curso "' + ctx.curso + '"'
     : 'É com satisfação que enviamos o seu certificado de participação';
+  const diaTexto = (ctx.dia && ctx.dia2) ? (ctx.dia + ' e ' + ctx.dia2) : ctx.dia;
   const linhaData = (ctx.dia && ctx.mes && ctx.ano)
-    ? ', realizado em ' + ctx.dia + ' de ' + ctx.mes + ' de ' + ctx.ano
+    ? ', realizado ' + (ctx.dia2 ? 'nos dias ' : 'em ') + diaTexto + ' de ' + ctx.mes + ' de ' + ctx.ano
     : '';
   const linhaCarga = ctx.carga
     ? ' com carga horária de ' + ctx.carga + ' hora(s)'
@@ -207,7 +208,10 @@ function montarCorpoHtml(nome, ctx) {
 
   const detalhes = [];
   if (ctx.curso) detalhes.push(['Curso', ctx.curso]);
-  if (ctx.dia && ctx.mes && ctx.ano) detalhes.push(['Data de realização', ctx.dia + ' de ' + ctx.mes + ' de ' + ctx.ano]);
+  if (ctx.dia && ctx.mes && ctx.ano) {
+    var diaTxt = ctx.dia2 ? (ctx.dia + ' e ' + ctx.dia2) : ctx.dia;
+    detalhes.push(['Data de realização', diaTxt + ' de ' + ctx.mes + ' de ' + ctx.ano]);
+  }
   if (ctx.carga) detalhes.push(['Carga horária', ctx.carga + ' hora(s)']);
 
   const detalhesHtml = detalhes.length
@@ -379,6 +383,7 @@ function doPost(e) {
     const ctx = {
       curso: payload.curso,
       dia:   payload.dia,
+      dia2:  payload.dia2,
       mes:   payload.mes,
       ano:   payload.ano,
       carga: payload.carga,

@@ -9,7 +9,9 @@
       "Bash(git -C \"c:/Users/lcvsilva/Desktop/Dashboard\" status --short -- assets/docs/relatorios)",
       "Bash(git mv *)",
       "Bash(git rm *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "PowerShell(node --check C:/Users/lcvsilva/Desktop/Dashboard/assets/js/app.js; if \\($LASTEXITCODE -eq 0\\) { \"SYNTAX_OK\" } else { \"FAILED\" })",
+      "PowerShell(node --check C:/Users/lcvsilva/Desktop/Dashboard/assets/js/app.js; if \\($LASTEXITCODE -eq 0\\) { \"OK\" } else { \"FAIL\" })"
     ]
   }
 }
