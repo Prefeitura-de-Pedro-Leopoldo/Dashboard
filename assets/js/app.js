@@ -2619,7 +2619,9 @@ async function emitCertificadosLote() {
 // ---------------- Envio automatico via Apps Script Web App ----------------
 // Cravados no codigo: usuario final so clica em "Enviar por e-mail".
 // Para atualizar a URL apos republicar o Apps Script, edite a constante abaixo.
-const CERT_WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbwAVbJ8bKzBpKSlSwPEsX815JJrTkhZu0mXwDccL6H9FrIc_g0kd3GCLiVtzZA29-Kc/exec";
+// Usa o proxy interno (/api/send-certificate) para evitar bloqueio de CORS
+// ao chamar script.google.com direto do browser.
+const CERT_WEBAPP_URL   = "/api/send-certificate";
 const CERT_WEBAPP_TOKEN = "7a6RTOQzWtpkIqJmhYP8xADSculgNy4K0sBLiG15oXFZMCen";
 const CERT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
