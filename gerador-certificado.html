@@ -877,6 +877,12 @@
         carga: { x: 0.26, y: 0.475 } // após "carga horária de", antes de "horas"
       }
 
+      // Largura máxima disponível para o nome do curso (fração da largura do
+      // canvas). Se o texto exceder, a fonte é reduzida proporcionalmente até
+      // caber, respeitando um tamanho mínimo. Ajuste se o modelo mudar.
+      const CURSO_MAX_WIDTH = 0.32
+      const CURSO_MIN_SCALE = 0.55
+
       function render() {
         if (!tplReady) return
         const d = getFormData()
@@ -904,7 +910,17 @@
         c.textAlign = "center"
 
         c.fillText(d.nome, w * POS.nome.x, h * POS.nome.y)
-        c.fillText(d.curso, w * POS.curso.x, h * POS.curso.y)
+
+        // Auto-fit do curso: reduz a fonte se ultrapassar CURSO_MAX_WIDTH
+        const maxCursoPx = w * CURSO_MAX_WIDTH
+        let cursoSize = baseSize
+        if (c.measureText(d.curso).width > maxCursoPx) {
+          const scale = Math.max(CURSO_MIN_SCALE, maxCursoPx / c.measureText(d.curso).width)
+          cursoSize = baseSize * scale
+          c.font = `700 ${cursoSize}px ${fontFamily}`
+        }
+        c.fillText(d.curso, w * POS.curso.x, h * POS.curso.y, maxCursoPx)
+        c.font = `700 ${baseSize}px ${fontFamily}`
         c.fillText(String(d.dia), w * POS.dia.x, h * POS.dia.y)
         c.fillText(d.mes, w * POS.mes.x, h * POS.mes.y)
         c.fillText(String(d.ano), w * POS.ano.x, h * POS.ano.y)

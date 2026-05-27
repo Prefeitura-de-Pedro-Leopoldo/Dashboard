@@ -138,6 +138,34 @@ const CERT_POS_BY_TEMPLATE = {
   "modelo-5": _defaultPos5
 }
 
+// Escala manual do tamanho da fonte do nome do curso por modelo (1.0 = base).
+// Permite encolher textos longos que não cabem no modelo, ou aumentar quando
+// houver folga. Persistido junto com as posições no localStorage.
+const CERT_CURSO_SCALE_DEFAULT = 1.0
+const CERT_CURSO_SCALE_MIN = 0.5
+const CERT_CURSO_SCALE_MAX = 1.3
+const CERT_CURSO_SCALE = {
+  "modelo-1": CERT_CURSO_SCALE_DEFAULT,
+  "modelo-2": CERT_CURSO_SCALE_DEFAULT,
+  "modelo-3": CERT_CURSO_SCALE_DEFAULT,
+  "modelo-4": CERT_CURSO_SCALE_DEFAULT,
+  "modelo-5": CERT_CURSO_SCALE_DEFAULT
+}
+function getCursoScale(tplId) {
+  const v = CERT_CURSO_SCALE[tplId]
+  return typeof v === "number" && v > 0 ? v : CERT_CURSO_SCALE_DEFAULT
+}
+function setCursoScale(tplId, v) {
+  const n = Math.max(CERT_CURSO_SCALE_MIN, Math.min(CERT_CURSO_SCALE_MAX, Number(v) || CERT_CURSO_SCALE_DEFAULT))
+  // Modelos 3 e 4 compartilham coordenadas — espelhe a escala também.
+  if (tplId === "modelo-3" || tplId === "modelo-4") {
+    CERT_CURSO_SCALE["modelo-3"] = n
+    CERT_CURSO_SCALE["modelo-4"] = n
+  } else {
+    CERT_CURSO_SCALE[tplId] = n
+  }
+}
+
 // Carrega ajustes salvos do localStorage (so para modelos 1, 2 e o compartilhado 3-5).
 function loadCertPosOverrides() {
   try {
@@ -148,6 +176,11 @@ function loadCertPosOverrides() {
     if (saved["modelo-2"]) Object.assign(CERT_POS_BY_TEMPLATE["modelo-2"], saved["modelo-2"])
     if (saved["modelo-3"]) Object.assign(_sharedPos34, saved["modelo-3"]) // representa 3-4
     if (saved["modelo-5"]) Object.assign(_defaultPos5, saved["modelo-5"])
+    if (saved.cursoScale && typeof saved.cursoScale === "object") {
+      Object.keys(CERT_CURSO_SCALE).forEach(k => {
+        if (typeof saved.cursoScale[k] === "number") CERT_CURSO_SCALE[k] = saved.cursoScale[k]
+      })
+    }
   } catch (_) {}
 }
 function saveCertPosOverrides() {
@@ -158,7 +191,8 @@ function saveCertPosOverrides() {
         "modelo-1": CERT_POS_BY_TEMPLATE["modelo-1"],
         "modelo-2": CERT_POS_BY_TEMPLATE["modelo-2"],
         "modelo-3": _sharedPos34, // representa 3-4
-        "modelo-5": _defaultPos5
+        "modelo-5": _defaultPos5,
+        cursoScale: CERT_CURSO_SCALE
       })
     )
   } catch (_) {}
@@ -1697,9 +1731,14 @@ function downloadQrCode() {
 // ================ CERTIFICADOS ================
 function loadCertTemplate(templateId) {
   const tpl = CERT_TEMPLATES.find(t => t.id === templateId) || CERT_TEMPLATES[0]
+  // Atualiza o id ANTES do load assíncrono: renderCertPosEditor() é chamado
+  // logo após este return pelo click handler do seletor de modelo, e precisa
+  // ler o id novo para fiar os handles na referência de posições correta.
+  // Sem isso, o arrasta-e-solta editava o modelo anterior até a imagem
+  // terminar de carregar.
+  state.certTemplateId = tpl.id
   if (_certTemplateCache[tpl.id]) {
     state.templateImg = _certTemplateCache[tpl.id]
-    state.certTemplateId = tpl.id
     renderCertPreview()
     if (state.certStep === 3) refreshCertPreviewWithName()
     return
@@ -1708,9 +1747,12 @@ function loadCertTemplate(templateId) {
   img.onload = () => {
     _certTemplateCache[tpl.id] = img
     state.templateImg = img
-    state.certTemplateId = tpl.id
     renderCertPreview()
-    if (state.certStep === 3) refreshCertPreviewWithName()
+    if (state.certStep === 3) {
+      refreshCertPreviewWithName()
+      // Re-fia os handles agora que o canvas tem as dimensões do novo modelo.
+      renderCertPosEditor()
+    }
   }
   img.onerror = () => console.warn("Falha ao carregar modelo:", tpl.src)
   img.src = tpl.src
@@ -1809,6 +1851,22 @@ function renderCertPosEditor() {
   toggle.onchange = sync
   sync()
 
+  // Slider de escala da fonte do curso (por modelo, persistido)
+  const scaleEl = document.getElementById("certCursoScale")
+  const scaleVal = document.getElementById("certCursoScaleVal")
+  if (scaleEl && scaleVal) {
+    const current = Math.round(getCursoScale(tplId) * 100)
+    scaleEl.value = String(current)
+    scaleVal.textContent = current + "%"
+    scaleEl.oninput = () => {
+      const pct = Number(scaleEl.value)
+      scaleVal.textContent = pct + "%"
+      setCursoScale(tplId, pct / 100)
+      refreshCertPreviewWithName()
+    }
+    scaleEl.onchange = () => saveCertPosOverrides()
+  }
+
   // Reset
   if (resetBtn) {
     resetBtn.onclick = () => {
@@ -1816,6 +1874,7 @@ function renderCertPosEditor() {
         P[k].x = CERT_POS_DEFAULT[k].x
         P[k].y = CERT_POS_DEFAULT[k].y
       })
+      setCursoScale(tplId, CERT_CURSO_SCALE_DEFAULT)
       saveCertPosOverrides()
       renderCertPosEditor()
       refreshCertPreviewWithName()
@@ -2034,6 +2093,12 @@ function renderViewCertificados() {
                 <span>Arrastar e soltar os campos</span>
               </label>
               <span class="cert-pos-toolbar__hint" id="certPosEditorHint"></span>
+              <label class="cert-pos-toolbar__scale" title="Tamanho da fonte do curso (use para encaixar títulos longos)" style="display:flex;align-items:center;gap:6px;font-size:.85rem;">
+                <i class="fas fa-text-height"></i>
+                <span>Fonte curso</span>
+                <input type="range" id="certCursoScale" min="50" max="130" step="1" style="width:120px" />
+                <span id="certCursoScaleVal" style="min-width:40px;text-align:right;font-variant-numeric:tabular-nums">100%</span>
+              </label>
               <button type="button" class="btn btn--sm" id="certPosReset" title="Restaurar posições padrão">
                 <i class="fas fa-rotate-left"></i> Restaurar
               </button>
@@ -2906,9 +2971,16 @@ function drawCertificateInto(canvas, fields) {
   c.fillStyle = "#000000"
   c.textBaseline = "middle"
   c.textAlign = "center"
-  const P = getCertPos(state.certTemplateId || "modelo-1")
+  const tplId = state.certTemplateId || "modelo-1"
+  const P = getCertPos(tplId)
   c.fillText(fields.nome, w * P.nome.x, h * P.nome.y)
+
+  // Curso com escala manual (ajustável pelo usuário por modelo).
+  const cursoSize = baseSize * getCursoScale(tplId)
+  c.font = `700 ${cursoSize}px ${fontFamily}`
   c.fillText(fields.curso, w * P.curso.x, h * P.curso.y)
+  c.font = `700 ${baseSize}px ${fontFamily}`
+
   c.fillText(String(fields.dia), w * P.dia.x, h * P.dia.y)
   c.fillText(fields.mes, w * P.mes.x, h * P.mes.y)
   c.fillText(String(fields.ano), w * P.ano.x, h * P.ano.y)
