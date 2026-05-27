@@ -1,10 +1,10 @@
 /**
  * POST /api/send-certificate
  * Proxy server-side para o Apps Script Web App que envia certificados.
- * Evita o problema de CORS ao chamar script.google.com direto do browser.
+ * Elimina o problema de CORS ao chamar script.google.com direto do browser.
  *
- * O cliente envia o mesmo payload de antes; este handler apenas repassa
- * para a URL configurada e devolve a resposta JSON.
+ * Env var opcional:
+ *   CERT_WEBAPP_URL  URL /exec do Apps Script (sobrescreve o default)
  */
 
 const APPS_SCRIPT_URL =
@@ -12,9 +12,7 @@ const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwAVbJ8bKzBpKSlSwPEsX815JJrTkhZu0mXwDccL6H9FrIc_g0kd3GCLiVtzZA29-Kc/exec";
 
 export const config = {
-  api: {
-    bodyParser: { sizeLimit: "10mb" },
-  },
+  api: { bodyParser: { sizeLimit: "10mb" } },
   maxDuration: 60,
 };
 
@@ -46,9 +44,9 @@ export default async function handler(req, res) {
     catch (_) {
       return res.status(502).json({
         ok: false,
-        error: "Resposta inválida do Apps Script (verifique se a Web App está publicada com acesso 'Qualquer pessoa').",
+        error: "Resposta inválida do Apps Script.",
         upstreamStatus: upstream.status,
-        snippet: text.slice(0, 200),
+        snippet: text.slice(0, 300),
       });
     }
     return res.status(upstream.ok ? 200 : 502).json(data);

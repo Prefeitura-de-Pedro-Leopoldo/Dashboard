@@ -225,18 +225,22 @@ export function renderCourseCard(group) {
   const insc = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0);
   const pres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0);
   const aus = evs.reduce((s, e) => s + (e.totalAusentes || 0), 0);
+  const vagas = evs.reduce((s, e) => s + (e.vagas || 0), 0);
   const tx = insc ? Math.round((pres / insc) * 1000) / 10 : null;
+  const ocup = vagas ? Math.round((insc / vagas) * 1000) / 10 : null;
   const realizados = evs.filter((e) => e.status === "realizado").length;
 
   const rows = evs.map((e) => {
     const etx = taxaPresenca(e);
+    const eocup = e.vagas ? Math.round(((e.totalInscritos || 0) / e.vagas) * 1000) / 10 : null;
+    const vagasInfo = e.vagas ? ` &middot; ${fmt(e.vagas)} vagas${eocup != null ? ` (${pct(eocup)} ocup.)` : ""}` : "";
     return `
       <button type="button" class="course-card__turma" data-event="${e.id}">
         <span class="course-card__turma-name">
           <i class="fas fa-chevron-right"></i> ${escapeHtml(turmaLabel(e))}
         </span>
         <span class="course-card__turma-meta">
-          ${fmt(e.totalInscritos)} inscr.${e.totalPresentes ? " &middot; " + fmt(e.totalPresentes) + " pres." : ""}${etx != null ? " &middot; " + pct(etx) : ""}
+          ${fmt(e.totalInscritos)} inscr.${e.totalPresentes ? " &middot; " + fmt(e.totalPresentes) + " pres." : ""}${etx != null ? " &middot; " + pct(etx) : ""}${vagasInfo}
         </span>
       </button>
     `;
@@ -267,6 +271,8 @@ export function renderCourseCard(group) {
         <div class="metric"><dt>Inscritos</dt><dd>${fmt(insc)}</dd></div>
         <div class="metric"><dt>Presentes</dt><dd class="green">${fmt(pres)}</dd></div>
         <div class="metric"><dt>Ausentes</dt><dd class="red">${fmt(aus)}</dd></div>
+        <div class="metric"><dt>Vagas</dt><dd>${vagas ? fmt(vagas) : "—"}</dd></div>
+        <div class="metric"><dt>Ocupação</dt><dd${ocup != null && ocup >= 90 ? ' class="green"' : ocup != null && ocup < 50 ? ' class="red"' : ""}>${ocup != null ? pct(ocup) : "—"}</dd></div>
         <div class="metric"><dt>Turmas</dt><dd>${evs.length}</dd></div>
       </dl>
 
@@ -290,6 +296,10 @@ export function renderEventDetail(ev) {
   const ocupCls = ocup == null ? "na" : ocup >= 90 ? "green" : ocup >= 50 ? "" : "red";
   const ocupTxt = ocup == null ? naTooltip(OCUP_MOTIVO) : pct(ocup);
   const vagasTxt = vagasVal == null ? naTooltip(OCUP_MOTIVO) : fmt(vagasVal);
+
+  // Curso multi-módulo: troca KPI "Vagas" pelo KPI "Aptos ao certificado"
+  const temModulos = ev.modulos && ev.modulos.M1 && ev.modulos.M2;
+  const aptos = temModulos ? (ev.totalAptos ?? ev.totalPresentes) : null;
 
   return `
     <section class="event-detail" data-tone="${tone}">
@@ -321,6 +331,19 @@ export function renderEventDetail(ev) {
           <div class="kpi__value">${fmt(ev.totalInscritos)}</div>
           <div class="kpi__delta"><b>${fmt(ev.totalPresentes)}</b> presentes · <b>${fmt(ev.totalAusentes)}</b> ausentes</div>
         </div>
+        ${temModulos ? `
+        <div class="kpi kpi--accent">
+          <div class="kpi__icon"><i class="fas fa-award"></i></div>
+          <div class="kpi__label">Aptos ao certificado</div>
+          <div class="kpi__value green">${fmt(aptos)}</div>
+          <div class="kpi__delta">Presentes em ${Object.keys(ev.modulos).length} módulos</div>
+        </div>
+        <div class="kpi kpi--warn">
+          <div class="kpi__icon"><i class="fas fa-user-xmark"></i></div>
+          <div class="kpi__label">Não aptos</div>
+          <div class="kpi__value ${ev.totalInscritos - aptos > 0 ? "red" : ""}">${fmt(ev.totalInscritos - aptos)}</div>
+          <div class="kpi__delta">Faltaram em algum módulo</div>
+        </div>` : `
         <div class="kpi kpi--accent">
           <div class="kpi__icon"><i class="fas fa-ticket"></i></div>
           <div class="kpi__label">Vagas oferecidas</div>
@@ -332,8 +355,10 @@ export function renderEventDetail(ev) {
           <div class="kpi__label">Taxa de ocupação</div>
           <div class="kpi__value ${ocupCls}">${ocupTxt}</div>
           <div class="kpi__delta">Inscritos vs vagas</div>
-        </div>
+        </div>`}
       </div>
+
+      ${renderModulosBreakdown(ev)}
 
       <div class="event-detail__subs">
         <div class="event-detail__sub">
@@ -361,6 +386,84 @@ export function renderEventDetail(ev) {
 
       ${renderTurmasBreakdown(ev)}
     </section>
+  `;
+}
+
+// Detalhamento por módulo quando o evento tem coluna Check-in M1/M2 na planilha.
+function renderModulosBreakdown(ev) {
+  if (!ev || !ev.modulos) return "";
+  const entries = Object.values(ev.modulos);
+  if (!entries.length) return "";
+
+  const inscritos = ev.totalInscritos || 0;
+  const aptos = ev.totalAptos ?? ev.totalPresentes ?? 0;
+  const naoAptos = Math.max(0, inscritos - aptos);
+
+  const cards = entries.map((m, i) => {
+    const tx = m.taxaPresenca ?? 0;
+    const txClass = progressClass(tx);
+    const dateTxt = m.date ? formatDateBR(m.date) : "";
+    const presPct = inscritos ? (m.presentes / inscritos) * 100 : 0;
+    const ausPct = inscritos ? (m.ausentes / inscritos) * 100 : 0;
+    return `
+      <article class="modulo-card" data-tone="${txClass}">
+        <header class="modulo-card__head">
+          <div class="modulo-card__title">
+            <span class="modulo-card__badge">M${i + 1}</span>
+            <div>
+              <h5>${escapeHtml(m.label)}</h5>
+              ${dateTxt ? `<span class="modulo-card__date"><i class="fas fa-calendar-day"></i> ${dateTxt}</span>` : ""}
+            </div>
+          </div>
+          <div class="modulo-card__taxa ${txClass}">
+            <b>${pct(tx)}</b>
+            <span>presença</span>
+          </div>
+        </header>
+
+        <div class="modulo-card__bar" role="img" aria-label="Presentes ${fmt(m.presentes)}, ausentes ${fmt(m.ausentes)}">
+          <span class="modulo-card__bar-seg modulo-card__bar-seg--pres" style="width:${presPct}%" title="${fmt(m.presentes)} presentes"></span>
+          <span class="modulo-card__bar-seg modulo-card__bar-seg--aus" style="width:${ausPct}%" title="${fmt(m.ausentes)} ausentes"></span>
+        </div>
+
+        <footer class="modulo-card__stats">
+          <div class="modulo-stat modulo-stat--pres">
+            <i class="fas fa-circle-check"></i>
+            <div>
+              <b>${fmt(m.presentes)}</b>
+              <span>Presentes</span>
+            </div>
+          </div>
+          <div class="modulo-stat modulo-stat--aus">
+            <i class="fas fa-circle-xmark"></i>
+            <div>
+              <b>${fmt(m.ausentes)}</b>
+              <span>Ausentes</span>
+            </div>
+          </div>
+          <div class="modulo-stat modulo-stat--insc">
+            <i class="fas fa-users"></i>
+            <div>
+              <b>${fmt(inscritos)}</b>
+              <span>Inscritos</span>
+            </div>
+          </div>
+        </footer>
+      </article>`;
+  }).join("");
+
+  return `
+    <div class="event-detail__modulos">
+      <div class="event-detail__modulos-head">
+        <h4><i class="fas fa-list-check"></i> Presença por módulo</h4>
+        <span class="event-detail__modulos-sub">
+          <i class="fas fa-circle-info"></i>
+          Considera-se <b>presente</b> quem compareceu a <b>todos os módulos</b> ·
+          <b class="green">${fmt(aptos)}</b> aptos · <b class="red">${fmt(naoAptos)}</b> não aptos
+        </span>
+      </div>
+      <div class="event-detail__modulos-grid">${cards}</div>
+    </div>
   `;
 }
 

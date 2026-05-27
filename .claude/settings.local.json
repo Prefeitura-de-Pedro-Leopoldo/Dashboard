@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(curl -sS -L -o - -w \"\\\\n---HTTP %{http_code}---\\\\n\" \"https://script.google.com/macros/s/AKfycbwAVbJ8bKzBpKSlSwPEsX815JJrTkhZu0mXwDccL6H9FrIc_g0kd3GCLiVtzZA29-Kc/exec\")",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(git stash *)",
+      "Bash(git -C \"c:/Users/lcvsilva/Desktop/Dashboard\" status --short -- assets/docs/relatorios)",
+      "Bash(git mv *)",
+      "Bash(git rm *)",
+      "Bash(git add *)"
     ]
   }
 }

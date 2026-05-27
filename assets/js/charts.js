@@ -1389,3 +1389,76 @@ export function barGroupedByCategory(id, labels, datasets, opts = {}) {
     plugins: [barShadowPlugin, barHoverGrowPlugin],
   }, isEmpty, "Sem dados.");
 }
+
+// Stacked horizontal bar: presença vs ausência por módulo.
+export function barModulosPresenca(id, modulos) {
+  const entries = Array.isArray(modulos) ? modulos : Object.values(modulos || {});
+  const isEmpty = !entries.length;
+  const labels = entries.map((m) => m.label || "Módulo");
+  const presentes = entries.map((m) => m.presentes || 0);
+  const ausentes = entries.map((m) => m.ausentes || 0);
+  return _mount(id, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Presentes",
+          data: presentes,
+          backgroundColor: PALETTE.green,
+          hoverBackgroundColor: PALETTE.greenDeep,
+          borderRadius: { topLeft: 6, bottomLeft: 6, topRight: 0, bottomRight: 0 },
+          borderSkipped: false,
+          maxBarThickness: 36,
+          stack: "presenca",
+        },
+        {
+          label: "Ausentes",
+          data: ausentes,
+          backgroundColor: PALETTE.red,
+          hoverBackgroundColor: "#a32c20",
+          borderRadius: { topLeft: 0, bottomLeft: 0, topRight: 6, bottomRight: 6 },
+          borderSkipped: false,
+          maxBarThickness: 36,
+          stack: "presenca",
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { right: 24, top: 8, bottom: 8 } },
+      interaction: { mode: "nearest", axis: "y", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart" },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const ds = ctx.chart.data.datasets;
+              const total = ds.reduce((acc, d) => acc + (d.data[ctx.dataIndex] || 0), 0);
+              const pct = total ? ((ctx.parsed.x / total) * 100).toFixed(1) : 0;
+              return ` ${ctx.dataset.label}: ${ctx.parsed.x} (${pct}%)`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          beginAtZero: true,
+          grid: { color: PALETTE.grid, drawTicks: false },
+          border: { display: false },
+          ticks: { color: PALETTE.axis, font: { size: 11 } },
+        },
+        y: {
+          stacked: true,
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: PALETTE.axis, font: { size: 12, weight: "600" }, padding: 8 },
+        },
+      },
+    },
+  }, isEmpty, "Sem dados por módulo.");
+}

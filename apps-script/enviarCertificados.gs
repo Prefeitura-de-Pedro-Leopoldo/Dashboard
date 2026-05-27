@@ -22,6 +22,9 @@ const EMAIL_SUBJECT     = 'Seu certificado de participação';
 // e-mail que executa o script.
 const SENDER_EMAIL      = 'egov@pedroleopoldo.mg.gov.br';
 const REPLY_TO          = 'egov@pedroleopoldo.mg.gov.br';
+// Copia oculta em todos os envios. Use virgula para varios destinatarios.
+// Ex.: 'egov@pedroleopoldo.mg.gov.br, registro@pedroleopoldo.mg.gov.br'
+const BCC_EMAIL         = 'fabiana.silva@pedroleopoldo.mg.gov.br';
 
 // Token compartilhado com o admin web. Troque por uma string longa aleatoria.
 // O HTML envia esse valor em cada POST; requisicoes sem ele sao rejeitadas.
@@ -302,6 +305,7 @@ function opcoesEmail_(nome, ctx) {
   };
   if (SENDER_EMAIL) opts.from = SENDER_EMAIL;
   if (REPLY_TO)     opts.replyTo = REPLY_TO;
+  if (BCC_EMAIL)    opts.bcc = BCC_EMAIL;
   return opts;
 }
 
@@ -349,24 +353,27 @@ function doPost(e) {
     if (!pdfName)           return out({ ok: false, error: 'Nome do arquivo vazio.' });
     if (!pdfBase64)         return out({ ok: false, error: 'PDF vazio.' });
 
-    const folder = DriveApp.getFolderById(FOLDER_ID);
+    const nomeAba   = abaParaCurso_(payload.curso);
+    const rootFolder = DriveApp.getFolderById(FOLDER_ID);
+    const folder    = obterOuCriarSubpasta_(rootFolder, nomeAba);
 
-    // Evita duplicatas: se ja existe arquivo com esse nome, falha.
+    // Evita duplicatas: se ja existe arquivo com esse nome na subpasta, falha.
     if (folder.getFilesByName(pdfName).hasNext()) {
-      return out({ ok: false, error: 'Arquivo ja existe no Drive: ' + pdfName });
+      return out({ ok: false, error: 'Arquivo ja existe no Drive: ' + nomeAba + '/' + pdfName });
     }
 
     const bytes = Utilities.base64Decode(pdfBase64);
     const blob  = Utilities.newBlob(bytes, 'application/pdf', pdfName);
     const file  = folder.createFile(blob);
 
-    // Garante que a aba existe e tem cabecalho
-    const sheet = obterOuCriarAba();
+    // Garante que a aba do curso existe e tem cabecalho
+    const sheet = obterOuCriarAba(nomeAba);
 
     if (DRY_RUN) {
-      sheet.appendRow([nome, email, file.getName(), STATUS_DRY_RUN,
-        'DRY_RUN: enviaria via Web App', new Date()]);
-      return out({ ok: true, file: file.getName(), dryRun: true });
+      const row = appendRowComChip_(sheet,
+        [nome, email, file.getName(), STATUS_DRY_RUN, 'DRY_RUN: enviaria via Web App', new Date()],
+        COL.ARQUIVO, file);
+      return out({ ok: true, file: file.getName(), dryRun: true, row: row });
     }
 
     const ctx = {
@@ -380,7 +387,9 @@ function doPost(e) {
     opts.attachments = [file.getAs('application/pdf')];
     GmailApp.sendEmail(email, EMAIL_SUBJECT, montarCorpoEmail(nome, ctx), opts);
 
-    sheet.appendRow([nome, email, file.getName(), STATUS_ENVIADO, '', new Date()]);
+    appendRowComChip_(sheet,
+      [nome, email, file.getName(), STATUS_ENVIADO, '', new Date()],
+      COL.ARQUIVO, file);
     return out({ ok: true, file: file.getName() });
 
   } catch (err) {
@@ -388,16 +397,88 @@ function doPost(e) {
   }
 }
 
-function obterOuCriarAba() {
+/**
+ * Acrescenta uma linha na planilha e converte a celula da coluna `chipCol`
+ * num Smart Chip apontando para o arquivo do Drive (clicavel, com preview).
+ * Requer o servico avancado "Sheets API" habilitado no projeto Apps Script
+ * (Editor -> Services -> + -> Google Sheets API).
+ */
+function appendRowComChip_(sheet, values, chipCol, file) {
+  sheet.appendRow(values);
+  const row = sheet.getLastRow();
+  try {
+    const ss = sheet.getParent();
+    Sheets.Spreadsheets.batchUpdate({
+      requests: [{
+        updateCells: {
+          range: {
+            sheetId: sheet.getSheetId(),
+            startRowIndex: row - 1,
+            endRowIndex: row,
+            startColumnIndex: chipCol - 1,
+            endColumnIndex: chipCol,
+          },
+          rows: [{
+            values: [{
+              userEnteredValue: { stringValue: '@' },
+              chipRuns: [{
+                startIndex: 0,
+                chip: {
+                  richLinkProperties: {
+                    uri: file.getUrl(),
+                    mimeType: 'application/pdf',
+                  },
+                },
+              }],
+            }],
+          }],
+          fields: 'userEnteredValue,chipRuns',
+        },
+      }],
+    }, ss.getId());
+  } catch (err) {
+    // Fallback: se a Sheets API nao estiver habilitada, mantem o texto
+    // simples e adiciona pelo menos um hyperlink para o arquivo.
+    sheet.getRange(row, chipCol).setFormula(
+      '=HYPERLINK("' + file.getUrl() + '","' + file.getName().replace(/"/g, '""') + '")'
+    );
+    Logger.log('Smart chip falhou, usei HYPERLINK. Detalhe: ' + (err && err.message));
+  }
+  return row;
+}
+
+function obterOuCriarAba(nomeAba) {
   const ss = SpreadsheetApp.getActive();
-  let sheet = ss.getSheetByName(SHEET_NAME);
+  const finalName = String(nomeAba || SHEET_NAME).slice(0, 99);
+  let sheet = ss.getSheetByName(finalName);
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
+    sheet = ss.insertSheet(finalName);
     sheet.appendRow(['Nome', 'Email', 'Arquivo PDF', 'Status', 'Log', 'Enviado em']);
   } else if (sheet.getLastRow() === 0) {
     sheet.appendRow(['Nome', 'Email', 'Arquivo PDF', 'Status', 'Log', 'Enviado em']);
   }
   return sheet;
+}
+
+/**
+ * Converte o nome do curso/evento num nome de aba valido.
+ * Nomes de aba do Sheets nao aceitam : \ / ? * [ ] e tem limite de 100 chars.
+ */
+function abaParaCurso_(curso) {
+  const c = String(curso || '').trim();
+  if (!c) return SHEET_NAME;
+  return c.replace(/[:\\\/\?\*\[\]]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 99);
+}
+
+/**
+ * Retorna a subpasta com `nome` dentro de `parent`, criando se nao existir.
+ * Usado para agrupar os PDFs por curso dentro da pasta principal do Drive.
+ */
+function obterOuCriarSubpasta_(parent, nome) {
+  const nomeLimpo = String(nome || '').trim();
+  if (!nomeLimpo) return parent;
+  const it = parent.getFoldersByName(nomeLimpo);
+  return it.hasNext() ? it.next() : parent.createFolder(nomeLimpo);
 }
 
 /** Healthcheck para abrir a URL no navegador e confirmar que esta publicada. */

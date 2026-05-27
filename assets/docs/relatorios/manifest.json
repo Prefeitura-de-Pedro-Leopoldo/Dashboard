@@ -1,35 +1,35 @@
 {
-  "geradoEm": "2026-05-27T15:22:26.606Z",
-  "fonte": "assets/docs/relatorios/Lista de participantes - *.xlsx",
+  "geradoEm": "2026-05-27T18:54:30.977Z",
+  "fonte": "assets/docs/relatorios/**/*.xlsx",
   "planilhas": [
     {
       "id": "workshop-sei-usar",
-      "arquivo": "Lista de participantes - workshop-sei-2026-04.xlsx",
+      "arquivo": "workshop-sei-2026-04/participantes.xlsx",
       "titulo": "Workshop SEI! Usar na prática"
     },
     {
       "id": "comissao-recursal-1-turma-2026-05",
-      "arquivo": "Lista de participantes - comissao-recursal-2026-05-t1.xlsx",
+      "arquivo": "comissao-recursal-2026-05/t1.xlsx",
       "titulo": "Formação para Membros da Comissão Recursal - 1ª turma"
     },
     {
       "id": "fundamentos-da-gestao-publica",
-      "arquivo": "Lista de participantes - Fundamentos da Gestão Pública.xlsx",
+      "arquivo": "fundamentos-gestao-publica-2026-05/participantes.xlsx",
       "titulo": "Fundamentos da Gestão Pública"
     },
     {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",
-      "arquivo": "Lista de participantes - mapa-gerenciamento-risco-2026-05-t1.xlsx",
+      "arquivo": "mapa-gerenciamento-risco-2026-05/t1.xlsx",
       "titulo": "Elaboração do Mapa de Gerenciamento de Risco - 1ª turma"
     },
     {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-2-turma",
-      "arquivo": "Lista de participantes - mapa-gerenciamento-risco-2026-05-t2.xlsx",
+      "arquivo": "mapa-gerenciamento-risco-2026-05/t2.xlsx",
       "titulo": "Elaboração do Mapa de Gerenciamento de Risco - 2ª turma"
     },
     {
       "id": "comunicacao-que-aproxima",
-      "arquivo": "Lista de participantes - comunicacao-que-aproxima-2026-05.xlsx",
+      "arquivo": "comunicacao-que-aproxima-2026-05/participantes.xlsx",
       "titulo": "Comunicação que aproxima: O papel do servidor na construção da confiança pública"
     }
   ]

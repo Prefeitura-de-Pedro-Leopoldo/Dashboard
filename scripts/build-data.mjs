@@ -123,6 +123,14 @@ function mapHeader(headerRow) {
     }
     return -1;
   };
+  // findExact: bate a célula inteira (após startsWith) só para evitar que
+  // "check-in" engula "check-in m1" e vice-versa.
+  const findExactStart = (needle) => {
+    for (let i = 0; i < norm.length; i++) {
+      if (norm[i] === needle) return i;
+    }
+    return -1;
+  };
   return {
     nome:        find("nome completo", "nome"),
     sobrenome:   find("sobrenome"),
@@ -131,9 +139,14 @@ function mapHeader(headerRow) {
     cargo:       find("cargo/funcao", "cargo/função", "cargo", "funcao", "função"),
     matricula:   find("matricula", "matrícula"),
     turma:       find("tipo de ingresso", "turma"),
-    checkin:     find("check-in", "check in", "checkin", "presente"),
+    checkin:     findExactStart("check-in") >= 0 ? findExactStart("check-in") : find("check in", "checkin", "presente"),
+    checkinM1:   findExactStart("check-in m1"),
+    checkinM2:   findExactStart("check-in m2"),
+    apto:        findExactStart("apto"),
     dataInsc:    find("data de inscricao", "data de inscrição", "inscricao", "inscrição"),
-    dataCheck:   find("data de check-in", "data check-in", "check-in em"),
+    dataCheck:   findExactStart("data de check-in") >= 0 ? findExactStart("data de check-in") : find("data check-in", "check-in em"),
+    dataCheckM1: findExactStart("data de check-in m1"),
+    dataCheckM2: findExactStart("data de check-in m2"),
   };
 }
 
@@ -158,6 +171,11 @@ function parsePlanilha(filePath) {
   if (cols.nome < 0) throw new Error("Coluna 'Nome' não encontrada.");
 
   const temColCheckin = cols.checkin >= 0;
+  const temModulos = cols.checkinM1 >= 0 && cols.checkinM2 >= 0;
+  const isSim = (v) => ["sim", "yes", "true", "1", "presente"].includes(
+    String(v ?? "").trim().toLowerCase()
+  );
+
   const participantes = [];
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i] || [];
@@ -169,12 +187,19 @@ function parsePlanilha(filePath) {
     }
     if (isLinhaRodape(nome)) continue;
 
-    const checkinRaw = temColCheckin ? String(r[cols.checkin] ?? "").trim().toLowerCase() : "";
-    const presente = temColCheckin
-      ? ["sim", "yes", "true", "1", "presente"].includes(checkinRaw)
-      : true;
-    const dataInsc  = cols.dataInsc  >= 0 ? parseExcelDate(r[cols.dataInsc])  : null;
-    const dataCheck = cols.dataCheck >= 0 ? parseExcelDate(r[cols.dataCheck]) : null;
+    const presenteM1 = temModulos ? isSim(r[cols.checkinM1]) : null;
+    const presenteM2 = temModulos ? isSim(r[cols.checkinM2]) : null;
+    const aptoExplicito = cols.apto >= 0 ? isSim(r[cols.apto]) : null;
+    // Em planilhas com módulos, presente/apto = M1 ∩ M2 (ou coluna explícita).
+    // Em planilhas tradicionais, mantém a coluna Check-in.
+    const presente = temModulos
+      ? (aptoExplicito !== null ? aptoExplicito : (presenteM1 && presenteM2))
+      : (temColCheckin ? isSim(r[cols.checkin]) : true);
+
+    const dataInsc   = cols.dataInsc   >= 0 ? parseExcelDate(r[cols.dataInsc])   : null;
+    const dataCheck  = cols.dataCheck  >= 0 ? parseExcelDate(r[cols.dataCheck])  : null;
+    const dataCheckM1 = cols.dataCheckM1 >= 0 ? parseExcelDate(r[cols.dataCheckM1]) : null;
+    const dataCheckM2 = cols.dataCheckM2 >= 0 ? parseExcelDate(r[cols.dataCheckM2]) : null;
 
     participantes.push({
       nome,
@@ -185,7 +210,12 @@ function parsePlanilha(filePath) {
       matricula: cols.matricula >= 0 ? (String(r[cols.matricula] ?? "").trim() || null) : null,
       pagamento: null,
       presente,
-      dataCheckin: isoLocal(dataCheck),
+      apto: temModulos ? presente : null,
+      presenteM1,
+      presenteM2,
+      dataCheckin: isoLocal(temModulos ? (dataCheckM2 || dataCheckM1) : dataCheck),
+      dataCheckinM1: isoLocal(dataCheckM1),
+      dataCheckinM2: isoLocal(dataCheckM2),
       dataInscricao: isoLocal(dataInsc),
     });
   }
@@ -215,8 +245,46 @@ function buildEvento(arquivo, meta, participantes) {
   };
   const secretarias = tally(participantes, (p) => p.secretaria);
   const secretariasPresentes = tally(presentes, (p) => p.secretaria);
-  const turmas = tally(participantes, (p) => p.turma);
-  const turmasPresentes = tally(presentes, (p) => p.turma);
+  let turmas = tally(participantes, (p) => p.turma);
+  let turmasPresentes = tally(presentes, (p) => p.turma);
+
+  // Suporte a eventos multi-módulo: se a planilha tem colunas Check-in M1/M2,
+  // expõe stats por módulo e usa-os como "turmas" no gráfico
+  // (para reusar o pie/bar de turmas como pie/bar de módulos).
+  const temModulosData = participantes.some(
+    (p) => p.presenteM1 !== null && p.presenteM1 !== undefined
+  );
+  let modulos = null;
+  let totalAptos = totalPresentes;
+  if (temModulosData) {
+    const presentesM1 = participantes.filter((p) => p.presenteM1).length;
+    const presentesM2 = participantes.filter((p) => p.presenteM2).length;
+    totalAptos = participantes.filter((p) => p.apto).length;
+    modulos = {
+      M1: {
+        label: (meta.modulos && meta.modulos[0] && meta.modulos[0].label) || "Módulo 1",
+        date: (meta.modulos && meta.modulos[0] && meta.modulos[0].date) || null,
+        presentes: presentesM1,
+        ausentes: totalInscritos - presentesM1,
+        taxaPresenca: totalInscritos
+          ? Math.round((presentesM1 / totalInscritos) * 1000) / 10 : 0,
+      },
+      M2: {
+        label: (meta.modulos && meta.modulos[1] && meta.modulos[1].label) || "Módulo 2",
+        date: (meta.modulos && meta.modulos[1] && meta.modulos[1].date) || null,
+        presentes: presentesM2,
+        ausentes: totalInscritos - presentesM2,
+        taxaPresenca: totalInscritos
+          ? Math.round((presentesM2 / totalInscritos) * 1000) / 10 : 0,
+      },
+    };
+    // Sobrescreve turmas/turmasPresentes para o dashboard exibir módulos.
+    turmas = { [modulos.M1.label]: totalInscritos, [modulos.M2.label]: totalInscritos };
+    turmasPresentes = {
+      [modulos.M1.label]: presentesM1,
+      [modulos.M2.label]: presentesM2,
+    };
+  }
 
   const tlInsc = {};
   for (const p of participantes) {
@@ -250,7 +318,9 @@ function buildEvento(arquivo, meta, participantes) {
     totalAprovados: totalInscritos,
     totalPresentes,
     totalAusentes,
+    totalAptos,
     taxaPresenca,
+    modulos,
     turmas,
     turmasPresentes,
     secretarias,
@@ -302,11 +372,32 @@ function buildResumo(eventos) {
   };
 }
 
+function listarPlanilhas(dir) {
+  // Varre recursivamente o diretório de relatórios e devolve caminhos
+  // relativos a `dir` (com separador "/") para todo .xlsx de participantes.
+  // Ignora _originais/ e arquivos cujo basename comece com "satisfacao",
+  // "pesquisa" ou "~$" (lock files do Excel).
+  const resultado = [];
+  const walk = (sub) => {
+    const full = path.join(dir, sub);
+    for (const ent of fs.readdirSync(full, { withFileTypes: true })) {
+      if (ent.name.startsWith(".") || ent.name === "_originais") continue;
+      const rel = sub ? `${sub}/${ent.name}` : ent.name;
+      if (ent.isDirectory()) { walk(rel); continue; }
+      if (!ent.name.toLowerCase().endsWith(".xlsx")) continue;
+      const base = ent.name.toLowerCase();
+      if (base.startsWith("~$")) continue;
+      if (base.startsWith("satisfacao") || base.startsWith("pesquisa")) continue;
+      resultado.push(rel.replace(/\\/g, "/"));
+    }
+  };
+  walk("");
+  return resultado.sort();
+}
+
 function main() {
   const meta = JSON.parse(fs.readFileSync(META_PATH, "utf-8")).eventos || {};
-  const arquivos = fs.readdirSync(RELATORIOS_DIR)
-    .filter((f) => f.toLowerCase().startsWith("lista de participantes") && f.toLowerCase().endsWith(".xlsx"))
-    .sort();
+  const arquivos = listarPlanilhas(RELATORIOS_DIR);
 
   if (!arquivos.length) {
     console.warn(`[build-data] Nenhuma planilha em ${RELATORIOS_DIR}.`);
@@ -319,8 +410,8 @@ function main() {
     try {
       const m = meta[arquivo] || {};
       const defaults = {
-        id: slugify(arquivo.replace(/^Lista de participantes - /i, "").replace(/\.xlsx$/i, "")),
-        title: arquivo.replace(/^Lista de participantes - /i, "").replace(/\.xlsx$/i, ""),
+        id: slugify(arquivo.replace(/\.xlsx$/i, "").replace(/\//g, "-")),
+        title: arquivo.replace(/\.xlsx$/i, "").replace(/\//g, " · "),
       };
       const eventoMeta = { ...defaults, ...m };
       if (!meta[arquivo]) {
@@ -349,7 +440,7 @@ function main() {
 
   const out = {
     geradoEm: new Date().toISOString(),
-    fonte: "assets/docs/relatorios/Lista de participantes - *.xlsx",
+    fonte: "assets/docs/relatorios/**/*.xlsx",
     eventos,
     resumo: buildResumo(eventos),
   };
@@ -358,7 +449,7 @@ function main() {
 
   const manifest = {
     geradoEm: new Date().toISOString(),
-    fonte: "assets/docs/relatorios/Lista de participantes - *.xlsx",
+    fonte: "assets/docs/relatorios/**/*.xlsx",
     planilhas: eventos.map((e) => ({
       id: e.id,
       arquivo: e.fonte,
