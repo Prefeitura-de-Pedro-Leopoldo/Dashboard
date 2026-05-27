@@ -640,6 +640,7 @@
                 <div class="batch__step-title">Baixe a planilha modelo</div>
                 <div class="batch__cols">
                   <span class="batch__col">nome</span>
+                  <span class="batch__col">email</span>
                   <span class="batch__col">curso</span>
                   <span class="batch__col">dia</span>
                   <span class="batch__col">mes</span>
@@ -672,9 +673,26 @@
               <div class="batch__step-body">
                 <div class="batch__step-title">Gere os certificados</div>
                 <button type="button" class="batch__btn" id="btn-batch" disabled>
-                  <span>⚡ Gerar PDFs em massa</span>
+                  <span>⚡ Gerar PDFs em massa (ZIP)</span>
                   <span class="batch__btn-count" id="btn-count" hidden></span>
                 </button>
+
+                <details style="margin-top:14px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:#fff">
+                  <summary style="cursor:pointer;font-size:.82rem;font-weight:600;color:var(--brand-dark)">⚙ Envio automático por e-mail (Apps Script)</summary>
+                  <div class="field" style="margin-top:10px;margin-bottom:8px">
+                    <label for="f-webapp-url">URL da Web App</label>
+                    <input type="url" id="f-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" />
+                  </div>
+                  <div class="field" style="margin-bottom:8px">
+                    <label for="f-webapp-token">Token compartilhado</label>
+                    <input type="text" id="f-webapp-token" placeholder="o mesmo SHARED_TOKEN do enviarCertificados.gs" />
+                  </div>
+                  <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Salvo só no seu navegador (localStorage).</div>
+                  <button type="button" class="batch__btn" id="btn-send" disabled style="background:linear-gradient(135deg,var(--accent),#3c8e26);box-shadow:0 4px 14px -4px rgba(77,173,51,.5)">
+                    <span>📧 Gerar e Enviar por e-mail</span>
+                    <span class="batch__btn-count" id="btn-send-count" hidden></span>
+                  </button>
+                </details>
                 <div class="batch__progress-wrap" id="bar-wrap">
                   <div class="batch__progress-head">
                     <span id="progress-label">Processando…</span>
@@ -894,6 +912,14 @@
       }
 
       // ---------- Download ----------
+      function toCsv(rows) {
+        const esc = v => {
+          const s = String(v ?? "")
+          return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
+        }
+        return rows.map(r => r.map(esc).join(",")).join("\r\n") + "\r\n"
+      }
+
       function slug(s) {
         return s
           .toLowerCase()
@@ -990,13 +1016,19 @@
         return { headers, data }
       }
 
-      const REQUIRED_COLS = ["nome", "curso", "dia", "mes", "ano", "carga_horaria"]
+      const REQUIRED_COLS = ["nome", "email", "curso", "dia", "mes", "ano", "carga_horaria"]
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       let csvData = null
 
       function validateCsv(headers, data) {
         const missing = REQUIRED_COLS.filter(c => !headers.includes(c))
         if (missing.length) return `Faltam colunas: ${missing.join(", ")}`
         if (!data.length) return "CSV vazio (apenas cabeçalho)."
+        for (let i = 0; i < data.length; i++) {
+          const email = (data[i].email || "").trim()
+          if (!email) return `Linha ${i + 2}: email vazio.`
+          if (!EMAIL_RE.test(email)) return `Linha ${i + 2}: email inválido "${email}"`
+        }
         // valida mês no primeiro registro
         const mesesValidos = [
           "janeiro",
@@ -1103,9 +1135,9 @@
       // ---------- Planilha modelo ----------
       document.getElementById("btn-sample").addEventListener("click", () => {
         const csv =
-          "nome,curso,dia,mes,ano,carga_horaria\n" +
-          "Maria da Silva Oliveira,Fundamentos da Gestão Pública,14,maio,2026,8\n" +
-          "João Pedro Souza,Comunicação que aproxima,21,maio,2026,4\n"
+          "nome,email,curso,dia,mes,ano,carga_horaria\n" +
+          "Maria da Silva Oliveira,maria.silva@exemplo.com,Fundamentos da Gestão Pública,14,maio,2026,8\n" +
+          "João Pedro Souza,joao.pedro@exemplo.com,Comunicação que aproxima,21,maio,2026,4\n"
         const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
         const a = document.createElement("a")
         a.href = URL.createObjectURL(blob)
@@ -1142,6 +1174,7 @@
         const { jsPDF } = window.jspdf
         const zip = new JSZip()
         const tmp = document.createElement("canvas")
+        const envioRows = [["Nome", "Email", "Arquivo PDF", "Status", "Log", "Enviado em"]]
 
         for (let i = 0; i < csvData.length; i++) {
           const row = csvData[i]
@@ -1159,7 +1192,9 @@
           const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
           pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
           const blob = pdf.output("blob")
-          zip.file(`certificado-${slug(fields.nome)}-${slug(fields.curso)}.pdf`, blob)
+          const filename = `certificado-${slug(fields.nome)}-${slug(fields.curso)}.pdf`
+          zip.file(filename, blob)
+          envioRows.push([row.nome, row.email, filename, "", "", ""])
 
           const pct = Math.round(((i + 1) / csvData.length) * 100)
           barFill.style.width = pct + "%"
@@ -1168,6 +1203,8 @@
           // Cede o thread para a UI atualizar
           await new Promise(r => setTimeout(r, 0))
         }
+
+        zip.file("planilha-envio.csv", "﻿" + toCsv(envioRows))
 
         progressLabel.textContent = "Compactando ZIP…"
         const zipBlob = await zip.generateAsync({ type: "blob" })
@@ -1184,6 +1221,148 @@
       }
 
       btnBatch.addEventListener("click", generateBatch)
+
+      // ============================================================
+      // Envio automatico via Apps Script Web App
+      // ============================================================
+      const WEBAPP_URL_KEY   = "egov_webapp_url"
+      const WEBAPP_TOKEN_KEY = "egov_webapp_token"
+      const urlInput   = document.getElementById("f-webapp-url")
+      const tokenInput = document.getElementById("f-webapp-token")
+      const btnSend    = document.getElementById("btn-send")
+      const btnSendCount = document.getElementById("btn-send-count")
+
+      urlInput.value   = localStorage.getItem(WEBAPP_URL_KEY) || ""
+      tokenInput.value = localStorage.getItem(WEBAPP_TOKEN_KEY) || ""
+
+      function refreshSendBtn() {
+        const ready = csvData && csvData.length && urlInput.value.trim() && tokenInput.value.trim()
+        btnSend.disabled = !ready
+        if (csvData && csvData.length) {
+          btnSendCount.hidden = false
+          btnSendCount.textContent = `${csvData.length} e-mail${csvData.length > 1 ? "s" : ""}`
+        } else {
+          btnSendCount.hidden = true
+        }
+      }
+
+      urlInput.addEventListener("input", () => {
+        localStorage.setItem(WEBAPP_URL_KEY, urlInput.value.trim())
+        refreshSendBtn()
+      })
+      tokenInput.addEventListener("input", () => {
+        localStorage.setItem(WEBAPP_TOKEN_KEY, tokenInput.value.trim())
+        refreshSendBtn()
+      })
+
+      // Reaproveita o estado do upload
+      const _origSetCsv = setCsv
+      // Refresca quando o CSV muda — observa via MutationObserver no btnBatch.disabled
+      new MutationObserver(refreshSendBtn).observe(btnBatch, { attributes: true, attributeFilter: ["disabled"] })
+
+      function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(String(r.result).split(",")[1])
+          r.onerror = reject
+          r.readAsDataURL(blob)
+        })
+      }
+
+      async function postOne(url, payload) {
+        // Content-Type text/plain evita preflight CORS no Apps Script
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload),
+          redirect: "follow",
+        })
+        if (!resp.ok) throw new Error("HTTP " + resp.status)
+        return resp.json()
+      }
+
+      async function generateAndSend() {
+        if (!tplReady) { alert("Template ainda carregando."); return }
+        if (!csvData || !csvData.length) return
+        if (!window.jspdf) { alert("jsPDF ainda carregando."); return }
+        const url = urlInput.value.trim()
+        const token = tokenInput.value.trim()
+        if (!url || !token) { alert("Configure URL e token."); return }
+
+        const confirma = confirm(
+          `Voce esta prestes a gerar e ENVIAR ${csvData.length} certificado(s) por e-mail.\n\n` +
+          `Cada destinatario recebera apenas o seu PDF. Continuar?`
+        )
+        if (!confirma) return
+
+        btnSend.disabled = true
+        btnBatch.disabled = true
+        statusEl.classList.remove("is-success", "is-error")
+        statusEl.textContent = ""
+        barWrap.classList.add("is-visible")
+        barFill.style.width = "0%"
+        progressPct.textContent = "0%"
+        progressLabel.textContent = `Enviando 0/${csvData.length}`
+
+        const { jsPDF } = window.jspdf
+        const tmp = document.createElement("canvas")
+        let okCount = 0
+        const erros = []
+
+        for (let i = 0; i < csvData.length; i++) {
+          const row = csvData[i]
+          const fields = {
+            nome: row.nome,
+            curso: row.curso,
+            dia: row.dia,
+            mes: row.mes.toLowerCase(),
+            ano: row.ano,
+            carga: row.carga_horaria,
+          }
+          const filename = `certificado-${slug(fields.nome)}-${slug(fields.curso)}.pdf`
+
+          try {
+            renderInto(tmp, fields)
+            const imgData = tmp.toDataURL("image/jpeg", 0.92)
+            const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
+            pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
+            const pdfBlob = pdf.output("blob")
+            const pdfBase64 = await blobToBase64(pdfBlob)
+
+            const res = await postOne(url, {
+              token,
+              nome: row.nome,
+              email: row.email,
+              pdfName: filename,
+              pdfBase64,
+            })
+            if (res.ok) okCount++
+            else erros.push(`${row.email}: ${res.error}`)
+          } catch (err) {
+            erros.push(`${row.email}: ${err.message || err}`)
+          }
+
+          const pct = Math.round(((i + 1) / csvData.length) * 100)
+          barFill.style.width = pct + "%"
+          progressPct.textContent = pct + "%"
+          progressLabel.textContent = `Enviando ${i + 1}/${csvData.length}`
+        }
+
+        stepGen.classList.add("is-done")
+        if (erros.length === 0) {
+          statusEl.classList.add("is-success")
+          statusEl.textContent = `✓ ${okCount} e-mail(s) enviado(s) com sucesso.`
+        } else {
+          statusEl.classList.add("is-error")
+          statusEl.textContent = `${okCount} ok, ${erros.length} erro(s). Primeiros: ` + erros.slice(0, 3).join(" | ")
+          console.error("Erros no envio:", erros)
+        }
+        btnBatch.disabled = false
+        refreshSendBtn()
+      }
+
+      btnSend.addEventListener("click", generateAndSend)
+      refreshSendBtn()
     </script>
   </body>
 </html>

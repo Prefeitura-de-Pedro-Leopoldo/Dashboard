@@ -1363,29 +1363,40 @@ function renderViewQrCode() {
   view.innerHTML = `
     <div class="qr-layout">
       <div class="card qr-form-card">
-        <div class="card__header">
+        <div class="card__header qr-form-header">
           <div>
-            <h3><i class="fas fa-qrcode" style="color:var(--brand-primary)"></i> Gerador de QR Code</h3>
-            <p>Insira uma URL ou texto. Geração em <b>2000 × 2000 px</b>.</p>
+            <h3><i class="fas fa-qrcode"></i> Gerador de QR Code</h3>
+            <p>Insira uma URL ou texto. Geração em alta resolução <b>2000 × 2000 px</b>.</p>
           </div>
+          <span class="qr-size-badge"><i class="fas fa-expand"></i> 2000 px</span>
         </div>
 
-        <div class="filter">
-          <label for="qrUrl">URL ou texto</label>
+        <div class="filter qr-field">
+          <label for="qrUrl"><i class="fas fa-link"></i> URL ou texto</label>
           <input type="text" id="qrUrl" placeholder="https://escoladegoverno.pedroleopoldo.mg.gov.br" value="" />
+          <div class="qr-char-counter"><span id="qrCharCount">0</span> caracteres</div>
         </div>
 
-        <div class="filter">
-          <label for="qrBg">Cor de fundo</label>
-          <input type="color" id="qrBg" value="#ffffff" />
+        <div class="filter qr-field">
+          <label for="qrBg"><i class="fas fa-palette"></i> Cor de fundo</label>
+          <div class="qr-color-row">
+            <input type="color" id="qrBg" value="#ffffff" />
+            <div class="qr-color-presets" role="group" aria-label="Cores predefinidas">
+              <button type="button" class="qr-color-chip is-active" data-color="#ffffff" style="--c:#ffffff" title="Branco"></button>
+              <button type="button" class="qr-color-chip" data-color="#f5f7fb" style="--c:#f5f7fb" title="Cinza claro"></button>
+              <button type="button" class="qr-color-chip" data-color="#fff8e7" style="--c:#fff8e7" title="Creme"></button>
+              <button type="button" class="qr-color-chip" data-color="#e8f3ff" style="--c:#e8f3ff" title="Azul claro"></button>
+              <button type="button" class="qr-color-chip" data-color="#eaf7ec" style="--c:#eaf7ec" title="Verde claro"></button>
+            </div>
+          </div>
         </div>
 
         <div class="qr-actions">
           <button class="btn btn--accent btn--lg" id="qrCreate">
-            <i class="fas fa-bolt"></i> Create QR Code
+            <i class="fas fa-bolt"></i> Gerar QR Code
           </button>
           <button class="btn btn--lg" id="qrDownload" disabled>
-            <i class="fas fa-download"></i> Download PNG
+            <i class="fas fa-download"></i> Baixar PNG
           </button>
         </div>
 
@@ -1395,14 +1406,17 @@ function renderViewQrCode() {
       <div class="card qr-preview-card">
         <div class="card__header">
           <div>
-            <h3>Pré-visualização</h3>
+            <h3><i class="fas fa-eye"></i> Pré-visualização</h3>
             <p>Pronto para impressão em alta resolução.</p>
           </div>
+          <span class="qr-status-badge" id="qrStatusBadge" data-state="idle">
+            <i class="fas fa-circle"></i> Aguardando
+          </span>
         </div>
         <div class="qr-canvas-frame" id="qrFrame">
           <div class="qr-placeholder" id="qrPlaceholder">
-            <i class="fas fa-qrcode"></i>
-            <p>Clique em <b>Create QR Code</b> para gerar.</p>
+            <div class="qr-placeholder-icon"><i class="fas fa-qrcode"></i></div>
+            <p>Clique em <b>Gerar QR Code</b> para visualizar o resultado.</p>
           </div>
           <canvas id="qrCanvas" width="2000" height="2000" hidden></canvas>
         </div>
@@ -1412,8 +1426,28 @@ function renderViewQrCode() {
 
   document.getElementById("qrCreate").addEventListener("click", generateQrCode);
   document.getElementById("qrDownload").addEventListener("click", downloadQrCode);
-  document.getElementById("qrUrl").addEventListener("keydown", (e) => {
+
+  const urlInput = document.getElementById("qrUrl");
+  const charCount = document.getElementById("qrCharCount");
+  urlInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") generateQrCode();
+  });
+  urlInput.addEventListener("input", () => {
+    charCount.textContent = urlInput.value.length;
+  });
+
+  // Color presets sync with native color input
+  const bgInput = document.getElementById("qrBg");
+  const chips = view.querySelectorAll(".qr-color-chip");
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const c = chip.dataset.color;
+      bgInput.value = c;
+      chips.forEach((x) => x.classList.toggle("is-active", x === chip));
+    });
+  });
+  bgInput.addEventListener("input", () => {
+    chips.forEach((x) => x.classList.toggle("is-active", x.dataset.color.toLowerCase() === bgInput.value.toLowerCase()));
   });
 }
 
@@ -1423,19 +1457,28 @@ function generateQrCode() {
   const color = "#000000";  // fixo: preto
   const bg = document.getElementById("qrBg").value;
   const feedback = document.getElementById("qrFeedback");
+  const badge = document.getElementById("qrStatusBadge");
+  const setBadge = (state, text, icon) => {
+    if (!badge) return;
+    badge.dataset.state = state;
+    badge.innerHTML = `<i class="fas fa-${icon}"></i> ${text}`;
+  };
 
   if (!url) {
     feedback.hidden = false;
     feedback.className = "qr-feedback is-error";
     feedback.innerHTML = '<i class="fas fa-circle-exclamation"></i> Informe uma URL ou texto.';
+    setBadge("error", "Erro", "circle-exclamation");
     return;
   }
   if (!window.QRCode) {
     feedback.hidden = false;
     feedback.className = "qr-feedback is-error";
     feedback.innerHTML = '<i class="fas fa-circle-exclamation"></i> Biblioteca QR não carregou. Recarregue a página.';
+    setBadge("error", "Erro", "circle-exclamation");
     return;
   }
+  setBadge("loading", "Gerando…", "spinner fa-spin");
 
   // qrcodejs renderiza num <div>; usamos um container temporário 1000x1000
   // e depois copiamos para o canvas 2000x2000 com nitidez.
@@ -1467,6 +1510,7 @@ function generateQrCode() {
       feedback.hidden = false;
       feedback.className = "qr-feedback is-error";
       feedback.innerHTML = '<i class="fas fa-circle-exclamation"></i> Falha ao gerar o QR.';
+      setBadge("error", "Erro", "circle-exclamation");
       return;
     }
     const canvas = document.getElementById("qrCanvas");
@@ -1484,6 +1528,7 @@ function generateQrCode() {
       feedback.hidden = false;
       feedback.className = "qr-feedback is-success";
       feedback.innerHTML = '<i class="fas fa-circle-check"></i> QR Code gerado · 2000 × 2000 px';
+      setBadge("ready", "Pronto", "circle-check");
     };
     if (img.tagName === "IMG" && !img.complete) {
       img.onload = render;
@@ -1705,7 +1750,7 @@ function renderViewCertificados() {
               <div class="card__header"><div><h3>Resumo da emissão</h3></div></div>
               <div class="cert-summary" id="certSummary"></div>
               <button class="btn btn--accent btn--lg" id="certEmit" disabled style="width:100%; margin-top: var(--space-3);">
-                <i class="fas fa-award"></i> Emitir <span id="certEmitCount">(0)</span>
+                <i class="fas fa-award"></i> Emitir ZIP <span id="certEmitCount">(0)</span>
               </button>
               <div class="cert-progress" id="certProgress" hidden style="margin-top: var(--space-3);">
                 <div class="cert-progress__head">
@@ -1715,6 +1760,10 @@ function renderViewCertificados() {
                 <div class="cert-progress__bar"><div class="cert-progress__fill" id="certProgressFill"></div></div>
                 <div class="cert-status" id="certStatus"></div>
               </div>
+
+              <button class="btn btn--primary btn--lg" id="certSend" disabled style="width:100%; margin-top: var(--space-3);">
+                <i class="fas fa-envelope"></i> Enviar por e-mail <span id="certSendCount">(0)</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1888,8 +1937,10 @@ function renderViewCertificados() {
       refreshCertPreviewWithName();
       renderCertSummary();
       document.getElementById("certEmit").addEventListener("click", emitCertificadosLote);
+      document.getElementById("certSend").addEventListener("click", enviarCertificadosLote);
       document.getElementById("certPreviewPrev").addEventListener("click", () => stepCertPreview(-1));
       document.getElementById("certPreviewNext").addEventListener("click", () => stepCertPreview(1));
+      initCertWebappConfig();
       updateCertEmitCount();
     };
     // Se pulou direto da etapa 1 para a 3, garante a planilha do sistema carregada.
@@ -2428,6 +2479,9 @@ function updateCertEmitCount() {
   const btn = document.getElementById("certEmit");
   if (countEl) countEl.textContent = `(${n})`;
   if (btn) btn.disabled = n === 0;
+  const sendCountEl = document.getElementById("certSendCount");
+  if (sendCountEl) sendCountEl.textContent = `(${n})`;
+  refreshCertSendBtn();
   if (state.certStep === 3) renderCertSummary();
 }
 
@@ -2560,6 +2614,145 @@ async function emitCertificadosLote() {
   statusEl.classList.add("is-success");
   statusEl.textContent = `${selected.length} certificado(s) gerado(s) e baixado(s) em ZIP.`;
   btn.disabled = false;
+}
+
+// ---------------- Envio automatico via Apps Script Web App ----------------
+// Cravados no codigo: usuario final so clica em "Enviar por e-mail".
+// Para atualizar a URL apos republicar o Apps Script, edite a constante abaixo.
+const CERT_WEBAPP_URL   = "https://script.google.com/a/macros/pedroleopoldo.mg.gov.br/s/AKfycbwAVbJ8bKzBpKSlSwPEsX815JJrTkhZu0mXwDccL6H9FrIc_g0kd3GCLiVtzZA29-Kc/exec";
+const CERT_WEBAPP_TOKEN = "7a6RTOQzWtpkIqJmhYP8xADSculgNy4K0sBLiG15oXFZMCen";
+const CERT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function initCertWebappConfig() {
+  refreshCertSendBtn();
+}
+
+function refreshCertSendBtn() {
+  const btn = document.getElementById("certSend");
+  if (!btn) return;
+  const n = state._certSelectedCount || 0;
+  const configured = CERT_WEBAPP_URL && !CERT_WEBAPP_URL.startsWith("COLE_AQUI") && CERT_WEBAPP_TOKEN;
+  btn.disabled = !(n > 0 && configured);
+  btn.title = configured ? "" : "Endpoint nao configurado (CERT_WEBAPP_URL em app.js).";
+}
+
+function _blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1]);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+async function enviarCertificadosLote() {
+  if (!state.templateImg) { alert("Template ainda carregando."); return; }
+  const fd = getCertFormData();
+  if (!fd.curso || fd.curso === "TÍTULO DO CURSO" || !fd.mes || fd.mes === "XXXX" ||
+      !fd.ano || fd.ano === "XXXX" || !fd.dia || fd.dia === "XX") {
+    alert("Preencha curso, dia, mês, ano e carga horária antes de enviar.");
+    return;
+  }
+  const url   = CERT_WEBAPP_URL;
+  const token = CERT_WEBAPP_TOKEN;
+  if (!url || url.startsWith("COLE_AQUI") || !token) {
+    alert("Endpoint de envio nao configurado. Edite CERT_WEBAPP_URL em assets/js/app.js.");
+    return;
+  }
+
+  const visibleChecks = [...document.querySelectorAll(".cert-row-check:checked")];
+  const ids = visibleChecks.length
+    ? visibleChecks.map((c) => parseInt(c.dataset.idx, 10))
+    : (state._certSelectedIds || []);
+  const list = state._certCurrentList || [];
+  const selected = ids.map((i) => list[i]).filter(Boolean);
+  if (!selected.length) { alert("Selecione ao menos um participante."); return; }
+
+  // Valida e-mails antes de enviar nada
+  const semEmail = selected.filter((p) => !p.email || !CERT_EMAIL_RE.test(p.email.trim()));
+  if (semEmail.length) {
+    const nomes = semEmail.slice(0, 5).map((p) => p.nome).join(", ");
+    alert(`${semEmail.length} selecionado(s) sem e-mail valido. Ex.: ${nomes}.\n\nCorrija na planilha de origem ou desmarque-os.`);
+    return;
+  }
+
+  if (!confirm(`Voce esta prestes a gerar e ENVIAR ${selected.length} certificado(s) por e-mail.\n\nCada destinatario recebera apenas o seu PDF. Continuar?`)) return;
+
+  const btnSend = document.getElementById("certSend");
+  const btnZip  = document.getElementById("certEmit");
+  btnSend.disabled = true;
+  btnZip.disabled  = true;
+  const progress = document.getElementById("certProgress");
+  const fill     = document.getElementById("certProgressFill");
+  const pctEl    = document.getElementById("certProgressPct");
+  const labelEl  = document.getElementById("certProgressLabel");
+  const statusEl = document.getElementById("certStatus");
+  progress.hidden = false;
+  statusEl.className = "cert-status";
+  statusEl.textContent = "";
+  fill.style.width = "0%";
+
+  const { jsPDF } = window.jspdf;
+  const tmp = document.createElement("canvas");
+  tmp.width  = state.templateImg.naturalWidth;
+  tmp.height = state.templateImg.naturalHeight;
+
+  let okCount = 0;
+  const erros = [];
+
+  for (let i = 0; i < selected.length; i++) {
+    const p = selected[i];
+    const fields = { ...fd, nome: p.nome };
+    const filename = `certificado-${slug(p.nome)}-${slug(fd.curso)}.pdf`;
+    try {
+      drawCertificateInto(tmp, fields);
+      const imgData = tmp.toDataURL("image/jpeg", 0.92);
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+      const pdfBlob = pdf.output("blob");
+      const pdfBase64 = await _blobToBase64(pdfBlob);
+
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          token,
+          nome: p.nome,
+          email: p.email.trim(),
+          pdfName: filename,
+          pdfBase64,
+          curso: fd.curso,
+          dia: fd.dia,
+          mes: fd.mes,
+          ano: fd.ano,
+          carga: fd.carga,
+        }),
+        redirect: "follow",
+      });
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const res = await resp.json();
+      if (res.ok) okCount++;
+      else erros.push(`${p.email}: ${res.error}`);
+    } catch (err) {
+      erros.push(`${p.email}: ${err.message || err}`);
+    }
+
+    const pctVal = Math.round(((i + 1) / selected.length) * 100);
+    fill.style.width = pctVal + "%";
+    pctEl.textContent = pctVal + "%";
+    labelEl.textContent = `Enviando ${i + 1} de ${selected.length}`;
+  }
+
+  if (erros.length === 0) {
+    statusEl.classList.add("is-success");
+    statusEl.textContent = `${okCount} e-mail(s) enviado(s) com sucesso.`;
+  } else {
+    statusEl.classList.add("is-error");
+    statusEl.textContent = `${okCount} ok, ${erros.length} erro(s). Detalhes no console.`;
+    console.error("Erros no envio:", erros);
+  }
+  btnZip.disabled  = false;
+  refreshCertSendBtn();
 }
 
 // ================ AUTO-RELATÓRIO DE SATISFAÇÃO ================
