@@ -1202,9 +1202,13 @@ function computeFaltasRecorrentes(data, months) {
     const evDate = new Date(ev.date)
     if (evDate < cutoff || evDate > ref) return
     ;(ev.participantes || []).forEach(p => {
-      const key = (p.email || "").toLowerCase().trim() || `n:${(p.nome || "").toLowerCase().trim()}`
+      // Mesma chave usada por agregarServidores - garante que o modal
+      // de perfil encontra o servidor pelo data-servidor-chave.
+      const key = chaveServidor(p)
+      if (!key) return
       if (!groups.has(key)) {
         groups.set(key, {
+          chave: key,
           nome: p.nome,
           email: p.email || "",
           secretaria: p.secretaria || "",
@@ -1340,7 +1344,7 @@ function populateFaltasTable() {
             .map(
               r => `
             <tr>
-              <td class="cell-name">${escapeHtml(r.nome || "-")}</td>
+              <td class="cell-name"><a class="servidor-link" data-servidor-chave="${escapeHtml(r.chave || "")}" tabindex="0" role="button">${escapeHtml(r.nome || "-")}</a></td>
               <td class="col-hide-sm">${escapeHtml(r.email || "-")}</td>
               <td>${escapeHtml(r.secretaria || "-")}</td>
               <td style="text-align:center;">${r.inscricoes}</td>
@@ -1423,7 +1427,17 @@ function agregarServidores(eventos) {
       if (!entry.email && p.email) entry.email = p.email
       if (!entry.secretaria && p.secretaria) entry.secretaria = p.secretaria
       if (!entry.cargo && p.cargo) entry.cargo = p.cargo
-      entry.eventos.push({ id: ev.id, title: ev.title, date: ev.date, presente: !!p.presente })
+      entry.eventos.push({
+        id: ev.id,
+        title: ev.title,
+        date: ev.date,
+        presente: !!p.presente,
+        turma: p.turma || "",
+        dataCheckin: p.dataCheckin || null,
+        dataInscricao: p.dataInscricao || null,
+        local: ev.local || "",
+        time: ev.time || ""
+      })
       entry.totalEventos += 1
       if (p.presente) entry.totalPresentes += 1
     })
@@ -1434,6 +1448,192 @@ function agregarServidores(eventos) {
 // Normaliza um cargo para Title Case + remove caracteres redundantes.
 // Não inventa dados - só padroniza formatação para agrupar variantes
 // como "COORDENAÇÃO" / "Coordenação" / "coordenacao".
+// ================ PERFIL DO SERVIDOR (drill-down) ================
+// Busca um servidor pela chave (e:email ou n:nome) atravessando os eventos
+// agregados. Devolve a entrada completa de agregarServidores ou null.
+function buscarServidorPorChave(chave) {
+  if (!chave) return null
+  const lista = agregarServidores(state.data?.eventos || [])
+  return lista.find(s => s.chave === chave) || null
+}
+
+// Iniciais para o avatar.
+function iniciaisDoNome(nome) {
+  if (!nome) return "?"
+  const partes = String(nome).trim().split(/\s+/).filter(Boolean)
+  if (!partes.length) return "?"
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
+}
+
+// Frequência mensal: { "2026-04": N, "2026-05": N, ... } - apenas presenças.
+function frequenciaMensal(eventos) {
+  const map = new Map()
+  eventos.forEach(ev => {
+    if (!ev.presente || !ev.date) return
+    const m = ev.date.match(/^(\d{4})-(\d{2})/)
+    if (!m) return
+    const key = `${m[1]}-${m[2]}`
+    map.set(key, (map.get(key) || 0) + 1)
+  })
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => ({ mes: k, qtd: v }))
+}
+
+// Badges automáticas com base na trajetória do servidor.
+function badgesDoServidor(s) {
+  const out = []
+  if (s.totalPresentes >= 1)  out.push({ icon: "fa-star", label: "Primeiro evento", cls: "badge-bronze" })
+  if (s.totalPresentes >= 3)  out.push({ icon: "fa-fire", label: "Engajado",       cls: "badge-silver" })
+  if (s.totalPresentes >= 5)  out.push({ icon: "fa-trophy", label: "Veterano",     cls: "badge-gold" })
+  if (s.totalPresentes >= 10) out.push({ icon: "fa-crown", label: "Líder de capacitação", cls: "badge-diamond" })
+  if (s.totalEventos > 0 && s.totalPresentes === s.totalEventos && s.totalEventos >= 2) {
+    out.push({ icon: "fa-bullseye", label: "Pontualidade 100%", cls: "badge-green" })
+  }
+  if (s.totalEventos > 0 && s.totalPresentes === 0) {
+    out.push({ icon: "fa-triangle-exclamation", label: "Sem comparecimentos", cls: "badge-warn" })
+  }
+  return out
+}
+
+// Estima carga horária total. Como eventos-data.json não traz cargaHoraria
+// explícita, faz uma estimativa conservadora de 8h por presença confirmada.
+// Se a fonte trouxer ev.cargaHoraria no futuro, é só consumir aqui.
+function estimarHorasServidor(s) {
+  return s.eventos.reduce((acc, ev) => acc + (ev.presente ? 8 : 0), 0)
+}
+
+// Abre o modal de perfil do servidor.
+function openServidorPerfil(chave) {
+  const s = buscarServidorPorChave(chave)
+  if (!s) return showAlert({ title: "Servidor não encontrado", message: "Os dados do servidor não estão disponíveis no recorte atual.", type: "warn" })
+
+  // Ordena eventos por data (mais recentes primeiro)
+  const eventosOrd = s.eventos.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+  const presentes = eventosOrd.filter(e => e.presente)
+  const faltas    = eventosOrd.filter(e => !e.presente)
+  const taxa = s.totalEventos ? ((s.totalPresentes / s.totalEventos) * 100).toFixed(0) + "%" : "-"
+  const horas = estimarHorasServidor(s)
+  const freq = frequenciaMensal(s.eventos)
+  const maxFreq = freq.reduce((m, x) => Math.max(m, x.qtd), 0)
+  const badges = badgesDoServidor(s)
+
+  const overlay = document.createElement("div")
+  overlay.className = "app-modal__overlay servidor-perfil-overlay"
+  overlay.setAttribute("role", "dialog")
+  overlay.setAttribute("aria-modal", "true")
+  overlay.innerHTML = `
+    <div class="app-modal servidor-perfil">
+      <button type="button" class="app-modal__close" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+
+      <header class="servidor-perfil__header">
+        <div class="servidor-perfil__avatar">${escapeHtml(iniciaisDoNome(s.nome))}</div>
+        <div class="servidor-perfil__id">
+          <h2 class="servidor-perfil__name">${escapeHtml(s.nome || "Sem nome")}</h2>
+          <div class="servidor-perfil__meta">
+            ${s.cargo ? `<span><i class="fas fa-briefcase"></i> ${escapeHtml(s.cargo)}</span>` : ""}
+            ${s.secretaria ? `<span><i class="fas fa-building-columns"></i> ${escapeHtml(s.secretaria)}</span>` : ""}
+            ${s.email && !/^user-anonymous/i.test(s.email) ? `<span><i class="fas fa-envelope"></i> ${escapeHtml(s.email)}</span>` : ""}
+          </div>
+        </div>
+      </header>
+
+      <div class="servidor-perfil__kpis">
+        <div class="srv-kpi"><span class="srv-kpi__num">${s.totalEventos}</span><span class="srv-kpi__lbl">Inscrições</span></div>
+        <div class="srv-kpi srv-kpi--good"><span class="srv-kpi__num">${s.totalPresentes}</span><span class="srv-kpi__lbl">Presenças</span></div>
+        <div class="srv-kpi srv-kpi--bad"><span class="srv-kpi__num">${s.totalEventos - s.totalPresentes}</span><span class="srv-kpi__lbl">Faltas</span></div>
+        <div class="srv-kpi"><span class="srv-kpi__num">${taxa}</span><span class="srv-kpi__lbl">Taxa</span></div>
+        <div class="srv-kpi"><span class="srv-kpi__num">${horas}h</span><span class="srv-kpi__lbl">Carga estimada</span></div>
+      </div>
+
+      ${badges.length ? `
+      <section class="servidor-perfil__section">
+        <h3 class="servidor-perfil__h3"><i class="fas fa-medal"></i> Conquistas</h3>
+        <div class="srv-badges">
+          ${badges.map(b => `
+            <span class="srv-badge ${b.cls}">
+              <i class="fas ${b.icon}"></i> ${escapeHtml(b.label)}
+            </span>
+          `).join("")}
+        </div>
+      </section>` : ""}
+
+      ${freq.length ? `
+      <section class="servidor-perfil__section">
+        <h3 class="servidor-perfil__h3"><i class="fas fa-chart-column"></i> Frequência por mês</h3>
+        <div class="srv-freq">
+          ${freq.map(f => {
+            const h = maxFreq ? Math.max(8, (f.qtd / maxFreq) * 70) : 8
+            const [yyyy, mm] = f.mes.split("-")
+            const mesLabel = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][parseInt(mm, 10) - 1]
+            return `
+              <div class="srv-freq__col" title="${mesLabel}/${yyyy}: ${f.qtd} presença(s)">
+                <div class="srv-freq__bar" style="height:${h}px"></div>
+                <span class="srv-freq__lbl">${mesLabel}/${yyyy.slice(-2)}</span>
+                <span class="srv-freq__val">${f.qtd}</span>
+              </div>
+            `
+          }).join("")}
+        </div>
+      </section>` : ""}
+
+      ${presentes.length ? `
+      <section class="servidor-perfil__section">
+        <h3 class="servidor-perfil__h3"><i class="fas fa-check-circle" style="color:#4DAD33"></i> Eventos com presença (${presentes.length})</h3>
+        <ul class="srv-events">
+          ${presentes.map(ev => `
+            <li class="srv-event srv-event--ok">
+              <div class="srv-event__date">${ev.date ? new Date(ev.date).toLocaleDateString("pt-BR") : "-"}</div>
+              <div class="srv-event__body">
+                <div class="srv-event__title">${escapeHtml(ev.title || "-")}</div>
+                ${ev.turma ? `<div class="srv-event__sub">Turma: ${escapeHtml(ev.turma)}</div>` : ""}
+              </div>
+              <span class="srv-event__status srv-event__status--ok"><i class="fas fa-check"></i> Presente</span>
+            </li>
+          `).join("")}
+        </ul>
+      </section>` : ""}
+
+      ${faltas.length ? `
+      <section class="servidor-perfil__section">
+        <h3 class="servidor-perfil__h3"><i class="fas fa-circle-xmark" style="color:#C0392B"></i> Eventos com falta (${faltas.length})</h3>
+        <ul class="srv-events">
+          ${faltas.map(ev => `
+            <li class="srv-event srv-event--bad">
+              <div class="srv-event__date">${ev.date ? new Date(ev.date).toLocaleDateString("pt-BR") : "-"}</div>
+              <div class="srv-event__body">
+                <div class="srv-event__title">${escapeHtml(ev.title || "-")}</div>
+                ${ev.turma ? `<div class="srv-event__sub">Turma: ${escapeHtml(ev.turma)}</div>` : ""}
+              </div>
+              <span class="srv-event__status srv-event__status--bad"><i class="fas fa-xmark"></i> Faltou</span>
+            </li>
+          `).join("")}
+        </ul>
+      </section>` : ""}
+
+      <footer class="servidor-perfil__footer">
+        <small>Carga estimada em 8h por presença - reflita ajuste caso o evento tenha duração diferente.</small>
+      </footer>
+    </div>
+  `
+  document.body.appendChild(overlay)
+  const close = () => overlay.remove()
+  overlay.addEventListener("click", e => { if (e.target === overlay) close() })
+  overlay.querySelector(".app-modal__close").addEventListener("click", close)
+  document.addEventListener("keydown", function esc(e) {
+    if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc) }
+  })
+}
+
+// Delegação global de clique para qualquer [data-servidor-chave] no app.
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-servidor-chave]")
+  if (!el) return
+  const chave = el.dataset.servidorChave
+  if (chave) openServidorPerfil(chave)
+})
+
 function normalizarCargo(raw) {
   if (!raw) return null
   const s = String(raw).trim().replace(/\s+/g, " ")
@@ -1601,7 +1801,7 @@ function renderPodioItem(s) {
     <li class="rank-list__item ${cls}">
       <span class="rank-list__pos">${s.rank <= 3 ? `<i class="fas fa-medal"></i>` : ""}<small>${s.rank}º</small></span>
       <div class="rank-list__body">
-        <div class="rank-list__name">${escapeHtml(s.nome || "(sem nome)")}</div>
+        <div class="rank-list__name"><a class="servidor-link" data-servidor-chave="${escapeHtml(s.chave || "")}" tabindex="0" role="button">${escapeHtml(s.nome || "(sem nome)")}</a></div>
         <div class="rank-list__meta">${escapeHtml(s.cargo || "-")} · ${escapeHtml(s.secretaria || "-")}</div>
       </div>
       <span class="rank-list__badge">${s.totalPresentes}<small>presente${s.totalPresentes === 1 ? "" : "s"}</small></span>
@@ -1741,7 +1941,7 @@ function renderDemaisServidores(containerId, lista, scopeId, pageSize = 10) {
       return `
         <tr class="${medalCls}">
           <td class="cell-num">${medalIcon}${pos}</td>
-          <td class="cell-name">${escapeHtml(s.nome || "-")}</td>
+          <td class="cell-name"><a class="servidor-link" data-servidor-chave="${escapeHtml(s.chave || "")}" tabindex="0" role="button">${escapeHtml(s.nome || "-")}</a></td>
           <td>${escapeHtml(s.secretaria || "-")}</td>
           <td class="cell-num">${s.totalEventos}</td>
           <td class="cell-num"><b class="green">${s.totalPresentes}</b></td>
@@ -2153,27 +2353,48 @@ function exportCsv() {
   }
   const totIns = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0)
   const totPres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0)
+  const totFalt = totIns - totPres
   const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "-"
-  const summary = [
-    ["# Relatório consolidado · Escola de Governo Pedro Leopoldo"],
-    [`# Gerado em ${new Date().toLocaleString("pt-BR")}`],
-    [`# Eventos: ${evs.length} · Inscritos: ${totIns} · Presentes: ${totPres} · Taxa de presença: ${taxa}`],
-    ["# (CSV não suporta gráficos - use PDF, Excel ou PPTX para visualizações.)"],
+  const presentes = parts.filter(p => p.presente)
+  const faltantes = parts.filter(p => !p.presente)
+  const dataGer = new Date().toLocaleString("pt-BR")
+
+  const rows = [
+    ["======================================================================"],
+    ["  ESCOLA DE GOVERNO · PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO"],
+    ["  Relatório Consolidado de Eventos e Participação"],
+    ["======================================================================"],
+    [`Gerado em: ${dataGer}`],
+    [`Eventos no recorte: ${evs.length}`],
+    [`Inscritos: ${totIns} · Presentes: ${totPres} · Faltantes: ${totFalt} · Taxa de presença: ${taxa}`],
     [""],
-    ["## Eventos"],
-    ["Evento", "Data", "Vagas", "Inscritos", "Presentes", "Ausentes", "Taxa de Presença (%)", "Taxa de Ocupação (%)"],
+    ["----------------------------------------------------------------------"],
+    ["EVENTOS"],
+    ["----------------------------------------------------------------------"],
+    ["Evento", "Data", "Vagas", "Inscritos", "Presentes", "Faltantes", "Taxa de Presença (%)", "Taxa de Ocupação (%)"],
     ...evs.map(e => [e.title, e.date || "", e.vagas ?? "", e.totalInscritos, e.totalPresentes, e.totalAusentes, e.taxaPresenca ?? "", e.taxaOcupacao ?? ""]),
     [""],
-    ["## Secretarias"],
+    ["----------------------------------------------------------------------"],
+    ["SECRETARIAS"],
+    ["----------------------------------------------------------------------"],
     ["#", "Secretaria", "Inscrições"],
     ...ranking.map((r, i) => [i + 1, r.nome, r.qtd]),
     [""],
-    ["## Participantes"]
-  ]
-  const rows = [
-    ...summary,
-    ["Evento", "Nome", "E-mail", "Turma", "Secretaria", "Presente", "Data Check-in"],
-    ...parts.map(p => [p.eventoTitle, p.nome, p.email || "", p.turma || "", p.secretaria || "", p.presente ? "Sim" : "Não", p.dataCheckin || ""])
+    ["----------------------------------------------------------------------"],
+    [`PRESENTES (${presentes.length})`],
+    ["----------------------------------------------------------------------"],
+    ["Evento", "Nome", "E-mail", "Turma", "Secretaria", "Cargo", "Data Check-in"],
+    ...presentes.map(p => [p.eventoTitle, p.nome, p.email || "", p.turma || "", p.secretaria || "", p.cargo || "", p.dataCheckin || ""]),
+    [""],
+    ["----------------------------------------------------------------------"],
+    [`FALTANTES (${faltantes.length})`],
+    ["----------------------------------------------------------------------"],
+    ["Evento", "Nome", "E-mail", "Turma", "Secretaria", "Cargo", "Data Inscrição"],
+    ...faltantes.map(p => [p.eventoTitle, p.nome, p.email || "", p.turma || "", p.secretaria || "", p.cargo || "", p.dataInscricao || ""]),
+    [""],
+    ["======================================================================"],
+    [`Documento gerado automaticamente pelo Painel EGov · ${dataGer}`],
+    ["======================================================================"]
   ]
   const csv = rows
     .map(r =>
@@ -2186,7 +2407,7 @@ function exportCsv() {
     )
     .join("\n")
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
-  triggerDownload(blob, `relatorio-participantes-${new Date().toISOString().slice(0, 10)}.csv`)
+  triggerDownload(blob, `relatorio-egov-${new Date().toISOString().slice(0, 10)}.csv`)
 }
 
 async function exportXlsx() {
@@ -2200,16 +2421,95 @@ async function exportXlsx() {
     return
   }
   const charts = await buildRelatorioCharts(evs, ranking)
+  const brand = await loadBrandAssets()
   const wb = new window.ExcelJS.Workbook()
-  wb.creator = "Escola de Governo - Pedro Leopoldo"
+  wb.creator = "Escola de Governo · Pedro Leopoldo"
+  wb.company = "Prefeitura Municipal de Pedro Leopoldo"
+  wb.title = "Relatório Consolidado"
   wb.created = new Date()
 
-  // --- Sheet "Gráficos" ---
+  // Paleta EGov (mesma do PPTX): navy do brasão + verde EGov
+  const NAVY = "FF1B2A4E"
+  const GREEN = "FF4DAD33"
+  const BLUE_SOFT = "FFE6EEF7"
+  const BG_SOFT = "FFF5F8FB"
+  const RED = "FFC0392B"
+  const WHITE = "FFFFFFFF"
+  const TEXT_MUTED = "FF5A6B85"
+
+  const headerStyle = (sheet, color = NAVY) => {
+    const r = sheet.getRow(1)
+    r.font = { name: "Calibri", bold: true, color: { argb: WHITE }, size: 11 }
+    r.fill = { type: "pattern", pattern: "solid", fgColor: { argb: color } }
+    r.height = 22
+    r.alignment = { vertical: "middle" }
+  }
+  const stripeFill = { type: "pattern", pattern: "solid", fgColor: { argb: BG_SOFT } }
+  const applyStripes = (sheet) => {
+    for (let i = 2; i <= sheet.rowCount; i++) {
+      if (i % 2 === 0) sheet.getRow(i).fill = stripeFill
+    }
+  }
+
+  // ============== Sheet 1: Capa institucional ==============
+  const cap = wb.addWorksheet("Capa", { views: [{ showGridLines: false }] })
+  cap.columns = Array.from({ length: 10 }, () => ({ width: 12 }))
+  cap.mergeCells("B2:J3")
+  cap.getCell("B2").value = "Escola de Governo · Pedro Leopoldo"
+  cap.getCell("B2").font = { name: "Calibri", size: 24, bold: true, color: { argb: NAVY } }
+  cap.getCell("B2").alignment = { vertical: "middle" }
+  cap.mergeCells("B4:J4")
+  cap.getCell("B4").value = "Prefeitura Municipal de Pedro Leopoldo"
+  cap.getCell("B4").font = { name: "Calibri", size: 13, color: { argb: TEXT_MUTED }, italic: true }
+  cap.mergeCells("B6:J7")
+  cap.getCell("B6").value = "RELATÓRIO CONSOLIDADO DE EVENTOS E PARTICIPAÇÃO"
+  cap.getCell("B6").font = { name: "Calibri", size: 18, bold: true, color: { argb: NAVY } }
+  cap.getCell("B6").alignment = { vertical: "middle" }
+  cap.getCell("B9").value = `Gerado em ${new Date().toLocaleString("pt-BR")}`
+  cap.getCell("B9").font = { name: "Calibri", size: 10, color: { argb: TEXT_MUTED }, italic: true }
+
+  // Logo combo EGov + Pedro Leopoldo - aspect ratio preservado
+  try {
+    const logoId = wb.addImage({ base64: brand.comboLogo, extension: "png" })
+    const fit = fitAspect(brand.dims.comboLogo.ratio, 320, 90)
+    cap.addImage(logoId, { tl: { col: 7, row: 1 }, ext: { width: fit.w, height: fit.h } })
+  } catch (_) {}
+
+  // KPIs visíveis na capa
+  const totIns = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0)
+  const totPres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0)
+  const totFalt = totIns - totPres
+  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "-"
+  const kpiRow = 12
+  const kpis = [
+    { label: "Eventos", value: evs.length, color: NAVY },
+    { label: "Inscritos", value: totIns, color: NAVY },
+    { label: "Presentes", value: totPres, color: GREEN },
+    { label: "Faltantes", value: totFalt, color: RED },
+    { label: "Taxa de presença", value: taxa, color: NAVY }
+  ]
+  kpis.forEach((k, i) => {
+    const col = 2 + i * 2
+    const cellLabel = cap.getCell(kpiRow, col)
+    const cellValue = cap.getCell(kpiRow + 1, col)
+    cap.mergeCells(kpiRow, col, kpiRow, col + 1)
+    cap.mergeCells(kpiRow + 1, col, kpiRow + 1, col + 1)
+    cellLabel.value = k.label.toUpperCase()
+    cellLabel.font = { name: "Calibri", size: 10, bold: true, color: { argb: TEXT_MUTED } }
+    cellLabel.alignment = { horizontal: "center", vertical: "middle" }
+    cellValue.value = k.value
+    cellValue.font = { name: "Calibri", size: 22, bold: true, color: { argb: k.color } }
+    cellValue.alignment = { horizontal: "center", vertical: "middle" }
+    cellValue.border = { top: { style: "thick", color: { argb: k.color } } }
+  })
+  cap.getRow(kpiRow + 1).height = 30
+
+  // ============== Sheet 2: Gráficos ==============
   const gSheet = wb.addWorksheet("Gráficos", { views: [{ showGridLines: false }] })
-  gSheet.getCell("B2").value = "Relatório Consolidado · Escola de Governo Pedro Leopoldo"
-  gSheet.getCell("B2").font = { name: "Calibri", size: 18, bold: true, color: { argb: "FF1F3864" } }
+  gSheet.getCell("B2").value = "Visão Gráfica do Recorte"
+  gSheet.getCell("B2").font = { name: "Calibri", size: 18, bold: true, color: { argb: NAVY } }
   gSheet.getCell("B3").value = `Gerado em ${new Date().toLocaleString("pt-BR")}`
-  gSheet.getCell("B3").font = { name: "Calibri", size: 11, color: { argb: "FF5A6B85" }, italic: true }
+  gSheet.getCell("B3").font = { name: "Calibri", size: 10, color: { argb: TEXT_MUTED }, italic: true }
   let row = 5
   const addImg = async (dataUrl, w, h) => {
     if (!dataUrl) return
@@ -2222,7 +2522,7 @@ async function exportXlsx() {
   if (charts.chSec) await addImg(charts.chSec, 720, Math.max(240, 80 + (ranking.slice(0, 10).length) * 24))
   gSheet.getColumn(2).width = 110
 
-  // --- Sheet "Eventos" ---
+  // ============== Sheet 3: Eventos ==============
   const sEv = wb.addWorksheet("Eventos")
   sEv.columns = [
     { header: "Evento", key: "title", width: 42 },
@@ -2231,39 +2531,56 @@ async function exportXlsx() {
     { header: "Vagas", key: "vagas", width: 8 },
     { header: "Inscritos", key: "ins", width: 11 },
     { header: "Presentes", key: "pres", width: 11 },
-    { header: "Ausentes", key: "aus", width: 10 },
+    { header: "Faltantes", key: "aus", width: 11 },
     { header: "Taxa Presença (%)", key: "tp", width: 18 },
     { header: "Taxa Ocupação (%)", key: "to", width: 18 },
     { header: "Status", key: "st", width: 12 }
   ]
-  sEv.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }
-  sEv.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3864" } }
+  headerStyle(sEv)
   evs.forEach(e => sEv.addRow({ title: e.title, date: e.date || "", local: e.local || "", vagas: e.vagas ?? "", ins: e.totalInscritos, pres: e.totalPresentes, aus: e.totalAusentes, tp: e.taxaPresenca ?? "", to: e.taxaOcupacao ?? "", st: e.status }))
+  applyStripes(sEv)
 
-  // --- Sheet "Secretarias" ---
+  // ============== Sheet 4: Secretarias ==============
   const sSec = wb.addWorksheet("Secretarias")
   sSec.columns = [{ header: "#", key: "i", width: 6 }, { header: "Secretaria", key: "n", width: 50 }, { header: "Inscrições", key: "q", width: 14 }]
-  sSec.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }
-  sSec.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3864" } }
+  headerStyle(sSec)
   ranking.forEach((r, i) => sSec.addRow({ i: i + 1, n: r.nome, q: r.qtd }))
+  applyStripes(sSec)
 
-  // --- Sheet "Participantes" ---
-  const sP = wb.addWorksheet("Participantes")
-  sP.columns = [
+  // ============== Sheet 5: Presentes ==============
+  const presentes = parts.filter(p => p.presente)
+  const sPres = wb.addWorksheet("Presentes")
+  sPres.columns = [
     { header: "Evento", key: "ev", width: 35 },
     { header: "Nome", key: "n", width: 30 },
-    { header: "E-mail", key: "e", width: 28 },
+    { header: "E-mail", key: "e", width: 30 },
     { header: "Turma", key: "t", width: 16 },
     { header: "Secretaria", key: "s", width: 30 },
     { header: "Cargo", key: "c", width: 22 },
     { header: "Matrícula", key: "m", width: 14 },
-    { header: "Presente", key: "pr", width: 10 },
     { header: "Data Check-in", key: "dc", width: 18 },
     { header: "Data Inscrição", key: "di", width: 18 }
   ]
-  sP.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }
-  sP.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3864" } }
-  parts.forEach(p => sP.addRow({ ev: p.eventoTitle, n: p.nome, e: p.email || "", t: p.turma || "", s: p.secretaria || "", c: p.cargo || "", m: p.matricula || "", pr: p.presente ? "Sim" : "Não", dc: p.dataCheckin || "", di: p.dataInscricao || "" }))
+  headerStyle(sPres, GREEN)
+  presentes.forEach(p => sPres.addRow({ ev: p.eventoTitle, n: p.nome, e: p.email || "", t: p.turma || "", s: p.secretaria || "", c: p.cargo || "", m: p.matricula || "", dc: p.dataCheckin || "", di: p.dataInscricao || "" }))
+  applyStripes(sPres)
+
+  // ============== Sheet 6: Faltantes ==============
+  const faltantes = parts.filter(p => !p.presente)
+  const sFalt = wb.addWorksheet("Faltantes")
+  sFalt.columns = [
+    { header: "Evento", key: "ev", width: 35 },
+    { header: "Nome", key: "n", width: 30 },
+    { header: "E-mail", key: "e", width: 30 },
+    { header: "Turma", key: "t", width: 16 },
+    { header: "Secretaria", key: "s", width: 30 },
+    { header: "Cargo", key: "c", width: 22 },
+    { header: "Matrícula", key: "m", width: 14 },
+    { header: "Data Inscrição", key: "di", width: 18 }
+  ]
+  headerStyle(sFalt, RED)
+  faltantes.forEach(p => sFalt.addRow({ ev: p.eventoTitle, n: p.nome, e: p.email || "", t: p.turma || "", s: p.secretaria || "", c: p.cargo || "", m: p.matricula || "", di: p.dataInscricao || "" }))
+  applyStripes(sFalt)
 
   const buf = await wb.xlsx.writeBuffer()
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
@@ -2277,53 +2594,198 @@ async function exportPdf() {
     return
   }
   const charts = await buildRelatorioCharts(evs, ranking)
+  const brand = await loadBrandAssets()
   const { jsPDF } = window.jspdf
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
   const pageW = doc.internal.pageSize.getWidth()
+  const pageH = doc.internal.pageSize.getHeight()
 
-  // Cabeçalho institucional
-  doc.setFillColor(22, 31, 54) // var(--blue-900)
-  doc.rect(0, 0, pageW, 28, "F")
-  doc.setTextColor(255, 255, 255)
+  // Paleta EGov (mesma do PPTX)
+  const NAVY = [27, 42, 78]
+  const GREEN = [77, 173, 51]
+  const TEXT_MUTED = [90, 107, 133]
+  const BG_SOFT = [245, 248, 251]
+
+  // KPIs do recorte
+  const totIns = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0)
+  const totPres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0)
+  const totFalt = totIns - totPres
+  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "-"
+
+  // ============== PÁGINA 1: CAPA institucional limpa ==============
+  // Hero gradient ocupando a faixa do topo
+  try { doc.addImage(brand.hero, "PNG", 0, 0, pageW, 90) } catch (_) {}
+  doc.setFillColor(255, 255, 255)
+  doc.rect(0, 90, pageW, pageH - 90, "F")
+
+  // Logo combo EGov + Pedro Leopoldo - centralizado, aspect ratio preservado
+  try {
+    const fit = fitAspect(brand.dims.comboLogo.ratio, 110, 38)
+    doc.addImage(brand.comboLogo, "PNG", (pageW - fit.w) / 2, 30, fit.w, fit.h)
+  } catch (_) {}
+
+  // Nome da prefeitura - centralizado abaixo do logo (sem charSpace para evitar corte na margem)
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(16)
-  doc.text("Escola de Governo · Pedro Leopoldo", 14, 12)
+  doc.setFontSize(14)
+  doc.setTextColor(...NAVY)
+  doc.text("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", pageW / 2, 112, { align: "center" })
+
+  // Divisor verde centralizado
+  doc.setDrawColor(...GREEN)
+  doc.setLineWidth(1)
+  doc.line(pageW / 2 - 30, 118, pageW / 2 + 30, 118)
+
+  // Subtítulo institucional
   doc.setFont("helvetica", "normal")
-  doc.setFontSize(10)
-  doc.text("Relatório consolidado de eventos e participação", 14, 19)
-  doc.setFontSize(8)
-  doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 14, 24)
-
-  doc.setTextColor(22, 31, 54)
   doc.setFontSize(13)
-  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...TEXT_MUTED)
+  doc.text("Escola de Governo", pageW / 2, 130, { align: "center" })
 
-  // ---- Resumo gráfico ----
-  let yChart = 38
-  if (charts.chEventos) {
-    doc.text("Resumo gráfico", 14, yChart)
-    yChart += 5
-    doc.addImage(charts.chEventos, "PNG", 14, yChart, 182, 86)
-    yChart += 92
-    if (charts.chPresenca) {
-      const hP = 60
-      doc.addImage(charts.chPresenca, "PNG", 14, yChart, 86, hP)
-      if (charts.chSec) {
-        doc.addImage(charts.chSec, "PNG", 105, yChart, 91, hP)
-      }
-      yChart += hP + 6
-    }
-    if (yChart > 240) { doc.addPage(); yChart = 20 }
+  // Título "Relatório Consolidado" - centro visual da capa
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(26)
+  doc.setTextColor(...NAVY)
+  doc.text("Relatório Consolidado", pageW / 2, 165, { align: "center" })
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(12)
+  doc.setTextColor(...TEXT_MUTED)
+  doc.text("de Eventos e Participação", pageW / 2, 174, { align: "center" })
+
+  // Data de geração - logo abaixo do título
+  doc.setFont("helvetica", "italic")
+  doc.setFontSize(11)
+  doc.setTextColor(...TEXT_MUTED)
+  doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, pageW / 2, 190, { align: "center" })
+
+  // Assinatura institucional ao final da capa (sem charSpace para evitar corte)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(11)
+  doc.setTextColor(...NAVY)
+  doc.text("ESCOLA DE GOVERNO  ·  PEDRO LEOPOLDO", pageW / 2, pageH - 22, { align: "center" })
+
+  // ============== Header e Footer institucionais (páginas internas) ==============
+  const drawHeaderFooter = () => {
+    // Header
+    doc.setFillColor(...NAVY)
+    doc.rect(0, 0, pageW, 14, "F")
+    doc.setTextColor(255, 255, 255)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(10)
+    // "Escola de Governo · Pedro Leopoldo" CENTRALIZADO no header
+    doc.text("Escola de Governo · Pedro Leopoldo", pageW / 2, 9, { align: "center" })
+    doc.setDrawColor(...GREEN)
+    doc.setLineWidth(0.5)
+    doc.line(0, 14, pageW, 14)
+    // Footer institucional - "Prefeitura Municipal" CENTRALIZADO
+    doc.setFillColor(...BG_SOFT)
+    doc.rect(0, pageH - 10, pageW, 10, "F")
+    doc.setTextColor(...TEXT_MUTED)
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "normal")
+    doc.text("Prefeitura Municipal de Pedro Leopoldo", pageW / 2, pageH - 4, { align: "center" })
   }
 
+  // ============== PÁGINA 2: KPIs + Sumário ==============
+  doc.addPage()
+  drawHeaderFooter()
+
+  // Título da página
   doc.setFont("helvetica", "bold")
-  doc.text("Quadro consolidado de eventos", 14, yChart)
+  doc.setFontSize(20)
+  doc.setTextColor(...NAVY)
+  doc.text("Indicadores Consolidados", pageW / 2, 40, { align: "center" })
+
+  // Divisor verde
+  doc.setDrawColor(...GREEN)
+  doc.setLineWidth(0.8)
+  doc.line(pageW / 2 - 30, 46, pageW / 2 + 30, 46)
+
+  // KPIs em 5 cards centralizados
+  const drawCapaKpi = (x, y, w, label, value, accent) => {
+    doc.setDrawColor(...accent)
+    doc.setLineWidth(1.5)
+    doc.line(x, y, x + w, y) // topo colorido
+    doc.setDrawColor(200, 210, 225)
+    doc.setLineWidth(0.2)
+    doc.line(x, y + 30, x + w, y + 30)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(24)
+    doc.setTextColor(...accent)
+    doc.text(String(value), x + w / 2, y + 15, { align: "center" })
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "normal")
+    doc.setTextColor(...TEXT_MUTED)
+    doc.text(label, x + w / 2, y + 24, { align: "center" })
+  }
+  const kpiW = 36
+  const kpiY = 90
+  const kpiX0 = (pageW - (kpiW * 5 + 4 * 3)) / 2
+  drawCapaKpi(kpiX0 + 0 * (kpiW + 3), kpiY, kpiW, "EVENTOS",       evs.length, NAVY)
+  drawCapaKpi(kpiX0 + 1 * (kpiW + 3), kpiY, kpiW, "INSCRITOS",     totIns,     NAVY)
+  drawCapaKpi(kpiX0 + 2 * (kpiW + 3), kpiY, kpiW, "PRESENTES",     totPres,    GREEN)
+  drawCapaKpi(kpiX0 + 3 * (kpiW + 3), kpiY, kpiW, "FALTANTES",     totFalt,    [192, 57, 43])
+  drawCapaKpi(kpiX0 + 4 * (kpiW + 3), kpiY, kpiW, "TAXA PRESENÇA", taxa,       NAVY)
+
+  // Sumário do relatório
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(13)
+  doc.setTextColor(...NAVY)
+  doc.text("Sumário", 14, 160)
+  doc.setDrawColor(...NAVY)
+  doc.setLineWidth(0.3)
+  doc.line(14, 162, 40, 162)
+
+  const sumario = [
+    "1. Inscritos x Presentes por Evento",
+    "2. Distribuição de Presença Consolidada",
+    "3. Top Secretarias por Inscrições",
+    "4. Quadro Consolidado de Eventos",
+    "5. Ranking de Secretarias",
+    `6. Presentes (${parts.filter(p => p.presente).length})`,
+    `7. Faltantes (${parts.filter(p => !p.presente).length})`
+  ]
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(11)
+  doc.setTextColor(...NAVY)
+  sumario.forEach((line, i) => {
+    doc.text(line, 20, 175 + i * 8)
+  })
+
+  // ============== PÁGINAS DE GRÁFICOS (1 por página) ==============
+  const drawChartPage = (title, dataUrl) => {
+    if (!dataUrl) return
+    doc.addPage()
+    drawHeaderFooter()
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(14)
+    doc.setTextColor(...NAVY)
+    doc.text(title, pageW / 2, 28, { align: "center" })
+    doc.setDrawColor(...GREEN)
+    doc.setLineWidth(0.6)
+    doc.line(pageW / 2 - 24, 32, pageW / 2 + 24, 32)
+    // Gráfico ocupando praticamente toda a área útil
+    const chartW = pageW - 28
+    const chartH = pageH - 80 // entre header (14+20) e footer
+    doc.addImage(dataUrl, "PNG", 14, 42, chartW, chartH)
+  }
+
+  drawChartPage("Inscritos x Presentes por Evento", charts.chEventos)
+  drawChartPage("Distribuição de Presença Consolidada", charts.chPresenca)
+  drawChartPage("Top Secretarias por Inscrições", charts.chSec)
+
+  // ============== Página: Quadro Consolidado de Eventos ==============
+  doc.addPage()
+  drawHeaderFooter()
+  doc.setTextColor(...NAVY)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(13)
+  doc.text("Quadro Consolidado de Eventos", 14, 26)
 
   doc.autoTable({
-    startY: yChart + 4,
-    head: [["Evento", "Data", "Vagas", "Inscr.", "Pres.", "Ausentes", "Presença", "Ocupação"]],
+    startY: 30,
+    head: [["Evento", "Data", "Vagas", "Inscr.", "Pres.", "Falt.", "Presença", "Ocupação"]],
     body: evs.map(e => [
-      e.title.length > 38 ? e.title.slice(0, 36) + "…" : e.title,
+      e.title.length > 38 ? e.title.slice(0, 36) + "..." : e.title,
       e.date ? new Date(e.date).toLocaleDateString("pt-BR") : "-",
       e.vagas ?? "-",
       e.totalInscritos,
@@ -2332,57 +2794,102 @@ async function exportPdf() {
       e.taxaPresenca != null ? e.taxaPresenca + "%" : "-",
       e.taxaOcupacao != null ? e.taxaOcupacao + "%" : "-"
     ]),
-    styles: { fontSize: 9, cellPadding: 2.5 },
-    headStyles: { fillColor: [48, 99, 173], textColor: 255 },
-    alternateRowStyles: { fillColor: [245, 247, 250] }
+    styles: { fontSize: 10, cellPadding: 3, font: "helvetica" },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: BG_SOFT }
   })
 
-  let y = doc.lastAutoTable.finalY + 10
-  if (y > 240) {
+  // ============== Página: Ranking de Secretarias ==============
+  if (ranking.length) {
     doc.addPage()
-    y = 20
-  }
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(13)
-  doc.text("Ranking de secretarias", 14, y)
-  doc.autoTable({
-    startY: y + 4,
-    head: [["#", "Secretaria", "Inscrições"]],
-    body: ranking.slice(0, 25).map((r, i) => [i + 1, r.nome, r.qtd]),
-    styles: { fontSize: 9, cellPadding: 2.5 },
-    headStyles: { fillColor: [77, 173, 51], textColor: 255 },
-    alternateRowStyles: { fillColor: [245, 247, 250] }
-  })
-
-  if (parts.length) {
-    doc.addPage()
+    drawHeaderFooter()
     doc.setFont("helvetica", "bold")
     doc.setFontSize(13)
-    doc.text(`Participantes (${parts.length})`, 14, 20)
+    doc.setTextColor(...NAVY)
+    doc.text("Ranking de Secretarias", 14, 26)
     doc.autoTable({
-      startY: 24,
-      head: [["Evento", "Nome", "Secretaria", "Turma", "Presente"]],
-      body: parts.map(p => [
-        p.eventoTitle.length > 26 ? p.eventoTitle.slice(0, 24) + "…" : p.eventoTitle,
-        p.nome,
-        p.secretaria || "-",
-        p.turma || "-",
-        p.presente ? "Sim" : "Não"
-      ]),
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [48, 99, 173], textColor: 255 },
-      alternateRowStyles: { fillColor: [245, 247, 250] }
+      startY: 30,
+      head: [["#", "Secretaria", "Inscrições"]],
+      body: ranking.slice(0, 25).map((r, i) => [i + 1, r.nome, r.qtd]),
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: BG_SOFT },
+      didDrawPage: drawHeaderFooter
     })
   }
 
-  // Rodapé com paginação
+  // ============== Página de Presentes ==============
+  const presentes = parts.filter(p => p.presente)
+  const faltantes = parts.filter(p => !p.presente)
+
+  if (presentes.length) {
+    doc.addPage()
+    drawHeaderFooter()
+    doc.setFillColor(...GREEN)
+    doc.rect(14, 22, 4, 8, "F")
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(13)
+    doc.setTextColor(...NAVY)
+    doc.text(`Presentes (${presentes.length})`, 20, 28)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.setTextColor(...TEXT_MUTED)
+    doc.text("Servidores que fizeram check-in no recorte.", 20, 33)
+    doc.autoTable({
+      startY: 38,
+      head: [["Evento", "Nome", "Secretaria", "Turma", "Data Check-in"]],
+      body: presentes.map(p => [
+        p.eventoTitle.length > 24 ? p.eventoTitle.slice(0, 22) + "..." : p.eventoTitle,
+        p.nome,
+        p.secretaria || "-",
+        p.turma || "-",
+        p.dataCheckin || "-"
+      ]),
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: GREEN, textColor: 255, fontStyle: "bold", fontSize: 11 },
+      alternateRowStyles: { fillColor: BG_SOFT },
+      didDrawPage: drawHeaderFooter
+    })
+  }
+
+  // ============== Página de Faltantes ==============
+  if (faltantes.length) {
+    doc.addPage()
+    drawHeaderFooter()
+    doc.setFillColor(192, 57, 43)
+    doc.rect(14, 22, 4, 8, "F")
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(13)
+    doc.setTextColor(...NAVY)
+    doc.text(`Faltantes (${faltantes.length})`, 20, 28)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.setTextColor(...TEXT_MUTED)
+    doc.text("Inscritos que não compareceram - candidatos a campanha de reengajamento.", 20, 33)
+    doc.autoTable({
+      startY: 38,
+      head: [["Evento", "Nome", "Secretaria", "Turma", "Data Inscrição"]],
+      body: faltantes.map(p => [
+        p.eventoTitle.length > 24 ? p.eventoTitle.slice(0, 22) + "..." : p.eventoTitle,
+        p.nome,
+        p.secretaria || "-",
+        p.turma || "-",
+        p.dataInscricao || "-"
+      ]),
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [192, 57, 43], textColor: 255, fontStyle: "bold", fontSize: 11 },
+      alternateRowStyles: { fillColor: BG_SOFT },
+      didDrawPage: drawHeaderFooter
+    })
+  }
+
+  // Rodapé com paginação em todas as páginas (exceto capa)
   const total = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= total; i++) {
+  for (let i = 2; i <= total; i++) {
     doc.setPage(i)
-    doc.setFontSize(8)
-    doc.setTextColor(120)
-    doc.text(`Página ${i} de ${total}`, pageW - 14, 290, { align: "right" })
-    doc.text("EGov-PL · Painel Administrativo", 14, 290)
+    doc.setFontSize(9)
+    doc.setTextColor(...TEXT_MUTED)
+    doc.text(`Página ${i - 1} de ${total - 1}`, pageW - 14, pageH - 4, { align: "right" })
   }
 
   doc.save(`relatorio-egov-${new Date().toISOString().slice(0, 10)}.pdf`)
@@ -2414,7 +2921,9 @@ async function exportPptx() {
   sCover.background = { color: EGOV_BRAND.white }
   sCover.addImage({ data: brand.hero, x: 0, y: 0, w: 13.333, h: 7.5, sizing: { type: "cover", w: 13.333, h: 7.5 } })
   sCover.addShape("rect", { x: 0, y: 0, w: 13.333, h: 7.5, fill: { color: EGOV_BRAND.white, transparency: 35 } })
-  sCover.addImage({ data: brand.comboLogo, x: 4.3, y: 0.9, w: 4.7, h: 1.2 })
+  // Logo aspect ratio preservado - centralizada
+  const sCoverFit = fitAspect(brand.dims.comboLogo.ratio, 5.4, 1.4)
+  sCover.addImage({ data: brand.comboLogo, x: (13.333 - sCoverFit.w) / 2, y: 0.9, w: sCoverFit.w, h: sCoverFit.h })
   sCover.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", { x: 1, y: 2.4, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, bold: true, color: EGOV_BRAND.navy, align: "center", charSpacing: 4 })
   sCover.addShape("line", { x: 5.4, y: 3.0, w: 2.5, h: 0, line: { color: EGOV_BRAND.green, width: 2 } })
   sCover.addText("Relatório Consolidado", { x: 1, y: 3.2, w: 11.3, h: 1.1, fontFace: EGOV_BRAND.font, fontSize: 48, bold: true, color: EGOV_BRAND.navy, align: "center" })
@@ -2467,7 +2976,7 @@ async function exportPptx() {
   evs.slice(0, 14).forEach((e, i) => {
     const bg = i % 2 === 0 ? EGOV_BRAND.white : EGOV_BRAND.bgSoft
     tableRows.push([
-      { text: e.title, options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, color: EGOV_BRAND.text } },
+      { text: e.title, options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 12, color: EGOV_BRAND.text } },
       { text: e.date ? new Date(e.date).toLocaleDateString("pt-BR") : "-", options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
       { text: String(e.totalInscritos), options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
       { text: String(e.totalPresentes), options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
@@ -2475,6 +2984,62 @@ async function exportPptx() {
     ])
   })
   sT.addTable(tableRows, { x: 0.7, y: 1.75, w: 11.9, colW: [5.7, 1.7, 1.5, 1.5, 1.5], border: { type: "solid", color: EGOV_BRAND.blueSoft, pt: 0.5 } })
+
+  // ============ Slide Presentes / Faltantes ============
+  const presentesAll = parts.filter(p => p.presente)
+  const faltantesAll = parts.filter(p => !p.presente)
+
+  // Layout calculado para não estourar o slide (slide útil: 1.75 a 7.0 = 5.25in)
+  // Cabeçalho 1 linha + 13 linhas de corpo = 14 linhas × 0.36in = 5.04in. Sobra
+  // margem de respiro antes do rodapé do master (7.18in).
+  const PAGE_LIMIT = 13
+  const HEADER_H = 0.4
+  const ROW_H = 0.36
+
+  const trunc = (s, n) => {
+    s = String(s || "")
+    return s.length > n ? s.slice(0, n - 1) + "..." : s
+  }
+
+  const addParticipantesSlides = (titulo, lista, headerColor, dataLabel, dataKey) => {
+    if (!lista.length) return
+    const pages = Math.ceil(lista.length / PAGE_LIMIT)
+    for (let p = 0; p < pages; p++) {
+      const slice = lista.slice(p * PAGE_LIMIT, (p + 1) * PAGE_LIMIT)
+      const slide = pptx.addSlide({ masterName: "EGOV_MASTER" })
+      egovSlideTitle(slide, pages > 1 ? `${titulo} (${p + 1}/${pages})` : `${titulo} (${lista.length})`)
+      const headOpts = { bold: true, color: EGOV_BRAND.white, fill: { color: headerColor }, fontFace: EGOV_BRAND.font, fontSize: 12, valign: "middle" }
+      const rows = [[
+        { text: "Evento",      options: headOpts },
+        { text: "Nome",        options: headOpts },
+        { text: "Secretaria",  options: headOpts },
+        { text: "Turma",       options: headOpts },
+        { text: dataLabel,     options: headOpts }
+      ]]
+      slice.forEach((item, i) => {
+        const bg = i % 2 === 0 ? EGOV_BRAND.white : EGOV_BRAND.bgSoft
+        const cellOpts = { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 10, color: EGOV_BRAND.text, valign: "middle" }
+        rows.push([
+          { text: trunc(item.eventoTitle, 26),       options: cellOpts },
+          { text: trunc(item.nome, 26),              options: cellOpts },
+          { text: trunc(item.secretaria || "-", 30), options: cellOpts },
+          { text: trunc(item.turma || "-", 16),      options: cellOpts },
+          { text: item[dataKey] || "-",              options: cellOpts }
+        ])
+      })
+      // rowH como array: 1 header + N body
+      const rowH = [HEADER_H, ...Array(slice.length).fill(ROW_H)]
+      slide.addTable(rows, {
+        x: 0.5, y: 1.7, w: 12.333,
+        colW: [3.0, 2.8, 3.2, 1.6, 1.733],
+        rowH,
+        border: { type: "solid", color: EGOV_BRAND.blueSoft, pt: 0.5 }
+      })
+    }
+  }
+
+  addParticipantesSlides("Presentes",  presentesAll, "4DAD33", "Data Check-in",  "dataCheckin")
+  addParticipantesSlides("Faltantes",  faltantesAll, "C0392B", "Data Inscrição", "dataInscricao")
 
   await pptx.writeFile({ fileName: `relatorio-egov-${new Date().toISOString().slice(0, 10)}.pptx` })
 }
@@ -5314,14 +5879,39 @@ async function loadBrandAssets() {
       reader.readAsDataURL(blob)
     })
   }
+  // Lê as dimensões naturais da imagem - essencial para manter aspect ratio.
+  const getDims = (dataUrl) => new Promise(res => {
+    const img = new Image()
+    img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight, ratio: img.naturalWidth / img.naturalHeight })
+    img.onerror = () => res({ w: 1, h: 1, ratio: 1 })
+    img.src = dataUrl
+  })
+
   const [egovLogo, comboLogo, brasao, hero] = await Promise.all([
     toDataUrl("assets/img/marca/egov-logo.png"),
     toDataUrl("assets/img/marca/egov-pl-combo.png"),
     toDataUrl("assets/img/marca/pl-brasao.png"),
     toDataUrl("assets/img/marca/hero-gradient.png")
   ])
-  _brandAssetsCache = { egovLogo, comboLogo, brasao, hero }
+  const [egovLogoDims, comboLogoDims, brasaoDims, heroDims] = await Promise.all([
+    getDims(egovLogo), getDims(comboLogo), getDims(brasao), getDims(hero)
+  ])
+  _brandAssetsCache = {
+    egovLogo, comboLogo, brasao, hero,
+    dims: { egovLogo: egovLogoDims, comboLogo: comboLogoDims, brasao: brasaoDims, hero: heroDims }
+  }
   return _brandAssetsCache
+}
+
+// Calcula tamanho "fit-to-box" mantendo aspect ratio.
+// Recebe ratio (w/h) e a caixa-alvo (maxW, maxH). Devolve { w, h }.
+function fitAspect(ratio, maxW, maxH) {
+  if (!ratio || ratio <= 0) return { w: maxW, h: maxH }
+  // Tenta usar maxW; se a altura ultrapassar, usa maxH.
+  const wByW = maxW
+  const hByW = maxW / ratio
+  if (hByW <= maxH) return { w: wByW, h: hByW }
+  return { w: maxH * ratio, h: maxH }
 }
 
 // Define o master institucional da EGov para slides PPTX. Pinta o gradient
@@ -5333,19 +5923,16 @@ function buildEgovPptxMaster(pptx, brand, rodape = "Relatório") {
     title: "EGOV_MASTER",
     background: { color: "FFFFFF" },
     objects: [
-      // Faixa decorativa superior (gradient do Modelo)
+      // Faixa decorativa superior (gradient verde→azul do Modelo)
       { image: { x: 0, y: 0, w: 13.333, h: 0.55, data: brand.hero, sizing: { type: "cover", w: 13.333, h: 0.55 } } },
-      // Brasão de Pedro Leopoldo no canto direito do header
-      { image: { x: 12.45, y: 0.05, w: 0.78, h: 0.45, data: brand.brasao } },
-      // Texto institucional discreto no header
-      { text: { text: "Escola de Governo · Pedro Leopoldo", options: { x: 0.4, y: 0.05, w: 6, h: 0.45, fontFace: "Calibri", fontSize: 11, bold: true, color: "1B2A4E", valign: "middle" } } },
-      // Rodapé com nome do relatório
+      // Texto institucional no header - sem brasão (evita distorção)
+      { text: { text: "Escola de Governo · Prefeitura Municipal de Pedro Leopoldo", options: { x: 0.5, y: 0, w: 12.333, h: 0.55, fontFace: "Calibri", fontSize: 12, bold: true, color: "1B2A4E", valign: "middle", align: "center" } } },
+      // Rodapé institucional centralizado
       { rect: { x: 0, y: 7.18, w: 13.333, h: 0.32, fill: { color: "F5F8FB" } } },
       { rect: { x: 0, y: 7.18, w: 13.333, h: 0.04, fill: { color: "4DAD33" } } },
-      { text: { text: rodape, options: { x: 0.4, y: 7.18, w: 6, h: 0.32, fontFace: "Calibri", fontSize: 9, color: "5A6B85", valign: "middle" } } },
-      { text: { text: "Prefeitura Municipal de Pedro Leopoldo", options: { x: 7, y: 7.18, w: 5.5, h: 0.32, fontFace: "Calibri", fontSize: 9, color: "5A6B85", valign: "middle", align: "right" } } }
+      { text: { text: rodape, options: { x: 0, y: 7.18, w: 13.333, h: 0.32, fontFace: "Calibri", fontSize: 10, color: "5A6B85", valign: "middle", align: "center" } } }
     ],
-    slideNumber: { x: 12.75, y: 7.18, w: 0.5, h: 0.32, fontFace: "Calibri", fontSize: 9, color: "5A6B85" }
+    slideNumber: { x: 12.75, y: 7.18, w: 0.5, h: 0.32, fontFace: "Calibri", fontSize: 10, color: "5A6B85" }
   })
 }
 
@@ -6582,7 +7169,9 @@ async function generateSatisfacaoPptx() {
   s1.background = { color: EGOV_BRAND.white }
   s1.addImage({ data: brand.hero, x: 0, y: 0, w: 13.333, h: 7.5, sizing: { type: "cover", w: 13.333, h: 7.5 } })
   s1.addShape("rect", { x: 0, y: 0, w: 13.333, h: 7.5, fill: { color: EGOV_BRAND.white, transparency: 35 } })
-  s1.addImage({ data: brand.comboLogo, x: 4.3, y: 0.9, w: 4.7, h: 1.2 })
+  // Logo aspect ratio preservado - centralizada
+  const s1LogoFit = fitAspect(brand.dims.comboLogo.ratio, 5.4, 1.4)
+  s1.addImage({ data: brand.comboLogo, x: (13.333 - s1LogoFit.w) / 2, y: 0.9, w: s1LogoFit.w, h: s1LogoFit.h })
   s1.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", { x: 1, y: 2.4, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, bold: true, color: EGOV_BRAND.navy, align: "center", charSpacing: 4 })
   s1.addShape("line", { x: 5.4, y: 3.0, w: 2.5, h: 0, line: { color: EGOV_BRAND.green, width: 2 } })
   s1.addText("Relatório de Satisfação", { x: 1, y: 3.2, w: 11.3, h: 1.1, fontFace: EGOV_BRAND.font, fontSize: 48, bold: true, color: EGOV_BRAND.navy, align: "center" })

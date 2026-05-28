@@ -544,14 +544,23 @@ export function renderParticipantsTable(participantes, opts = {}) {
   const currentPage = Math.min(Math.max(1, page), totalPages);
   const slice = paginate ? participantes.slice((currentPage - 1) * pageSize, currentPage * pageSize) : participantes;
 
+  // Computa a mesma chave usada por chaveServidor (app.js) para abrir o
+  // modal de perfil ao clicar no nome.
+  const chaveFromParticipante = (p) => {
+    const email = String(p.email || "").trim().toLowerCase();
+    if (email && !/^user-anonymous/i.test(email)) return "e:" + email;
+    const nome = String(p.nome || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
+    return nome ? "n:" + nome : "";
+  };
   const rows = slice.map((p) => {
     const emailValid = p.email && !/^user-anonymous/i.test(p.email);
     const emailCell = emailValid
       ? escapeHtml(p.email)
       : `<span class="cell-empty" title="E-mail não informado">-</span>`;
+    const chave = chaveFromParticipante(p);
     return `
     <tr>
-      <td class="cell-name">${escapeHtml(p.nome || "-")}</td>
+      <td class="cell-name"><a class="servidor-link" data-servidor-chave="${escapeHtml(chave)}" tabindex="0" role="button">${escapeHtml(p.nome || "-")}</a></td>
       ${hideEmail ? "" : `<td class="col-hide-sm">${emailCell}</td>`}
       ${hideTurma ? "" : `<td class="col-hide-md cell-turma" title="${escapeHtml(p.turma || "")}">${escapeHtml(p.turma || "-")}</td>`}
       <td>${escapeHtml(p.secretaria || "-")}</td>
