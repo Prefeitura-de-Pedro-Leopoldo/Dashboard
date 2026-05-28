@@ -28,6 +28,8 @@
     <!-- Libs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <!-- ApexCharts: usado para pizzas/donuts com efeito 3D (perspectiva) -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -60,50 +62,26 @@
 
         <!-- Navegação por grupos -->
         <nav class="sidebar__nav" role="navigation">
-          <div class="sidebar__group-label">Análise</div>
-          <button class="nav-link is-active" data-nav="dashboard" title="Dashboard">
+          <button class="nav-link is-active" data-nav="dashboard" data-group="visao" title="Visão Geral">
             <i class="fas fa-gauge-high"></i>
-            <span>Dashboard</span>
+            <span>Visão Geral</span>
           </button>
-          <button class="nav-link" data-nav="eventos" title="Análise por Evento">
+          <button class="nav-link" data-nav="eventos" data-group="eventos" title="Eventos">
             <i class="fas fa-calendar-day"></i>
-            <span>Análise por Evento</span>
+            <span>Eventos</span>
           </button>
-          <button class="nav-link" data-nav="comparar" title="Comparar Eventos">
-            <i class="fas fa-scale-balanced"></i>
-            <span>Comparar Eventos</span>
-          </button>
-
-          <div class="sidebar__group-label">Dados</div>
-          <button class="nav-link" data-nav="participantes" title="Participantes">
+          <button class="nav-link" data-nav="participantes" data-group="pessoas" title="Secretarias">
             <i class="fas fa-users"></i>
-            <span>Participantes</span>
-          </button>
-          <button class="nav-link" data-nav="secretarias" title="Secretarias">
-            <i class="fas fa-building-columns"></i>
             <span>Secretarias</span>
           </button>
-
-          <div class="sidebar__group-label">Documentação</div>
-          <button class="nav-link" data-nav="relatorios" title="Relatórios">
+          <button class="nav-link" data-nav="relatorios" data-group="docs" title="Relatórios">
             <i class="fas fa-file-lines"></i>
             <span>Relatórios</span>
           </button>
-          <button class="nav-link" data-nav="autoreport" title="Auto-Relatório de Satisfação">
-            <i class="fas fa-file-pdf"></i>
-            <span>Auto-Relatório</span>
+          <button class="nav-link" data-nav="certificados" data-group="ops" title="Certificados e QR Code">
+            <i class="fas fa-screwdriver-wrench"></i>
+            <span>Certificados e QR Code</span>
           </button>
-
-          <div class="sidebar__group-label">Operações</div>
-          <button class="nav-link" data-nav="certificados" title="Emitir Certificados">
-            <i class="fas fa-award"></i>
-            <span>Emitir Certificados</span>
-          </button>
-          <button class="nav-link" data-nav="qrcode" title="Gerador de QR Code">
-            <i class="fas fa-qrcode"></i>
-            <span>QR Code</span>
-          </button>
-
         </nav>
 
         <!-- Footer com usuário -->
@@ -141,6 +119,9 @@
 
         <main class="main">
           <div class="main-inner" id="mainContent">
+            <!-- Barra de sub-abas (renderizada por JS conforme a sidebar ativa) -->
+            <div id="groupTabsHost" class="group-tabs-host"></div>
+
             <!-- ============== DASHBOARD ============== -->
             <section class="view is-active" id="view-dashboard">
               <div id="dashTabsHost"></div>
@@ -170,6 +151,11 @@
                 </div>
               </div>
 
+              <!-- Aba 3: Insights -->
+              <div class="view-tabs__panel" data-tab-panel="insights" hidden>
+                <div id="insightsHost"></div>
+              </div>
+
               <!-- Aba 2: Gráficos consolidados -->
               <div class="view-tabs__panel" data-tab-panel="charts" hidden>
                 <!-- Linha 1: Inscritos vs Presentes (full-width) -->
@@ -180,23 +166,7 @@
                   <div class="chart-wrap" id="wrap-globalBar"><canvas id="chartGlobalBar"></canvas></div>
                 </div>
 
-                <!-- Linha 2: Top Participação + Top Evasão -->
-                <div class="grid-2">
-                  <div class="card">
-                    <div class="card__header">
-                      <div><h3>Top Secretarias com Mais Participação</h3><p>Soma de inscrições em todos os eventos.</p></div>
-                    </div>
-                    <div class="chart-wrap lg" id="wrap-globalSec"><canvas id="chartGlobalSec"></canvas></div>
-                  </div>
-                  <div class="card">
-                    <div class="card__header">
-                      <div><h3>Top Secretarias com Mais Evasão</h3><p>Inscritos que não compareceram, somados em todos os eventos realizados.</p></div>
-                    </div>
-                    <div class="chart-wrap lg" id="wrap-globalEvasao"><canvas id="chartGlobalEvasao"></canvas></div>
-                  </div>
-                </div>
-
-                <!-- Linha 3: Taxa de presença + Presença consolidada -->
+                <!-- Linha 2: Taxa de presença + Presença consolidada -->
                 <div class="grid-2">
                   <div class="card">
                     <div class="card__header">
@@ -245,11 +215,20 @@
 
             <!-- ============== AUTO-RELATÓRIO ============== -->
             <section class="view" id="view-autoreport"></section>
+
+            <!-- ============== SERVIDORES (NOVA) ============== -->
+            <section class="view" id="view-servidores"></section>
+
+            <!-- ============== FALTAS RECORRENTES (NOVA) ============== -->
+            <section class="view" id="view-faltas"></section>
+
+            <!-- ============== CARGOS (NOVA) ============== -->
+            <section class="view" id="view-cargos"></section>
           </div>
         </main>
       </div>
     </div>
 
-    <script type="module" src="assets/js/app.js?v=typo-fit-1"></script>
+    <script type="module" src="assets/js/app.js?v=bars-cat-3"></script>
   </body>
 </html>

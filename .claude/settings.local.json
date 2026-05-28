@@ -37,7 +37,9 @@
       "Bash(rm -f \"gestao-para-resultados-2026-05/participantes.xlsx\" \"gestao-para-resultados-2026-05/participantes-sympla.xlsx\")",
       "Bash(mkdir -p \"ciclo-de-debates-pl-por-elas-2026-05/turma 1\")",
       "Bash(mv \"ciclo-de-debates-pl-por-elas-2026-05/participantes.xlsx\" \"ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell(node -c \"C:\\\\Users\\\\lcvsilva\\\\Desktop\\\\Dashboard\\\\assets\\\\js\\\\app.js\" 2>&1)",
+      "PowerShell(node -c \"C:\\\\Users\\\\lcvsilva\\\\Desktop\\\\Dashboard\\\\assets\\\\js\\\\app.js\" 2>&1; node -c \"C:\\\\Users\\\\lcvsilva\\\\Desktop\\\\Dashboard\\\\assets\\\\js\\\\charts.js\" 2>&1)"
     ]
   }
 }

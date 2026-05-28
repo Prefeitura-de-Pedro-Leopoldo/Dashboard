@@ -21,6 +21,8 @@ import {
   donutPresenca,
   barSecretarias,
   pieTurmas,
+  pieCategorias,
+  barCategorias,
   lineTimeline,
   lineEvolucaoEventos,
   radarComparativo,
@@ -207,7 +209,7 @@ const _defaultPos1 = {
 };
 const _defaultPos2 = _clonePos(CERT_POS_DEFAULT);
 
-// Modelo 6 — específico para cursos com 2 datas. Tem POSIÇÃO PRÓPRIA para
+// Modelo 6 - específico para cursos com 2 datas. Tem POSIÇÃO PRÓPRIA para
 // dia2 (diferente de dia), então cada dia aparece em um lugar distinto na
 // linha "no dia X e Y de MES de ANO". Os outros modelos ignoram POS.dia2
 // e renderizam "X e Y" juntos em POS.dia.
@@ -334,28 +336,84 @@ function getCertPos(templateId) {
 }
 
 const VIEW_TITLES = {
-  dashboard: ["Dashboard", "Visão consolidada e análise de cada evento."],
-  eventos: ["Análise por Evento", "Detalhamento operacional e demográfico."],
-  comparar: ["Comparar Eventos", "Compare dois ou mais eventos lado a lado."],
-  participantes: ["Participantes", "Busca e filtros sobre todos os inscritos."],
-  secretarias: ["Secretarias", "Ranking e participação por pasta."],
-  relatorios: ["Relatórios", "Relatórios por evento, consolidado e exportação."],
-  certificados: ["Emitir Certificados", "Planilhas do sistema ou upload geram a lista de elegíveis."],
-  qrcode: ["QR Code", "Gere QR Codes em alta resolução para divulgar links institucionais."],
-  autoreport: ["Auto-Relatório de Satisfação", "Suba planilhas e gere o PDF no padrão institucional automaticamente."]
+  dashboard:     ["Visão Geral",                "Resumo executivo, gráficos consolidados e insights estratégicos."],
+  eventos:       ["Eventos",                    "Detalhamento operacional e demográfico de cada evento."],
+  comparar:      ["Comparar Eventos",           "Compare dois ou mais eventos lado a lado."],
+  participantes: ["Participantes",              "Busca e filtros sobre todos os inscritos."],
+  servidores:    ["Servidores em Destaque",     "Lista completa de servidores ordenada por participação."],
+  faltas:        ["Faltas Recorrentes",         "Quem inscreve e falta com frequência."],
+  cargos:        ["Cargos",                     "Distribuição da capacitação por cargo."],
+  secretarias:   ["Secretarias",                "Ranking e participação por pasta."],
+  relatorios:    ["Relatórios",                 "Filtros, KPIs do recorte e exportação."],
+  autoreport:    ["Auto-Relatório de Satisfação","Geração automática do PDF no padrão institucional."],
+  certificados:  ["Certificados",               "Emita certificados em lote a partir do check-in."],
+  qrcode:        ["QR Code",                    "Gere QR Codes em alta resolução para divulgação."]
 }
 
-const VIEW_GROUPS = {
-  dashboard: "Análise",
-  eventos: "Análise",
-  comparar: "Análise",
-  participantes: "Dados",
-  secretarias: "Dados",
-  relatorios: "Documentação",
-  autoreport: "Documentação",
-  certificados: "Operações",
-  qrcode: "Operações"
-}
+// Grupos da sidebar. `title` e `subtitle` alimentam o topbar - ficam fixos
+// enquanto o usuário navega entre as sub-abas (padrão consistente como em
+// Visão Geral).
+const SIDEBAR_GROUPS = [
+  { id: "visao",
+    label: "Visão Geral",
+    title: "Visão Geral",
+    subtitle: "Resumo executivo, gráficos consolidados e insights estratégicos.",
+    defaultView: "dashboard",
+    tabs: null /* dashboard já tem tabs internas (Resumo/Gráficos/Insights) */
+  },
+  { id: "eventos",
+    label: "Eventos",
+    title: "Eventos",
+    subtitle: "Análise individual, comparação e detalhamento operacional.",
+    defaultView: "eventos",
+    tabs: [
+      { view: "eventos",  label: "Análise individual", icon: "fa-magnifying-glass-chart" },
+      { view: "comparar", label: "Comparar",           icon: "fa-scale-balanced" }
+    ]
+  },
+  { id: "pessoas",
+    label: "Secretarias",
+    title: "Secretarias",
+    subtitle: "Demografia da capacitação por secretaria, servidor, cargo e perfil.",
+    defaultView: "secretarias",
+    tabs: [
+      { view: "secretarias",   label: "Secretarias",         icon: "fa-building-columns" },
+      { view: "servidores",    label: "Servidores destaque", icon: "fa-medal" },
+      { view: "cargos",        label: "Cargos",              icon: "fa-briefcase" },
+      { view: "faltas",        label: "Faltas recorrentes",  icon: "fa-user-xmark" },
+      { view: "participantes", label: "Participantes",       icon: "fa-users" }
+    ]
+  },
+  { id: "docs",
+    label: "Relatórios",
+    title: "Relatórios",
+    subtitle: "Documentação consolidada e geração automática de relatórios.",
+    defaultView: "relatorios",
+    tabs: [
+      { view: "relatorios", label: "Relatórios",     icon: "fa-file-lines" },
+      { view: "autoreport", label: "Auto-Relatório", icon: "fa-file-pdf" }
+    ]
+  },
+  { id: "ops",
+    label: "Certificados e QR Code",
+    title: "Certificados e QR Code",
+    subtitle: "Emissão em lote a partir do check-in e ferramentas auxiliares.",
+    defaultView: "certificados",
+    tabs: [
+      { view: "certificados", label: "Certificados", icon: "fa-award" },
+      { view: "qrcode",       label: "QR Code",      icon: "fa-qrcode" }
+    ]
+  }
+]
+
+const VIEW_TO_GROUP = (() => {
+  const out = {}
+  for (const g of SIDEBAR_GROUPS) {
+    if (g.tabs) g.tabs.forEach(t => { out[t.view] = g.id })
+    else out[g.defaultView] = g.id
+  }
+  return out
+})()
 
 // ================ Bootstrap ================
 ;(async function init() {
@@ -494,14 +552,49 @@ function setupNavigation() {
 
 function navigate(view) {
   state.view = view
-  document.querySelectorAll(".nav-link").forEach(n => n.classList.toggle("is-active", n.dataset.nav === view))
+  const groupId = VIEW_TO_GROUP[view]
+  // Sidebar: marca o item do grupo correspondente como ativo
+  document.querySelectorAll(".nav-link").forEach(n => {
+    n.classList.toggle("is-active", n.dataset.group === groupId)
+  })
+  // View: ativa só o painel correspondente
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("is-active", v.id === `view-${view}`))
-  const [t, s] = VIEW_TITLES[view] || ["", ""]
-  document.getElementById("topbarTitle").textContent = t
-  document.getElementById("topbarSub").textContent = s
+  // Topbar reflete o GRUPO da sidebar - fica estável entre sub-abas.
+  const grp = SIDEBAR_GROUPS.find(g => g.id === groupId)
+  document.getElementById("topbarTitle").textContent = grp?.title || ""
+  document.getElementById("topbarSub").textContent = grp?.subtitle || ""
   document.getElementById("appShell").classList.remove("is-mobile-open")
+  // Lembra última sub-aba escolhida por grupo (útil para o user voltar)
+  state.groupTab = state.groupTab || {}
+  if (groupId) state.groupTab[groupId] = view
+  renderGroupTabs(groupId)
   window.scrollTo({ top: 0, behavior: "smooth" })
   renderAll()
+}
+
+// Renderiza a barra de sub-abas do grupo ativo (ou esconde se o grupo
+// só tem uma view).
+function renderGroupTabs(groupId) {
+  const host = document.getElementById("groupTabsHost")
+  if (!host) return
+  const grp = SIDEBAR_GROUPS.find(g => g.id === groupId)
+  if (!grp || !grp.tabs || !grp.tabs.length) {
+    host.innerHTML = ""
+    return
+  }
+  host.innerHTML = `
+    <nav class="group-tabs" role="tablist" aria-label="${escapeHtml(grp.label)}">
+      ${grp.tabs.map(t => `
+        <button type="button" class="group-tab ${state.view === t.view ? "is-active" : ""}" data-group-tab="${t.view}" role="tab" aria-selected="${state.view === t.view}">
+          ${t.icon ? `<i class="fas ${t.icon}"></i>` : ""}
+          <span>${escapeHtml(t.label)}</span>
+        </button>
+      `).join("")}
+    </nav>
+  `
+  host.querySelectorAll("[data-group-tab]").forEach(btn => {
+    btn.addEventListener("click", () => navigate(btn.dataset.groupTab))
+  })
 }
 
 // ================ Helpers de UI: Tabs internas ================
@@ -523,7 +616,7 @@ function renderPaginatedTable(containerId, participantes, scopeId, opts = {}) {
 
   const draw = () => {
     const page = state.pagerPages[scopeId] || 1
-    container.innerHTML = renderParticipantsTable(participantes, { paginate: true, pageSize, page, scopeId })
+    container.innerHTML = renderParticipantsTable(participantes, { paginate: true, pageSize, page, scopeId, hideEmail: !!opts.hideEmail, hideTurma: !!opts.hideTurma })
     container.querySelectorAll(`[data-pager-scope="${scopeId}"][data-pager-page]`).forEach(btn => {
       btn.addEventListener("click", e => {
         e.preventDefault()
@@ -581,6 +674,9 @@ function renderAll() {
   else if (state.view === "comparar") renderViewComparar()
   else if (state.view === "participantes") renderViewParticipantes()
   else if (state.view === "secretarias") renderViewSecretarias()
+  else if (state.view === "servidores") renderViewServidores()
+  else if (state.view === "faltas") renderViewFaltas()
+  else if (state.view === "cargos") renderViewCargos()
   else if (state.view === "relatorios") renderViewRelatorios()
   else if (state.view === "certificados") renderViewCertificados()
   else if (state.view === "qrcode") renderViewQrCode()
@@ -613,18 +709,23 @@ function renderDashboard() {
   const { data } = state
   const eventos = data.eventos
   const resumo = resumoGlobal(eventos)
-  const ranking = rankingSecretarias(eventos)
 
   // Tabs
   document.getElementById("dashTabsHost").innerHTML = renderTabsNav("dashboard", [
-    { id: "overview", label: "Visão geral", icon: "fa-gauge-high" },
-    { id: "charts", label: "Gráficos consolidados", icon: "fa-chart-line" }
+    { id: "overview", label: "Resumo", icon: "fa-gauge-high" },
+    { id: "charts", label: "Gráficos consolidados", icon: "fa-chart-line" },
+    { id: "insights", label: "Insights", icon: "fa-lightbulb" }
   ])
   const activeTab = getActiveTab("dashboard", "overview")
   document.querySelectorAll("#view-dashboard [data-tab-panel]").forEach(p => {
     p.hidden = p.dataset.tabPanel !== activeTab
   })
   wireTabs("dashboard", () => renderDashboard())
+
+  if (activeTab === "insights") {
+    renderInsightsTab()
+    return
+  }
 
   if (activeTab === "charts") {
     // Charts globais: somente realizados, limitados aos 8 mais recentes
@@ -636,14 +737,7 @@ function renderDashboard() {
       .reverse() // cronológico crescente no gráfico (mais antigo → mais recente)
     barInscritosVsPresentes("chartGlobalBar", realizados)
     barTaxaPresenca("chartGlobalTaxa", realizados)
-    barSecretarias("chartGlobalSec", ranking)
     donutPresenca("chartGlobalDonut", resumo.totalPresentes, resumo.totalAusentes)
-    barSecretarias("chartGlobalEvasao", rankingEvasaoSecretarias(eventos), {
-      datasetLabel: "Faltas",
-      unitLabel: "falta(s)",
-      tooltipExtra: s => `${s.inscritos} inscrito(s) · ${s.presentes} presente(s) · evasão ${s.taxaEvasao}%`,
-      emptyLabel: "Sem evasão registrada."
-    })
     lineEvolucaoEventos("chartGlobalEvo", realizados)
     return
   }
@@ -1027,21 +1121,9 @@ function renderCompareContent() {
 // ================ PARTICIPANTES ================
 function renderViewParticipantes() {
   const { data } = state
-  const activeTab = getActiveTab("participantes", "todos")
-  const faltasCount = computeFaltasRecorrentes(data, state.faltasWindow || 3).length
-
   const view = document.getElementById("view-participantes")
-  view.innerHTML = `
-    ${renderTabsNav("participantes", [
-      { id: "todos", label: "Todos os participantes", icon: "fa-users" },
-      { id: "faltas", label: "Faltas recorrentes", icon: "fa-user-xmark", badge: faltasCount }
-    ])}
-    <div id="participantesPanel"></div>
-  `
-  wireTabs("participantes", () => renderViewParticipantes())
-
-  if (activeTab === "faltas") renderFaltasRecorrentes()
-  else renderParticipantesTodos()
+  view.innerHTML = `<div id="participantesPanel"></div>`
+  renderParticipantesTodos()
 }
 
 function renderParticipantesTodos() {
@@ -1153,11 +1235,13 @@ function computeFaltasRecorrentes(data, months) {
     .sort((a, b) => b.faltas - a.faltas || b.taxaAbsenteismo - a.taxaAbsenteismo)
 }
 
+function renderViewFaltas() { renderFaltasRecorrentes() }
+
 function renderFaltasRecorrentes() {
   const months = state.faltasWindow || 3
   const onlyMultiple = state.faltasOnlyMultiple !== false // default true
 
-  const panel = document.getElementById("participantesPanel")
+  const panel = document.getElementById("view-faltas")
   panel.innerHTML = `
     <div class="filters">
       <div class="filter">
@@ -1256,9 +1340,9 @@ function populateFaltasTable() {
             .map(
               r => `
             <tr>
-              <td class="cell-name">${escapeHtml(r.nome || "—")}</td>
-              <td class="col-hide-sm">${escapeHtml(r.email || "—")}</td>
-              <td>${escapeHtml(r.secretaria || "—")}</td>
+              <td class="cell-name">${escapeHtml(r.nome || "-")}</td>
+              <td class="col-hide-sm">${escapeHtml(r.email || "-")}</td>
+              <td>${escapeHtml(r.secretaria || "-")}</td>
               <td style="text-align:center;">${r.inscricoes}</td>
               <td style="text-align:center;"><span class="cell-status ${r.faltas >= 2 ? "red" : "amber"}">${r.faltas}</span></td>
               <td style="text-align:center;">${r.presencas}</td>
@@ -1295,6 +1379,506 @@ function collectParticipantes() {
     })
   })
   return out
+}
+
+// ================================================================
+// ANALÍTICAS COMPARTILHADAS (Insights / Servidores / Cargos)
+// ================================================================
+
+// Chave estável para identificar um servidor entre eventos. Preferência:
+// e-mail (lowercased). Fallback: nome normalizado (sem acentos, lower).
+function chaveServidor(p) {
+  const email = String(p.email || "").trim().toLowerCase()
+  if (email && !/^user-anonymous/i.test(email)) return "e:" + email
+  const nome = String(p.nome || "").trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ")
+  if (nome) return "n:" + nome
+  return null
+}
+
+// Agrega presenças únicas de cada servidor através de todos os eventos.
+// Retorna [{ chave, nome, email, secretaria, cargo, eventos: [{id,title,date,presente}], totalEventos, totalPresentes }, ...]
+function agregarServidores(eventos) {
+  const mapa = new Map()
+  eventos.forEach(ev => {
+    (ev.participantes || []).forEach(p => {
+      const k = chaveServidor(p)
+      if (!k) return
+      let entry = mapa.get(k)
+      if (!entry) {
+        entry = {
+          chave: k,
+          nome: p.nome || "",
+          email: p.email || "",
+          secretaria: p.secretaria || "",
+          cargo: p.cargo || "",
+          eventos: [],
+          totalEventos: 0,
+          totalPresentes: 0
+        }
+        mapa.set(k, entry)
+      }
+      // Usa o nome mais bonito (mais longo) quando há variações
+      if ((p.nome || "").length > entry.nome.length) entry.nome = p.nome
+      if (!entry.email && p.email) entry.email = p.email
+      if (!entry.secretaria && p.secretaria) entry.secretaria = p.secretaria
+      if (!entry.cargo && p.cargo) entry.cargo = p.cargo
+      entry.eventos.push({ id: ev.id, title: ev.title, date: ev.date, presente: !!p.presente })
+      entry.totalEventos += 1
+      if (p.presente) entry.totalPresentes += 1
+    })
+  })
+  return [...mapa.values()]
+}
+
+// Normaliza um cargo para Title Case + remove caracteres redundantes.
+// Não inventa dados - só padroniza formatação para agrupar variantes
+// como "COORDENAÇÃO" / "Coordenação" / "coordenacao".
+function normalizarCargo(raw) {
+  if (!raw) return null
+  const s = String(raw).trim().replace(/\s+/g, " ")
+  if (!s) return null
+  const LOWER = new Set(["de", "da", "do", "dos", "das", "e"])
+  return s.toLowerCase().split(" ").map((w, i) => {
+    if (i > 0 && LOWER.has(w)) return w
+    return w[0] ? w[0].toUpperCase() + w.slice(1) : w
+  }).join(" ")
+}
+
+// Agrega cargos a partir de todos os participantes (sem deduplicar por
+// servidor - conta inscrições). Retorna [{ label, value }] ordenado.
+function agregarCargos(eventos) {
+  const cont = new Map()
+  eventos.forEach(ev => {
+    (ev.participantes || []).forEach(p => {
+      const c = normalizarCargo(p.cargo)
+      if (!c) return
+      cont.set(c, (cont.get(c) || 0) + 1)
+    })
+  })
+  return [...cont.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+}
+
+// Taxa de retenção: % de servidores únicos que participaram (presentes)
+// em 2 ou mais eventos.
+function taxaRetencao(servidores) {
+  const presentesEmAlgumEvento = servidores.filter(s => s.totalPresentes >= 1)
+  if (!presentesEmAlgumEvento.length) return { pct: 0, unicos: 0, retidos: 0 }
+  const retidos = presentesEmAlgumEvento.filter(s => s.totalPresentes >= 2).length
+  return {
+    pct: (retidos / presentesEmAlgumEvento.length) * 100,
+    unicos: presentesEmAlgumEvento.length,
+    retidos
+  }
+}
+
+// ================ INSIGHTS (aba) ================
+function renderInsightsTab() {
+  const host = document.getElementById("insightsHost")
+  if (!host) return
+  const eventos = state.data.eventos.filter(e => e.status === "realizado")
+  const servidores = agregarServidores(eventos)
+  const cargos = agregarCargos(eventos)
+  const ret = taxaRetencao(servidores)
+
+  // Funil capacidade → inscritos → presentes
+  const tCap = eventos.reduce((s, e) => s + (e.vagas || 0), 0)
+  const tIns = eventos.reduce((s, e) => s + (e.totalInscritos || 0), 0)
+  const tPres = eventos.reduce((s, e) => s + (e.totalPresentes || 0), 0)
+
+  // Apenas os 1º colocados (todos empatados no topo). Sem 2º/3º/4º/5º.
+  // Empates em ordem alfabética. Paginado 5 em 5 na view.
+  const ordenados = servidores
+    .filter(s => s.totalPresentes >= 1)
+    .sort((a, b) => b.totalPresentes - a.totalPresentes || (a.nome || "").localeCompare(b.nome || "", "pt-BR"))
+  const maxPresentes = ordenados.length ? ordenados[0].totalPresentes : 0
+  const topServidores = ordenados
+    .filter(s => s.totalPresentes === maxPresentes)
+    .map(s => ({ ...s, rank: 1 }))
+
+  host.innerHTML = `
+    <div class="insights-board">
+      <!-- Linha 1: KPIs leves -->
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi__icon"><i class="fas fa-user-check"></i></div>
+          <div class="kpi__label">Servidores únicos</div>
+          <div class="kpi__value">${ret.unicos}</div>
+          <div class="kpi__delta">presentes em algum evento</div>
+        </div>
+        <div class="kpi kpi--accent">
+          <div class="kpi__icon"><i class="fas fa-rotate"></i></div>
+          <div class="kpi__label">Taxa de retenção</div>
+          <div class="kpi__value">${ret.pct.toFixed(1).replace(".", ",")}<small>%</small></div>
+          <div class="kpi__delta"><b>${ret.retidos}</b> servidores em ≥ 2 eventos</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__icon"><i class="fas fa-briefcase"></i></div>
+          <div class="kpi__label">Cargos distintos</div>
+          <div class="kpi__value">${cargos.length}</div>
+          <div class="kpi__delta">no público total</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__icon"><i class="fas fa-list-check"></i></div>
+          <div class="kpi__label">Eventos realizados</div>
+          <div class="kpi__value">${eventos.length}</div>
+          <div class="kpi__delta">no recorte atual</div>
+        </div>
+      </div>
+
+      <!-- Linha 2: Funil + Top servidores (top 10 com pódio) -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card__header"><div><h3><i class="fas fa-filter"></i> Funil - Capacidade → Inscritos → Presentes</h3><p>Quanto da oferta vira presença efetiva.</p></div></div>
+          <div class="funil">
+            ${[
+              { label: "Vagas oferecidas", value: tCap, base: tCap, color: "var(--blue-700,#1B2A4E)" },
+              { label: "Inscritos",        value: tIns, base: tCap, color: "var(--blue-500,#3B5BA5)" },
+              { label: "Presentes",        value: tPres, base: tCap, color: "var(--green-500,#4DAD33)" }
+            ].map(f => {
+              const pct = f.base ? Math.min(100, (f.value / f.base) * 100) : 0
+              return `
+                <div class="funil__row">
+                  <div class="funil__label"><span>${f.label}</span><b>${f.value}</b></div>
+                  <div class="funil__bar"><span style="width:${pct.toFixed(1)}%; background:${f.color};"></span></div>
+                </div>`
+            }).join("")}
+          </div>
+          <div class="funil__caption">
+            ${tIns ? `Taxa de presença geral: <b>${((tPres / tIns) * 100).toFixed(1).replace(".", ",")}%</b>` : "Sem inscrições no recorte."} ·
+            ${tCap ? `Ocupação: <b>${((tIns / tCap) * 100).toFixed(1).replace(".", ",")}%</b>` : "Capacidade não informada."}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__header">
+            <div><h3><i class="fas fa-medal"></i> Top servidores participantes</h3><p>1º lugar - servidores com mais presenças (paginado 5 em 5).</p></div>
+            <span class="card__header-meta">${topServidores.length} servidor(es)</span>
+          </div>
+          <div id="insTopHost"></div>
+        </div>
+      </div>
+
+      <!-- Linha 3: Top 5 cargos (barras horizontais) - visual diferente da pizza completa em Cargos -->
+      <div class="card">
+        <div class="card__header">
+          <div><h3><i class="fas fa-briefcase"></i> Cargos mais frequentes</h3><p>Resumo dos 5 cargos com mais inscrições. Veja a distribuição completa em Cargos.</p></div>
+        </div>
+        <div class="chart-wrap lg" id="insCargosWrap"><canvas id="chartInsCargos"></canvas></div>
+      </div>
+    </div>
+  `
+
+  // Top servidores paginado 5 em 5 (mantém ordem do dense rank)
+  renderPodioInsightsPaginated("insTopHost", topServidores, "insights-top", 5)
+
+  // Top 5 cargos (mesmo estilo de barSecretarias - chart diferente da pizza de Cargos)
+  barCategorias("chartInsCargos", cargos.slice(0, 5), {
+    horizontal: true,
+    limit: 5,
+    datasetLabel: "Inscrições",
+    unitLabel: "inscrição(ões)",
+    emptyLabel: "Nenhum participante tem cargo registrado."
+  })
+}
+
+// Pódio do Insights - recebe lista já com `rank` denso. Empates
+// compartilham medalha. Ouro=1º, Prata=2º, Bronze=3º; 4º e 5º sem medalha.
+function renderPodioInsights(lista) {
+  if (!lista.length) return `<ol class="rank-list"><li class="rank-list__empty">Nenhum servidor com presença ainda.</li></ol>`
+  return `<ol class="rank-list">${lista.map(renderPodioItem).join("")}</ol>`
+}
+
+// Item individual do pódio (dense rank). Empates compartilham a medalha.
+function renderPodioItem(s) {
+  const cls = s.rank === 1 ? "rank-list__item--gold"
+    : s.rank === 2 ? "rank-list__item--silver"
+    : s.rank === 3 ? "rank-list__item--bronze"
+    : ""
+  return `
+    <li class="rank-list__item ${cls}">
+      <span class="rank-list__pos">${s.rank <= 3 ? `<i class="fas fa-medal"></i>` : ""}<small>${s.rank}º</small></span>
+      <div class="rank-list__body">
+        <div class="rank-list__name">${escapeHtml(s.nome || "(sem nome)")}</div>
+        <div class="rank-list__meta">${escapeHtml(s.cargo || "-")} · ${escapeHtml(s.secretaria || "-")}</div>
+      </div>
+      <span class="rank-list__badge">${s.totalPresentes}<small>presente${s.totalPresentes === 1 ? "" : "s"}</small></span>
+    </li>
+  `
+}
+
+// Pódio paginado - preserva o dense rank e mostra `pageSize` itens por página.
+function renderPodioInsightsPaginated(containerId, lista, scopeId, pageSize = 5) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  if (!lista.length) {
+    container.innerHTML = `<ol class="rank-list"><li class="rank-list__empty">Nenhum servidor com presença ainda.</li></ol>`
+    return
+  }
+  const totalPages = Math.max(1, Math.ceil(lista.length / pageSize))
+  const cur = state.pagerPages[scopeId] || 1
+  if (cur > totalPages) state.pagerPages[scopeId] = 1
+  if (!state.pagerPages[scopeId]) state.pagerPages[scopeId] = 1
+
+  const draw = () => {
+    const page = state.pagerPages[scopeId] || 1
+    const slice = lista.slice((page - 1) * pageSize, page * pageSize)
+    const from = (page - 1) * pageSize + 1
+    const to = Math.min(page * pageSize, lista.length)
+    container.innerHTML = `
+      <ol class="rank-list">${slice.map(renderPodioItem).join("")}</ol>
+      ${lista.length > pageSize ? `
+        <div class="pager" data-pager-scope="${scopeId}">
+          <span class="pager__info"><b>${from}–${to}</b> de <b>${lista.length}</b></span>
+          <div class="pager__controls">
+            <button type="button" class="pager__btn ${page === 1 ? "is-disabled" : ""}" data-pager-scope="${scopeId}" data-pager-page="${page - 1}" ${page === 1 ? "disabled" : ""} aria-label="Página anterior"><i class="fas fa-chevron-left"></i></button>
+            <span class="pager__current"><b>${page}</b> / ${totalPages}</span>
+            <button type="button" class="pager__btn ${page === totalPages ? "is-disabled" : ""}" data-pager-scope="${scopeId}" data-pager-page="${page + 1}" ${page === totalPages ? "disabled" : ""} aria-label="Próxima página"><i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>` : ""}
+    `
+    container.querySelectorAll(`[data-pager-scope="${scopeId}"][data-pager-page]`).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = parseInt(btn.dataset.pagerPage, 10)
+        if (!Number.isFinite(p) || p < 1) return
+        state.pagerPages[scopeId] = p
+        draw()
+      })
+    })
+  }
+  draw()
+}
+
+// ================ SERVIDORES (sub-aba de Participantes) ================
+function renderViewServidores() {
+  const view = document.getElementById("view-servidores")
+  const eventos = state.data.eventos
+
+  // Lista completa de servidores ordenada por presenças (empates por nome
+  // em ordem alfabética). Sem pódio/medalhas - elas ficam exclusivas em
+  // Visão Geral > Insights. Aqui é a tabela completa de TODOS os servidores
+  // com inscrição, paginada.
+  const ordenados = agregarServidores(eventos)
+    .filter(s => s.totalEventos >= 1)
+    .sort((a, b) =>
+      b.totalPresentes - a.totalPresentes ||
+      b.totalEventos - a.totalEventos ||
+      (a.nome || "").localeCompare(b.nome || "", "pt-BR")
+    )
+
+  // Anexa um dense rank baseado em totalPresentes (empatados compartilham
+  // o rank). Mesma lógica usada em Visão Geral > Insights > Top servidores.
+  let rank = 0
+  let ultimaContagem = null
+  const lista = ordenados.map(s => {
+    if (s.totalPresentes !== ultimaContagem) {
+      rank += 1
+      ultimaContagem = s.totalPresentes
+    }
+    return { ...s, rank }
+  })
+
+  view.innerHTML = `
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <h3><i class="fas fa-list-ol"></i> Lista completa de servidores</h3>
+          <p>Todos os servidores que se inscreveram em algum evento, ordenados por presenças.</p>
+        </div>
+        <span class="card__header-meta" id="srvMeta">${lista.length} servidor(es)</span>
+      </div>
+      <div class="filter" style="margin-bottom: var(--space-3);">
+        <label for="srvBusca">Buscar</label>
+        <input type="search" id="srvBusca" placeholder="nome do servidor ou secretaria" />
+      </div>
+      <div id="srvListaHost"></div>
+    </div>
+  `
+
+  let filtroAtual = lista
+  const draw = () => {
+    renderDemaisServidores("srvListaHost", filtroAtual, "servidores-lista", 10)
+    document.getElementById("srvMeta").textContent = `${filtroAtual.length} servidor(es)`
+  }
+  draw()
+
+  document.getElementById("srvBusca").addEventListener("input", e => {
+    const q = e.target.value.toLowerCase().trim()
+    filtroAtual = !q ? lista : lista.filter(s =>
+      (s.nome || "").toLowerCase().includes(q) ||
+      (s.secretaria || "").toLowerCase().includes(q)
+    )
+    state.pagerPages["servidores-lista"] = 1
+    draw()
+  })
+}
+
+// Tabela paginada da lista completa de servidores. Mostra #, Nome,
+// Secretaria, Inscrições, Presenças e Taxa - sem Cargo e sem Email.
+function renderDemaisServidores(containerId, lista, scopeId, pageSize = 10) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  const totalPages = Math.max(1, Math.ceil(lista.length / pageSize))
+  const cur = state.pagerPages[scopeId] || 1
+  if (cur > totalPages) state.pagerPages[scopeId] = 1
+  if (!state.pagerPages[scopeId]) state.pagerPages[scopeId] = 1
+
+  const renderRows = (slice, offset) => {
+    if (!slice.length) return `<tr><td colspan="6" class="empty-cell">Nenhum servidor encontrado.</td></tr>`
+    return slice.map((s, i) => {
+      const pos = offset + i + 1
+      const taxa = s.totalEventos ? ((s.totalPresentes / s.totalEventos) * 100).toFixed(0) + "%" : "-"
+      // Dense rank: empates compartilham a medalha. 1º ouro, 2º prata, 3º bronze.
+      // Demais (rank > 3 ou sem rank) sem cor.
+      const r = s.rank
+      const medalCls = r === 1 ? "row-medal-gold"
+        : r === 2 ? "row-medal-silver"
+        : r === 3 ? "row-medal-bronze"
+        : ""
+      const medalIcon = r != null && r <= 3 ? `<i class="fas fa-medal" style="margin-right:6px;"></i>` : ""
+      return `
+        <tr class="${medalCls}">
+          <td class="cell-num">${medalIcon}${pos}</td>
+          <td class="cell-name">${escapeHtml(s.nome || "-")}</td>
+          <td>${escapeHtml(s.secretaria || "-")}</td>
+          <td class="cell-num">${s.totalEventos}</td>
+          <td class="cell-num"><b class="green">${s.totalPresentes}</b></td>
+          <td class="cell-num">${taxa}</td>
+        </tr>
+      `
+    }).join("")
+  }
+
+  const draw = () => {
+    const page = state.pagerPages[scopeId] || 1
+    const slice = lista.slice((page - 1) * pageSize, page * pageSize)
+    const from = lista.length ? (page - 1) * pageSize + 1 : 0
+    const to = Math.min(page * pageSize, lista.length)
+    container.innerHTML = `
+      <div class="table-scroll">
+        <table class="data">
+          <thead>
+            <tr>
+              <th style="width:54px;">#</th>
+              <th>Servidor</th>
+              <th>Secretaria</th>
+              <th>Inscrições</th>
+              <th>Presenças</th>
+              <th>Taxa</th>
+            </tr>
+          </thead>
+          <tbody>${renderRows(slice, (page - 1) * pageSize)}</tbody>
+        </table>
+      </div>
+      ${lista.length > pageSize ? `
+        <div class="pager" data-pager-scope="${scopeId}">
+          <span class="pager__info"><b>${from}-${to}</b> de <b>${lista.length}</b></span>
+          <div class="pager__controls">
+            <button type="button" class="pager__btn ${page === 1 ? "is-disabled" : ""}" data-pager-scope="${scopeId}" data-pager-page="${page - 1}" ${page === 1 ? "disabled" : ""} aria-label="Página anterior"><i class="fas fa-chevron-left"></i></button>
+            <span class="pager__current"><b>${page}</b> / ${totalPages}</span>
+            <button type="button" class="pager__btn ${page === totalPages ? "is-disabled" : ""}" data-pager-scope="${scopeId}" data-pager-page="${page + 1}" ${page === totalPages ? "disabled" : ""} aria-label="Próxima página"><i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>` : ""}
+    `
+    container.querySelectorAll(`[data-pager-scope="${scopeId}"][data-pager-page]`).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = parseInt(btn.dataset.pagerPage, 10)
+        if (!Number.isFinite(p) || p < 1) return
+        state.pagerPages[scopeId] = p
+        draw()
+      })
+    })
+  }
+  draw()
+}
+
+// ================ CARGOS (sub-aba de Pessoas) ================
+function renderViewCargos() {
+  const view = document.getElementById("view-cargos")
+  const eventos = state.data.eventos
+  const cargos = agregarCargos(eventos)
+
+  view.innerHTML = `
+    <div class="grid-2 secretarias-grid">
+      <div class="card">
+        <div class="card__header"><div><h3><i class="fas fa-chart-pie"></i> Distribuição por cargo</h3><p>Top 10 cargos, sem agrupamento em "outros".</p></div></div>
+        <div class="chart-wrap lg"><canvas id="chartCargos"></canvas></div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:0;">
+        <div class="table-wrap__head">
+          <h3><i class="fas fa-list-ol"></i> Ranking detalhado</h3>
+          <span class="card__header-meta">${cargos.length} cargo(s)</span>
+        </div>
+        <div id="cargosRankHost"></div>
+      </div>
+    </div>
+  `
+
+  // Ranking paginado 10 em 10
+  const totalCargos = cargos.reduce((s, x) => s + x.value, 0)
+  renderCargosPaginated("cargosRankHost", cargos, totalCargos, "cargos-rank", 10)
+
+  // Donut top 10 no mesmo estilo de pieTurmas (Distribuição por turma)
+  pieCategorias("chartCargos", cargos.slice(0, 10), "Nenhum participante tem cargo registrado nas planilhas.")
+}
+
+function renderCargosPaginated(containerId, cargos, totalGlobal, scopeId, pageSize = 10) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  if (!cargos.length) {
+    container.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr><th>#</th><th>Cargo</th><th>Inscrições</th><th>Participação</th></tr></thead><tbody><tr><td colspan="4" class="empty-cell">Sem cargos informados.</td></tr></tbody></table></div>`
+    return
+  }
+  const totalPages = Math.max(1, Math.ceil(cargos.length / pageSize))
+  const cur = state.pagerPages[scopeId] || 1
+  if (cur > totalPages) state.pagerPages[scopeId] = 1
+  if (!state.pagerPages[scopeId]) state.pagerPages[scopeId] = 1
+
+  const draw = () => {
+    const page = state.pagerPages[scopeId] || 1
+    const slice = cargos.slice((page - 1) * pageSize, page * pageSize)
+    const from = (page - 1) * pageSize + 1
+    const to = Math.min(page * pageSize, cargos.length)
+    container.innerHTML = `
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>#</th><th>Cargo</th><th>Inscrições</th><th>Participação</th></tr></thead>
+          <tbody>
+            ${slice.map((c, i) => {
+              const pos = (page - 1) * pageSize + i + 1
+              const pct = totalGlobal ? ((c.value / totalGlobal) * 100).toFixed(1).replace(".", ",") + "%" : "-"
+              return `<tr>
+                <td class="cell-num">${pos}</td>
+                <td class="cell-name">${escapeHtml(c.label)}</td>
+                <td class="cell-num">${c.value}</td>
+                <td class="cell-num">${pct}</td>
+              </tr>`
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+      ${cargos.length > pageSize ? `
+        <div class="pager" data-pager-scope="${scopeId}">
+          <span class="pager__info"><b>${from}–${to}</b> de <b>${cargos.length}</b></span>
+          <div class="pager__controls">
+            <button type="button" class="pager__btn ${page === 1 ? "is-disabled" : ""}" data-pager-scope="${scopeId}" data-pager-page="${page - 1}" ${page === 1 ? "disabled" : ""} aria-label="Página anterior"><i class="fas fa-chevron-left"></i></button>
+            <span class="pager__current"><b>${page}</b> / ${totalPages}</span>
+            <button type="button" class="pager__btn ${page === totalPages ? "is-disabled" : ""}" data-pager-scope="${scopeId}" data-pager-page="${page + 1}" ${page === totalPages ? "disabled" : ""} aria-label="Próxima página"><i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>` : ""}
+    `
+    container.querySelectorAll(`[data-pager-scope="${scopeId}"][data-pager-page]`).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = parseInt(btn.dataset.pagerPage, 10)
+        if (!Number.isFinite(p) || p < 1) return
+        state.pagerPages[scopeId] = p
+        draw()
+      })
+    })
+  }
+  draw()
 }
 
 // ================ SECRETARIAS ================
@@ -1391,39 +1975,24 @@ function renderViewRelatorios() {
       </div>
     </div>
 
-    ${renderTabsNav("relatorios", [
-      { id: "eventos", label: "Eventos", icon: "fa-calendar-day" },
-      { id: "secretarias", label: "Secretarias", icon: "fa-building-columns" },
-      { id: "participantes", label: "Participantes", icon: "fa-users" }
-    ])}
+    <!-- Resumo executivo do recorte atual (orienta o que vai ser exportado) -->
+    <div class="kpi-grid" id="rResumo"></div>
 
-    <div class="view-tabs__panel" data-tab-panel="eventos">
-      <div class="table-wrap">
-        <div class="table-wrap__head">
-          <h3><i class="fas fa-table-list"></i> Quadro consolidado de eventos</h3>
-          <span class="card__header-meta" id="rEvCount">0</span>
+    <!-- Único bloco: Presentes / Faltantes (não duplicado em outra view) -->
+    <div class="grid-2 participantes-split">
+      <div class="card">
+        <div class="card__header">
+          <div><h3><i class="fas fa-check-circle" style="color:var(--green-500,#4DAD33);"></i> Presentes</h3><p>Quem fez check-in.</p></div>
+          <span class="card__header-meta" id="rPresCount">0</span>
         </div>
-        <div id="rEvTable"></div>
+        <div id="rPresHost"></div>
       </div>
-    </div>
-
-    <div class="view-tabs__panel" data-tab-panel="secretarias" hidden>
-      <div class="table-wrap">
-        <div class="table-wrap__head">
-          <h3><i class="fas fa-building-columns"></i> Ranking de secretarias</h3>
-          <span class="card__header-meta" id="rSecCount">0</span>
+      <div class="card">
+        <div class="card__header">
+          <div><h3><i class="fas fa-circle-xmark" style="color:#C0392B;"></i> Faltantes</h3><p>Inscritos que não compareceram.</p></div>
+          <span class="card__header-meta" id="rFaltCount">0</span>
         </div>
-        <div id="rSecTable"></div>
-      </div>
-    </div>
-
-    <div class="view-tabs__panel" data-tab-panel="participantes" hidden>
-      <div class="table-wrap">
-        <div class="table-wrap__head">
-          <h3><i class="fas fa-users"></i> Participantes</h3>
-          <span class="card__header-meta" id="rPartCount">0</span>
-        </div>
-        <div id="rPartTable"></div>
+        <div id="rFaltHost"></div>
       </div>
     </div>
   `
@@ -1447,13 +2016,6 @@ function renderViewRelatorios() {
   document.getElementById("rXlsx").addEventListener("click", exportXlsx)
   document.getElementById("rPptx").addEventListener("click", exportPptx)
 
-  // Aba ativa
-  const activeTab = getActiveTab("relatorios", "eventos")
-  document.querySelectorAll("#view-relatorios [data-tab-panel]").forEach(p => {
-    p.hidden = p.dataset.tabPanel !== activeTab
-  })
-  wireTabs("relatorios", () => renderViewRelatorios())
-
   populateRelatorios()
 }
 
@@ -1462,25 +2024,44 @@ function populateRelatorios() {
   let evs = state.data.eventos
   if (f.eventoId) evs = evs.filter(e => e.id === f.eventoId)
 
-  document.getElementById("rEvTable").innerHTML = renderEventsTable(evs)
-  document.getElementById("rEvCount").textContent = `${evs.length} evento(s)`
-
-  const secAgg = {}
-  evs.forEach(e => {
-    Object.entries(e.secretarias || {}).forEach(([k, v]) => {
-      if (f.secretaria && k !== f.secretaria) return
-      secAgg[k] = (secAgg[k] || 0) + v
-    })
-  })
-  const ranking = Object.entries(secAgg)
-    .map(([nome, qtd]) => ({ nome, qtd }))
-    .sort((a, b) => b.qtd - a.qtd)
-  document.getElementById("rSecTable").innerHTML = renderSecretariasTable(ranking)
-  document.getElementById("rSecCount").textContent = `${ranking.length} secretaria(s)`
+  // Resumo executivo do recorte (orienta o que está sendo exportado)
+  const totalIns = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0)
+  const totalPres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0)
+  const taxa = totalIns ? ((totalPres / totalIns) * 100).toFixed(1).replace(".", ",") + "%" : "-"
+  document.getElementById("rResumo").innerHTML = `
+    <div class="kpi">
+      <div class="kpi__icon"><i class="fas fa-calendar-day"></i></div>
+      <div class="kpi__label">Eventos no recorte</div>
+      <div class="kpi__value">${evs.length}</div>
+      <div class="kpi__delta">${f.eventoId ? "filtro de evento ativo" : "todos os eventos"}</div>
+    </div>
+    <div class="kpi kpi--accent">
+      <div class="kpi__icon"><i class="fas fa-user-plus"></i></div>
+      <div class="kpi__label">Inscritos</div>
+      <div class="kpi__value">${totalIns}</div>
+      <div class="kpi__delta">${f.secretaria ? "secretaria filtrada" : "todas as secretarias"}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__icon"><i class="fas fa-user-check"></i></div>
+      <div class="kpi__label">Presentes</div>
+      <div class="kpi__value">${totalPres}</div>
+      <div class="kpi__delta">com check-in</div>
+    </div>
+    <div class="kpi kpi--warn">
+      <div class="kpi__icon"><i class="fas fa-chart-pie"></i></div>
+      <div class="kpi__label">Taxa de presença</div>
+      <div class="kpi__value">${taxa}</div>
+      <div class="kpi__delta">recorte atual</div>
+    </div>
+  `
 
   const parts = collectParticipantes()
-  renderPaginatedTable("rPartTable", parts, "relatorios-participantes")
-  document.getElementById("rPartCount").textContent = `${parts.length} pessoa(s)`
+  const presentes = parts.filter(p => p.presente)
+  const faltantes = parts.filter(p => !p.presente)
+  renderPaginatedTable("rPresHost", presentes, "relatorios-presentes", { hideEmail: true, hideTurma: true })
+  renderPaginatedTable("rFaltHost", faltantes, "relatorios-faltantes", { hideEmail: true, hideTurma: true })
+  document.getElementById("rPresCount").textContent = `${presentes.length} pessoa(s)`
+  document.getElementById("rFaltCount").textContent = `${faltantes.length} pessoa(s)`
 }
 
 function getReportDatasets() {
@@ -1572,12 +2153,12 @@ function exportCsv() {
   }
   const totIns = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0)
   const totPres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0)
-  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "—"
+  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "-"
   const summary = [
     ["# Relatório consolidado · Escola de Governo Pedro Leopoldo"],
     [`# Gerado em ${new Date().toLocaleString("pt-BR")}`],
     [`# Eventos: ${evs.length} · Inscritos: ${totIns} · Presentes: ${totPres} · Taxa de presença: ${taxa}`],
-    ["# (CSV não suporta gráficos — use PDF, Excel ou PPTX para visualizações.)"],
+    ["# (CSV não suporta gráficos - use PDF, Excel ou PPTX para visualizações.)"],
     [""],
     ["## Eventos"],
     ["Evento", "Data", "Vagas", "Inscritos", "Presentes", "Ausentes", "Taxa de Presença (%)", "Taxa de Ocupação (%)"],
@@ -1743,13 +2324,13 @@ async function exportPdf() {
     head: [["Evento", "Data", "Vagas", "Inscr.", "Pres.", "Ausentes", "Presença", "Ocupação"]],
     body: evs.map(e => [
       e.title.length > 38 ? e.title.slice(0, 36) + "…" : e.title,
-      e.date ? new Date(e.date).toLocaleDateString("pt-BR") : "—",
-      e.vagas ?? "—",
+      e.date ? new Date(e.date).toLocaleDateString("pt-BR") : "-",
+      e.vagas ?? "-",
       e.totalInscritos,
       e.totalPresentes,
       e.totalAusentes,
-      e.taxaPresenca != null ? e.taxaPresenca + "%" : "—",
-      e.taxaOcupacao != null ? e.taxaOcupacao + "%" : "—"
+      e.taxaPresenca != null ? e.taxaPresenca + "%" : "-",
+      e.taxaOcupacao != null ? e.taxaOcupacao + "%" : "-"
     ]),
     styles: { fontSize: 9, cellPadding: 2.5 },
     headStyles: { fillColor: [48, 99, 173], textColor: 255 },
@@ -1784,8 +2365,8 @@ async function exportPdf() {
       body: parts.map(p => [
         p.eventoTitle.length > 26 ? p.eventoTitle.slice(0, 24) + "…" : p.eventoTitle,
         p.nome,
-        p.secretaria || "—",
-        p.turma || "—",
+        p.secretaria || "-",
+        p.turma || "-",
         p.presente ? "Sim" : "Não"
       ]),
       styles: { fontSize: 8, cellPadding: 2 },
@@ -1844,7 +2425,7 @@ async function exportPptx() {
   const sK = pptx.addSlide({ masterName: "EGOV_MASTER" })
   egovSlideTitle(sK, "Visão Geral")
   const totIns = charts.totIns || 0, totPres = charts.totPres || 0, totAus = charts.totAus || 0
-  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "—"
+  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "-"
   const kpi = (slide, x, label, value, accent) => {
     slide.addShape("roundRect", { x, y: 2.1, w: 2.8, h: 2.2, fill: { color: EGOV_BRAND.white }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.15 })
     slide.addShape("rect", { x, y: 2.1, w: 2.8, h: 0.1, fill: { color: accent } })
@@ -1887,10 +2468,10 @@ async function exportPptx() {
     const bg = i % 2 === 0 ? EGOV_BRAND.white : EGOV_BRAND.bgSoft
     tableRows.push([
       { text: e.title, options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, color: EGOV_BRAND.text } },
-      { text: e.date ? new Date(e.date).toLocaleDateString("pt-BR") : "—", options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
+      { text: e.date ? new Date(e.date).toLocaleDateString("pt-BR") : "-", options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
       { text: String(e.totalInscritos), options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
       { text: String(e.totalPresentes), options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
-      { text: e.taxaPresenca != null ? e.taxaPresenca + "%" : "—", options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text, bold: true } }
+      { text: e.taxaPresenca != null ? e.taxaPresenca + "%" : "-", options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text, bold: true } }
     ])
   })
   sT.addTable(tableRows, { x: 0.7, y: 1.75, w: 11.9, colW: [5.7, 1.7, 1.5, 1.5, 1.5], border: { type: "solid", color: EGOV_BRAND.blueSoft, pt: 0.5 } })
@@ -2037,7 +2618,7 @@ function generateQrCode() {
     correctLevel: eclMap[ecl] || eclMap.Q
   })
 
-  // qrcodejs gera um <img> (base64) — esperamos renderizar e desenhar no canvas 2000
+  // qrcodejs gera um <img> (base64) - esperamos renderizar e desenhar no canvas 2000
   setTimeout(() => {
     const img = tmp.querySelector("img") || tmp.querySelector("canvas")
     if (!img) {
@@ -2159,9 +2740,9 @@ function renderCertPosEditor() {
     handleFields.splice(i + 1, 0, { key: "dia2", label: "Segundo dia" })
   }
 
-  // (Re)monta os handles em cada chamada — a fonte do texto e a posicao podem mudar.
+  // (Re)monta os handles em cada chamada - a fonte do texto e a posicao podem mudar.
   layer.innerHTML = handleFields.map(({ key }) => {
-    let value = String(fields[key] ?? "").trim() || "—"
+    let value = String(fields[key] ?? "").trim() || "-"
     if (key === "dia2" && !fields.dia2) value = "(2º dia)"
     return `
       <div class="cert-drag-handle" data-field="${key}"
@@ -2215,7 +2796,7 @@ function renderCertPosEditor() {
     el.addEventListener("pointercancel", end)
   })
 
-  // Toggle mostra/oculta camada (default: ligado — persistido em state)
+  // Toggle mostra/oculta camada (default: ligado - persistido em state)
   toggle.checked = state._certDragEnabled !== false
   const sync = () => {
     state._certDragEnabled = toggle.checked
@@ -2279,7 +2860,7 @@ function renderCertPosEditor() {
       linkEl.checked = !!state._certTypoLinked
       linkEl.addEventListener("change", () => {
         state._certTypoLinked = linkEl.checked
-        // Ao ativar, normaliza todos para a maior escala atual — assim entra
+        // Ao ativar, normaliza todos para a maior escala atual - assim entra
         // em "proporção" sem fazer ninguém encolher.
         if (linkEl.checked) {
           const maxPct = Math.max(...CERT_SCALE_FIELDS.map(k => Math.round(getFieldScale(tplId, k) * 100)))
@@ -2503,7 +3084,7 @@ function renderViewCertificados() {
               </button>
               <div class="cert-preview-name">
                 <span class="cert-preview-name__label">Mostrando</span>
-                <strong id="certPreviewName">—</strong>
+                <strong id="certPreviewName">-</strong>
                 <span class="cert-preview-name__counter" id="certPreviewCounter"></span>
               </div>
               <button class="btn btn--sm" id="certPreviewNext" title="Próximo participante">
@@ -2519,7 +3100,7 @@ function renderViewCertificados() {
               <div class="cert-template-picker__grid" id="certTemplateGrid">
                 ${CERT_TEMPLATES.map(
                   t => `
-                  <button type="button" class="cert-template-thumb ${(state.certTemplateId || "modelo-1") === t.id ? "is-active" : ""}" data-template="${t.id}" title="${escapeHtml(t.hint ? t.label + " — " + t.hint : t.label)}">
+                  <button type="button" class="cert-template-thumb ${(state.certTemplateId || "modelo-1") === t.id ? "is-active" : ""}" data-template="${t.id}" title="${escapeHtml(t.hint ? t.label + " - " + t.hint : t.label)}">
                     <img src="${t.src}" alt="${escapeHtml(t.label)}" loading="lazy" />
                     <span class="cert-template-thumb__label">${escapeHtml(t.label)}</span>
                     ${t.hint ? `<span class="cert-template-thumb__badge"><i class="fas fa-calendar-days"></i> 2 datas</span>` : ""}
@@ -2586,7 +3167,7 @@ function renderViewCertificados() {
                 </button>
               </div>
               <div class="cert-typo-panel__actions-row">
-                <label class="cert-typo-link" title="Quando ativo, mover um slider ajusta todos juntos — evita discrepância tipográfica">
+                <label class="cert-typo-link" title="Quando ativo, mover um slider ajusta todos juntos - evita discrepância tipográfica">
                   <input type="checkbox" id="certTypoLink" />
                   <i class="fas fa-link"></i>
                   <span>Manter proporções entre os campos</span>
@@ -2623,7 +3204,7 @@ function renderViewCertificados() {
   const nextBtn = document.getElementById("certNext")
   if (nextBtn) nextBtn.addEventListener("click", () => goToCertStep(state.certStep + 1))
 
-  // Etapa 1 — source tabs + form
+  // Etapa 1 - source tabs + form
   if (state.certStep === 1) {
     view.querySelectorAll(".source-tab").forEach(t =>
       t.addEventListener("click", () => {
@@ -2723,7 +3304,7 @@ function renderViewCertificados() {
     if (carga) setField("certCarga", carga)
   }
 
-  // Etapa 2 — tabela e seleção
+  // Etapa 2 - tabela e seleção
   if (state.certStep === 2) {
     document.getElementById("certBusca").addEventListener("input", () => {
       // Salva o estado das checkboxes visiveis ANTES de re-renderizar.
@@ -2765,7 +3346,7 @@ function renderViewCertificados() {
     }
   }
 
-  // Etapa 3 — preview + emissão
+  // Etapa 3 - preview + emissão
   if (state.certStep === 3) {
     const initStep3 = () => {
       // Garante que a lista de origem esteja disponivel mesmo se etapa 2 nao foi visitada
@@ -2836,7 +3417,7 @@ function refreshCertPreviewWithName() {
     drawCertWithName(p.nome)
   } else {
     if (nameEl) nameEl.textContent = "Nenhum participante selecionado"
-    if (counterEl) counterEl.textContent = "— Volte à etapa 2 para selecionar"
+    if (counterEl) counterEl.textContent = "- Volte à etapa 2 para selecionar"
     if (prevBtn) prevBtn.disabled = true
     if (nextBtn) nextBtn.disabled = true
     drawCertWithName(null)
@@ -2855,7 +3436,7 @@ function syncCertDragHandlesText() {
   layer.querySelectorAll(".cert-drag-handle").forEach(el => {
     const k = el.dataset.field
     const txt = el.querySelector(".cert-drag-handle__text")
-    if (txt) txt.textContent = String(fields[k] ?? "").trim() || "—"
+    if (txt) txt.textContent = String(fields[k] ?? "").trim() || "-"
   })
 }
 
@@ -2895,9 +3476,9 @@ function renderCertSummary() {
   document.getElementById("certSummary").innerHTML = `
     <dl class="cert-summary-list">
       <div><dt>Origem</dt><dd>${state.certSource === "planilha" ? "Planilha enviada" : "Sistema (evento)"}</dd></div>
-      <div><dt>Curso</dt><dd>${escapeHtml(f.certCurso || "—")}</dd></div>
-      <div><dt>Data</dt><dd>${escapeHtml(formatCertData(f) || "—")}</dd></div>
-      <div><dt>Carga horária</dt><dd>${escapeHtml(f.certCarga || "—")}h</dd></div>
+      <div><dt>Curso</dt><dd>${escapeHtml(f.certCurso || "-")}</dd></div>
+      <div><dt>Data</dt><dd>${escapeHtml(formatCertData(f) || "-")}</dd></div>
+      <div><dt>Carga horária</dt><dd>${escapeHtml(f.certCarga || "-")}h</dd></div>
       <div><dt>Elegíveis</dt><dd>${list.length} pessoa(s)</dd></div>
       <div><dt>Selecionados</dt><dd><strong>${selectedCount}</strong></dd></div>
     </dl>
@@ -3041,7 +3622,7 @@ function parseCsvParticipantes(text) {
 
 /**
  * Linhas de rodapé dos exports do Sympla ("Exportado em ...*" e
- * "* Horário de Brasília") não são participantes — devem ser descartadas.
+ * "* Horário de Brasília") não são participantes - devem ser descartadas.
  */
 function isLinhaRodape(nome) {
   const n = (nome || "").trim().toLowerCase()
@@ -3157,7 +3738,7 @@ function normalizeParticipante(row) {
   }
   const nome = [find("nome"), find("sobrenome")].filter(Boolean).join(" ").trim() || find("nome completo", "participante")
   const checkin = find("check-in", "check in", "checkin", "presente").toLowerCase()
-  // A coluna de check-in existe? (verifica o cabeçalho, não o valor da célula —
+  // A coluna de check-in existe? (verifica o cabeçalho, não o valor da célula -
   // assim uma célula vazia não é confundida com ausência da coluna).
   const padroesCheckin = ["check-in", "check in", "checkin", "presente"]
   const temColunaCheckin = k.some(kk => padroesCheckin.some(p => kk.includes(p)))
@@ -3199,7 +3780,7 @@ function getCertParticipantes() {
   return (state.certSystemCache || {})[state.certEventId] || []
 }
 
-/** Baixa relatorios/manifest.json — o índice das planilhas do sistema. */
+/** Baixa relatorios/manifest.json - o índice das planilhas do sistema. */
 async function loadCertManifest() {
   const res = await fetch("assets/docs/relatorios/manifest.json", { cache: "no-cache" })
   if (!res.ok) throw new Error(`manifest.json: ${res.status}`)
@@ -3701,7 +4282,7 @@ async function enviarCertificadosLote() {
 }
 
 // ================ AUTO-RELATÓRIO DE SATISFAÇÃO ================
-// Configuração institucional (constantes — vão sempre no PDF).
+// Configuração institucional (constantes - vão sempre no PDF).
 const AR_CONFIG = {
   orgao: "Diretoria de Gestão de Pessoas",
   cabecalho: ["PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", "SECRETARIA MUNICIPAL DE GESTÃO E FINANÇAS", "DIRETORIA DE GESTÃO DE PESSOAS"],
@@ -3739,7 +4320,7 @@ function renderViewAutoReport() {
               <label class="filter" style="display:flex; flex-direction:column; gap:6px;">
                 <span style="font-size:var(--fs-2xs);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:var(--tracking-wider);color:var(--text-muted);">Evento</span>
                 <select id="arEventSelect" class="event-picker__select">
-                  <option value="">— selecione —</option>
+                  <option value="">- selecione -</option>
                   ${(state.data?.eventos || [])
                     .slice()
                     .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
@@ -3779,7 +4360,7 @@ function renderViewAutoReport() {
               <label class="filter" style="display:flex; flex-direction:column; gap:6px;">
                 <span style="font-size:var(--fs-2xs);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:var(--tracking-wider);color:var(--text-muted);">Evento</span>
                 <select id="arPesqEventSelect" class="event-picker__select">
-                  <option value="">— selecione —</option>
+                  <option value="">- selecione -</option>
                   ${(state.data?.eventos || [])
                     .slice()
                     .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
@@ -3962,8 +4543,8 @@ function setupAutoReportEventPicker() {
 
 function renderArEventSummary(p) {
   if (!p) return ""
-  const taxa = p.totalInscritos ? ((p.totalPresentes / p.totalInscritos) * 100).toFixed(1) + "%" : "—"
-  const ocup = p.capacidade ? ((p.totalInscritos / p.capacidade) * 100).toFixed(1) + "%" : "—"
+  const taxa = p.totalInscritos ? ((p.totalPresentes / p.totalInscritos) * 100).toFixed(1) + "%" : "-"
+  const ocup = p.capacidade ? ((p.totalInscritos / p.capacidade) * 100).toFixed(1) + "%" : "-"
   return `
     <div class="ar-event-card">
       <div class="ar-event-card__title">${escapeHtml(p.evento)}</div>
@@ -3989,7 +4570,7 @@ function updateAutoReportSummary() {
   const q = s.pesquisa
 
   const taxaNum = p && p.totalInscritos ? (p.totalPresentes / p.totalInscritos) * 100 : null
-  const taxaStr = taxaNum != null ? taxaNum.toFixed(1) + "%" : "—"
+  const taxaStr = taxaNum != null ? taxaNum.toFixed(1) + "%" : "-"
   const taxaTone = taxaNum == null ? "muted" : taxaNum >= 80 ? "good" : taxaNum >= 60 ? "warn" : "bad"
 
   const renderStars = media => {
@@ -4028,8 +4609,8 @@ function updateAutoReportSummary() {
     <section class="ar-block ar-block--event">
       <h4 class="ar-block__title">${escapeHtml(p?.evento || "Evento não detectado")}</h4>
       <div class="ar-block__meta">
-        <span><i class="bi bi-calendar-event"></i> ${escapeHtml(p?.data || "—")}</span>
-        <span><i class="bi bi-people-fill"></i> Capacidade ${p?.capacidade ?? "—"} ${capBadge}</span>
+        <span><i class="bi bi-calendar-event"></i> ${escapeHtml(p?.data || "-")}</span>
+        <span><i class="bi bi-people-fill"></i> Capacidade ${p?.capacidade ?? "-"} ${capBadge}</span>
       </div>
     </section>
 
@@ -4037,20 +4618,20 @@ function updateAutoReportSummary() {
       <div class="ar-hero__label">Taxa de presença</div>
       <div class="ar-hero__value">${taxaStr}</div>
       <div class="ar-hero__bar"><span style="width:${taxaNum != null ? Math.min(100, taxaNum) : 0}%"></span></div>
-      <div class="ar-hero__caption">${p?.totalPresentes ?? "—"} de ${p?.totalInscritos ?? "—"} inscritos compareceram</div>
+      <div class="ar-hero__caption">${p?.totalPresentes ?? "-"} de ${p?.totalInscritos ?? "-"} inscritos compareceram</div>
     </section>
 
     <section class="ar-kpis">
       <div class="ar-kpi">
-        <div class="ar-kpi__value">${p?.totalInscritos ?? "—"}</div>
+        <div class="ar-kpi__value">${p?.totalInscritos ?? "-"}</div>
         <div class="ar-kpi__label">Inscritos</div>
       </div>
       <div class="ar-kpi ar-kpi--good">
-        <div class="ar-kpi__value">${p?.totalPresentes ?? "—"}</div>
+        <div class="ar-kpi__value">${p?.totalPresentes ?? "-"}</div>
         <div class="ar-kpi__label">Presentes</div>
       </div>
       <div class="ar-kpi ar-kpi--bad">
-        <div class="ar-kpi__value">${p?.totalAusentes ?? "—"}</div>
+        <div class="ar-kpi__value">${p?.totalAusentes ?? "-"}</div>
         <div class="ar-kpi__label">Ausentes</div>
       </div>
     </section>
@@ -4290,7 +4871,7 @@ function handleAutoReportPesquisa(file, meta = {}) {
         fromEventId: meta.fromEventId || null,
         fileName: meta.displayName || file.name,
         respostas: rows.length,
-        criterios, // [{label, media, dist}, ...] — qualquer quantidade
+        criterios, // [{label, media, dist}, ...] - qualquer quantidade
         recomendacao, // critério "recomend*" se existir; senão null
         textos: textosBy,
         temas: {
@@ -4585,7 +5166,7 @@ function jaccard(a, b) {
 // Agrupa respostas abertas em temas. Funcionamento:
 // 1) Cada resposta tenta ser encaixada em um grupo semântico curado.
 // 2) Respostas sem grupo curado são clusterizadas por similaridade de Jaccard
-//    (limiar 0.34) — duas respostas com tokens significativos em comum entram
+//    (limiar 0.34) - duas respostas com tokens significativos em comum entram
 //    no mesmo cluster, cujo rótulo é o trecho-chave mais informativo do grupo.
 // 3) Devolve até `max` clusters ordenados por frequência.
 function extractThemes(responses, max = 10) {
@@ -4790,6 +5371,99 @@ const EGOV_BRAND = {
   font: "Calibri"
 }
 
+// Pizza/donut com efeito 3D (perspectiva) via ApexCharts.
+// `tipo`: "pie" ou "donut". Devolve a instância (para destruir/atualizar).
+function render3DPie(containerId, labels, valores, opts = {}) {
+  const host = document.getElementById(containerId)
+  if (!host) return null
+  host.innerHTML = ""
+  if (!window.ApexCharts || !labels.length) {
+    host.innerHTML = `<div class="empty-state"><i class="fas fa-circle-info"></i><h3>Sem dados</h3><p>${opts.emptyMessage || "Nada para exibir."}</p></div>`
+    return null
+  }
+  const PALETA = opts.cores || [
+    "#1B2A4E", "#3B5BA5", "#5B9BD5", "#9DC3E6",
+    "#4DAD33", "#82C56F", "#D69A1F", "#C0392B",
+    "#7E57C2", "#F0A35E"
+  ]
+  const isDonut = (opts.tipo || "pie") === "donut"
+  const options = {
+    chart: {
+      type: isDonut ? "donut" : "pie",
+      height: opts.height || 360,
+      fontFamily: "Manrope, sans-serif",
+      // Sombra forte + filtro de borda dá perspectiva 3D em SVG
+      dropShadow: {
+        enabled: true,
+        top: 6,
+        left: 0,
+        blur: 12,
+        color: "#000",
+        opacity: 0.28
+      },
+      animations: { enabled: true, speed: 600 }
+    },
+    series: valores,
+    labels,
+    colors: PALETA,
+    stroke: { width: 2, colors: ["#fff"] },
+    plotOptions: {
+      pie: {
+        // Efeito de "perspectiva" via offset Y e ampliação
+        offsetY: 6,
+        expandOnClick: true,
+        startAngle: -90,
+        endAngle: 270,
+        customScale: 0.92,
+        donut: isDonut ? { size: "55%", labels: { show: false } } : undefined,
+        dataLabels: {
+          offset: -8,
+          minAngleToShowLabel: 12
+        }
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      style: { fontSize: "13px", fontWeight: 700, colors: ["#fff"] },
+      dropShadow: { enabled: true, blur: 3, opacity: 0.6 },
+      formatter: (val) => `${val.toFixed(1).replace(".", ",")}%`
+    },
+    legend: {
+      position: opts.legendPosition || "right",
+      fontSize: "12px",
+      labels: { colors: "#1B2A4E" },
+      itemMargin: { horizontal: 4, vertical: 3 }
+    },
+    tooltip: {
+      y: {
+        formatter: (val, { seriesIndex, w }) => {
+          const total = w.config.series.reduce((a, b) => a + b, 0)
+          const pct = total ? ((val / total) * 100).toFixed(1).replace(".", ",") : "0,0"
+          return `${val} (${pct}%)`
+        }
+      }
+    },
+    responsive: [{
+      breakpoint: 768,
+      options: { legend: { position: "bottom" } }
+    }]
+  }
+  const chart = new window.ApexCharts(host, options)
+  chart.render()
+  return chart
+}
+
+// Donut 3D padronizado de presença consolidada.
+function render3DDonutPresenca(containerId, presentes, ausentes) {
+  return render3DPie(containerId, ["Presentes", "Ausentes"], [presentes, ausentes], {
+    tipo: "donut",
+    cores: ["#4DAD33", "#C0392B"],
+    height: 340,
+    legendPosition: "bottom",
+    emptyMessage: "Sem dados de presença consolidada."
+  })
+}
+
 // Paleta institucional do Modelo.docx (azuis Pedro Leopoldo)
 const MODELO_CHART = {
   navy: "#1F3864",
@@ -4804,7 +5478,7 @@ const MODELO_CHART = {
   font: "Calibri, 'Carlito', Arial, sans-serif"
 }
 
-// Devolve cores para barras "graded" — valores menores recebem tons mais claros,
+// Devolve cores para barras "graded" - valores menores recebem tons mais claros,
 // valores maiores recebem azul-marinho, exatamente como no Modelo.
 function modeloGradedColors(values) {
   if (!values.length) return []
@@ -5089,7 +5763,7 @@ async function generateSatisfacaoPdf() {
     bullet(`${c.label}: média de ${c.media.toFixed(2).replace(".", ",")};`)
   })
 
-  // Tabela Nota 4 / Nota 5 — dinâmica para todos os critérios
+  // Tabela Nota 4 / Nota 5 - dinâmica para todos os critérios
   ensureSpace(40)
   const buildRow = (label, n) => {
     const t = Math.max(n.total, 1)
@@ -5247,7 +5921,7 @@ async function generateSatisfacaoPdf() {
 
   if (cSugest.length) {
     justified(
-      `Os resultados sinalizam demanda por ações contínuas voltadas aos temas mais recorrentes nas sugestões dos participantes — em especial ${cSugest
+      `Os resultados sinalizam demanda por ações contínuas voltadas aos temas mais recorrentes nas sugestões dos participantes - em especial ${cSugest
         .slice(0, 2)
         .map(c => c.label)
         .join(" e ")}. Recomenda-se considerar essas temáticas como eixo permanente nas atividades de capacitação da e-Gov PL.`
@@ -5257,7 +5931,7 @@ async function generateSatisfacaoPdf() {
     `Conclui-se que a iniciativa cumpriu seu objetivo de promover um espaço de valorização, troca e formação para os servidores municipais, consolidando-se como ação estratégica da ${AR_CONFIG.orgao}. A continuidade e a institucionalização desse tipo de evento são fortemente recomendadas.`
   )
 
-  // Assinatura (apenas cargo institucional — sem nome digitado)
+  // Assinatura (apenas cargo institucional - sem nome digitado)
   y += 24
   ensureSpace(20)
   // linha para assinatura manuscrita
@@ -5742,7 +6416,7 @@ async function generateSatisfacaoDocx() {
   if (cSugest.length) {
     children.push(
       para(
-        `Os resultados sinalizam demanda por ações contínuas voltadas aos temas mais recorrentes nas sugestões dos participantes — em especial ${cSugest
+        `Os resultados sinalizam demanda por ações contínuas voltadas aos temas mais recorrentes nas sugestões dos participantes - em especial ${cSugest
           .slice(0, 2)
           .map(c => c.label)
           .join(" e ")}. Recomenda-se considerar essas temáticas como eixo permanente nas atividades de capacitação da e-Gov PL.`

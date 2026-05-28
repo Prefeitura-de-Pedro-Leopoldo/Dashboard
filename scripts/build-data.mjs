@@ -21,7 +21,7 @@ const COLUNAS_ESPERADAS = [
 ];
 
 // Mapa de normalização de Secretarias. As chaves são fragmentos buscados
-// no texto normalizado (sem acentos, minúsculo, contains) — a primeira chave
+// no texto normalizado (sem acentos, minúsculo, contains) - a primeira chave
 // que bater define a Secretaria canônica.
 //
 // Ordem importa: chaves mais específicas devem vir ANTES das genéricas
@@ -159,7 +159,7 @@ function matchSecretariaCanon(value) {
   return null;
 }
 
-// Normaliza Secretaria. Aceita opcionalmente a Lotação como fallback —
+// Normaliza Secretaria. Aceita opcionalmente a Lotação como fallback -
 // útil quando a coluna Secretaria está vazia ou contém só uma sigla local
 // ("CGM", "GEFIN", "SATD") e a Lotação ("Caps Livremente", "PA Central",
 // "DIRGEP") revela a Secretaria real. Estratégia:
@@ -277,7 +277,7 @@ function isLinhaRodape(nome) {
 }
 
 // Alguns exports (notavelmente do LibreOffice) gravam um `dimension ref`
-// truncado — só a primeira coluna —, o que faz o SheetJS ignorar todas as
+// truncado - só a primeira coluna -, o que faz o SheetJS ignorar todas as
 // outras. Recalcula o range a partir das células reais para recuperar os dados.
 function fixSheetRange(sheet) {
   if (!sheet || !sheet["!ref"]) return;
@@ -348,7 +348,7 @@ function parsePlanilha(filePath) {
         cols.secretaria >= 0 ? r[cols.secretaria] : null,
         cols.lotacao    >= 0 ? r[cols.lotacao]    : null
       ),
-      // Lotação preservada como veio na planilha — pode revelar a unidade real
+      // Lotação preservada como veio na planilha - pode revelar a unidade real
       // (PA Central, CAPS, DIRGEP, etc.) e ser útil para análises futuras.
       lotacao: cols.lotacao >= 0 ? (String(r[cols.lotacao] ?? "").trim() || null) : null,
       cargo: cols.cargo >= 0 ? (String(r[cols.cargo] ?? "").trim() || null) : null,

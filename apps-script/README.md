@@ -2,7 +2,7 @@
 
 Modulo gratuito que envia certificados em PDF individualmente a partir de uma
 planilha Google Sheets, lendo arquivos de uma pasta do Google Drive e enviando
-por Gmail. Cada destinatario recebe **somente o seu PDF** — nunca CC/BCC, nunca
+por Gmail. Cada destinatario recebe **somente o seu PDF** - nunca CC/BCC, nunca
 multiplos anexos por mensagem.
 
 Este modulo e independente do app web do projeto (Vercel/Node); roda 100% no
@@ -10,8 +10,8 @@ Google Apps Script.
 
 ## Estrutura
 
-- `enviarCertificados.gs` — codigo para colar no editor Apps Script.
-- `README.md` — este arquivo.
+- `enviarCertificados.gs` - codigo para colar no editor Apps Script.
+- `README.md` - este arquivo.
 
 ## Instalacao passo a passo
 
@@ -43,11 +43,11 @@ Google Apps Script.
 1. Na planilha, abra **Extensoes -> Apps Script**.
 2. Apague o `Code.gs` padrao e cole o conteudo de `enviarCertificados.gs`.
 3. Edite as constantes no topo:
-   - `FOLDER_ID` — ID da pasta do passo 1.
-   - `TEST_EMAIL` — seu e-mail interno (para teste).
-   - `PROJECT_NAME` — nome que aparece como remetente.
-   - `MAX_SENDS_PER_RUN` — limite por execucao (padrao 50).
-   - `DRY_RUN` — comece com `true`.
+   - `FOLDER_ID` - ID da pasta do passo 1.
+   - `TEST_EMAIL` - seu e-mail interno (para teste).
+   - `PROJECT_NAME` - nome que aparece como remetente.
+   - `MAX_SENDS_PER_RUN` - limite por execucao (padrao 50).
+   - `DRY_RUN` - comece com `true`.
 4. Salve (Ctrl+S).
 
 ### 4. Teste e autorizacao
@@ -58,7 +58,7 @@ Google Apps Script.
 ### 5. Simulacao com a planilha real
 1. Mantenha `DRY_RUN = true`.
 2. Execute `enviarCertificados`.
-3. Verifique a coluna `Log` — cada linha mostrara `DRY_RUN: enviaria para ...`.
+3. Verifique a coluna `Log` - cada linha mostrara `DRY_RUN: enviaria para ...`.
 4. Corrija eventuais erros de validacao (e-mail invalido, PDF nao encontrado etc.).
 
 ### 6. Envio real
@@ -151,7 +151,7 @@ Use sempre antes de um disparo real, especialmente em lotes grandes.
 - Cada execucao do Apps Script tem **6 minutos** de tempo maximo.
 - Para listas grandes, ajuste `MAX_SENDS_PER_RUN` (ex.: 100) e rode varias
   vezes ao longo do dia, ou configure um gatilho de tempo (Triggers) para
-  rodar `enviarCertificados` a cada hora — como linhas `ENVIADO` sao puladas,
+  rodar `enviarCertificados` a cada hora - como linhas `ENVIADO` sao puladas,
   e seguro.
 - Cota restante pode ser consultada via `MailApp.getRemainingDailyQuota()`.
 

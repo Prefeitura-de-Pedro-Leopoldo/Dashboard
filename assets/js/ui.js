@@ -95,7 +95,7 @@ function renderSparkline(eventos) {
     const inscritos = fmt(e.totalInscritos ?? 0);
     const presentes = fmt(e.totalPresentes ?? 0);
     const tip = `${title}&#10;${taxaTxt} • ${presentes} de ${inscritos} presentes`;
-    return `<div class="kpi__spark-bar ${tone}" style="height:${h}px" data-tip="${tip}" title="${title} — ${taxaTxt}" tabindex="0"></div>`;
+    return `<div class="kpi__spark-bar ${tone}" style="height:${h}px" data-tip="${tip}" title="${title} - ${taxaTxt}" tabindex="0"></div>`;
   }).join("");
   return `<div class="kpi__spark" aria-label="Presença por evento (ordem cronológica)">${bars}</div>`;
 }
@@ -271,8 +271,8 @@ export function renderCourseCard(group) {
         <div class="metric"><dt>Inscritos</dt><dd>${fmt(insc)}</dd></div>
         <div class="metric"><dt>Presentes</dt><dd class="green">${fmt(pres)}</dd></div>
         <div class="metric"><dt>Ausentes</dt><dd class="red">${fmt(aus)}</dd></div>
-        <div class="metric"><dt>Vagas</dt><dd>${vagas ? fmt(vagas) : "—"}</dd></div>
-        <div class="metric"><dt>Ocupação</dt><dd${ocup != null && ocup >= 90 ? ' class="green"' : ocup != null && ocup < 50 ? ' class="red"' : ""}>${ocup != null ? pct(ocup) : "—"}</dd></div>
+        <div class="metric"><dt>Vagas</dt><dd>${vagas ? fmt(vagas) : "-"}</dd></div>
+        <div class="metric"><dt>Ocupação</dt><dd${ocup != null && ocup >= 90 ? ' class="green"' : ocup != null && ocup < 50 ? ' class="red"' : ""}>${ocup != null ? pct(ocup) : "-"}</dd></div>
         <div class="metric"><dt>Turmas</dt><dd>${evs.length}</dd></div>
       </dl>
 
@@ -488,11 +488,11 @@ function renderTurmasBreakdown(ev) {
           <span class="turma-row__date">${t.date ? formatDateBR(t.date) : ""}${t.time ? " · " + escapeHtml(t.time) : ""}</span>
         </div>
         <div class="turma-row__metrics">
-          <div class="turma-metric"><span>Vagas</span><b>${vagas != null ? fmt(vagas) : "—"}</b></div>
+          <div class="turma-metric"><span>Vagas</span><b>${vagas != null ? fmt(vagas) : "-"}</b></div>
           <div class="turma-metric"><span>Inscritos</span><b>${fmt(t.totalInscritos || 0)}</b></div>
           <div class="turma-metric"><span>Presentes</span><b class="green">${fmt(t.totalPresentes || 0)}</b></div>
           <div class="turma-metric"><span>Ausentes</span><b class="${(t.totalAusentes || 0) > 0 ? "red" : ""}">${fmt(t.totalAusentes || 0)}</b></div>
-          <div class="turma-metric"><span>Ocupação</span><b class="${ocupCls}">${ocup != null ? pct(ocup) : "—"}</b></div>
+          <div class="turma-metric"><span>Ocupação</span><b class="${ocupCls}">${ocup != null ? pct(ocup) : "-"}</b></div>
           <div class="turma-metric"><span>Presença</span><b class="${txClass}">${pct(tx)}</b></div>
         </div>
         <div class="progress" aria-label="Taxa de presença">
@@ -538,7 +538,7 @@ export function renderParticipantsTable(participantes, opts = {}) {
   if (!participantes.length) {
     return `<div class="empty-state"><i class="fas fa-users-slash"></i><h3>Sem participantes</h3><p>Este evento ainda não possui inscritos ou nenhum participante corresponde aos filtros.</p></div>`;
   }
-  const { paginate = true, pageSize = 10, page = 1, scopeId = "default" } = opts;
+  const { paginate = true, pageSize = 10, page = 1, scopeId = "default", hideEmail = false, hideTurma = false } = opts;
   const total = participantes.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(Math.max(1, page), totalPages);
@@ -548,12 +548,12 @@ export function renderParticipantsTable(participantes, opts = {}) {
     const emailValid = p.email && !/^user-anonymous/i.test(p.email);
     const emailCell = emailValid
       ? escapeHtml(p.email)
-      : `<span class="cell-empty" title="E-mail não informado">—</span>`;
+      : `<span class="cell-empty" title="E-mail não informado">-</span>`;
     return `
     <tr>
       <td class="cell-name">${escapeHtml(p.nome || "-")}</td>
-      <td class="col-hide-sm">${emailCell}</td>
-      <td class="col-hide-md cell-turma" title="${escapeHtml(p.turma || "")}">${escapeHtml(p.turma || "-")}</td>
+      ${hideEmail ? "" : `<td class="col-hide-sm">${emailCell}</td>`}
+      ${hideTurma ? "" : `<td class="col-hide-md cell-turma" title="${escapeHtml(p.turma || "")}">${escapeHtml(p.turma || "-")}</td>`}
       <td>${escapeHtml(p.secretaria || "-")}</td>
       <td class="col-presence">
         <span class="cell-status ${p.presente ? "green" : "red"}">
@@ -573,8 +573,8 @@ export function renderParticipantsTable(participantes, opts = {}) {
         <thead>
           <tr>
             <th>Participante</th>
-            <th class="col-hide-sm">E-mail</th>
-            <th class="col-hide-md">Turma</th>
+            ${hideEmail ? "" : `<th class="col-hide-sm">E-mail</th>`}
+            ${hideTurma ? "" : `<th class="col-hide-md">Turma</th>`}
             <th>Secretaria</th>
             <th class="col-presence">Presença</th>
           </tr>

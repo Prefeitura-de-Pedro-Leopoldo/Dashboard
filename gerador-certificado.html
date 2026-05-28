@@ -1493,7 +1493,7 @@
 
       // Reaproveita o estado do upload
       const _origSetCsv = setCsv
-      // Refresca quando o CSV muda — observa via MutationObserver no btnBatch.disabled
+      // Refresca quando o CSV muda - observa via MutationObserver no btnBatch.disabled
       new MutationObserver(refreshSendBtn).observe(btnBatch, { attributes: true, attributeFilter: ["disabled"] })
 
       function blobToBase64(blob) {

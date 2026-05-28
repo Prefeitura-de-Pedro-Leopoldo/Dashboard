@@ -61,7 +61,7 @@ function applyChartDefaults() {
 applyChartDefaults();
 
 // ============================================================================
-// Helpers visuais — gradientes, sombras, profundidade
+// Helpers visuais - gradientes, sombras, profundidade
 // ============================================================================
 
 // Cria gradiente vertical (barras top→bottom) a partir de uma cor sólida
@@ -203,7 +203,7 @@ const barHoverGrowPlugin = {
   },
 };
 
-// Plugin: grade pontilhada (estilo crosshair) — desenha antes das barras
+// Plugin: grade pontilhada (estilo crosshair) - desenha antes das barras
 // opts.axis: "x" desenha linhas verticais, "y" desenha linhas horizontais
 const dottedGridXPlugin = {
   id: "dottedGridX",
@@ -370,10 +370,10 @@ function shorten(s, n) {
 function shortenOrg(s, n = 28) {
   if (!s) return "";
   const original = String(s).trim();
-  // Aplica SEMPRE os padrões de abreviação (não pula para nomes curtos —
+  // Aplica SEMPRE os padrões de abreviação (não pula para nomes curtos -
   // queremos "Sec." mesmo quando o nome inteiro caberia)
 
-  // Padrões conhecidos — capturam o "sufixo significativo" e prefixam com sigla curta
+  // Padrões conhecidos - capturam o "sufixo significativo" e prefixam com sigla curta
   // "Municipal" é descartado (não agrega), mantendo "Sec. <Nome>"
   const patterns = [
     { re: /^Secretaria\s+Municipal\s+(?:da|de|do|das|dos)?\s*(.+)$/i, prefix: "Sec. " },
@@ -425,7 +425,7 @@ function shortenOrg(s, n = 28) {
   // Sem padrão conhecido: devolve original
   return original;
 }
-// Abreviador para títulos de eventos — extrai o tópico principal
+// Abreviador para títulos de eventos - extrai o tópico principal
 // (suficiente como label de gráfico; o tooltip mostra o nome completo).
 function shortenEvent(s) {
   if (!s) return "";
@@ -798,6 +798,123 @@ export function barSecretarias(id, entries, opts = {}) {
   }, isEmpty, emptyLabel);
 }
 
+// Barras genéricas no MESMO estilo de barSecretarias (gradient + sombra +
+// data labels + hover-grow). `entries` = [{ label, value }, ...].
+export function barCategorias(id, entries, opts = {}) {
+  const {
+    horizontal = true,
+    limit = 10,
+    datasetLabel = "Inscrições",
+    unitLabel = "inscrição(ões)",
+    emptyLabel = "Sem dados.",
+  } = opts;
+  const slice = (entries || []).slice(0, limit);
+  const isEmpty = slice.length === 0;
+  return _mount(id, {
+    type: "bar",
+    data: {
+      labels: slice.map((c) => c.label),
+      datasets: [{
+        label: datasetLabel,
+        data: slice.map((c) => c.value),
+        backgroundColor: (c) => {
+          const i = c.dataIndex;
+          if (i == null || !c.chart.chartArea) return PALETTE.series[(i ?? 0) % PALETTE.series.length];
+          const base = PALETTE.series[i % PALETTE.series.length];
+          return horizontal ? hGradient(c.chart.ctx, c.chart.chartArea, base) : vGradient(c.chart.ctx, c.chart.chartArea, base);
+        },
+        hoverBackgroundColor: (c) => {
+          const i = c.dataIndex;
+          if (i == null || !c.chart.chartArea) return PALETTE.series[(i ?? 0) % PALETTE.series.length];
+          const base = PALETTE.series[i % PALETTE.series.length];
+          return horizontal
+            ? hGradient(c.chart.ctx, c.chart.chartArea, base, { darkenStart: 0, lightenEnd: 0.22 })
+            : vGradient(c.chart.ctx, c.chart.chartArea, base, { lightenTop: 0.15 });
+        },
+        maxBarThickness: 32, borderRadius: 8,
+      }],
+    },
+    options: {
+      indexAxis: horizontal ? "y" : "x",
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: horizontal ? { right: 36, top: 8, bottom: 8 } : { top: 18, left: 8, right: 8 } },
+      interaction: { mode: "nearest", axis: horizontal ? "y" : "x", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart", delay: (c) => (c.type === "data" && c.mode === "default" ? c.dataIndex * 60 : 0) },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => slice[items[0].dataIndex]?.label || items[0].label,
+            label: (ctx) => " " + ctx.parsed[horizontal ? "x" : "y"] + " " + unitLabel,
+          },
+        },
+        barDataLabels: { enabled: true, suffix: "", color: undefined },
+        barHoverGrow: { enabled: true, grow: 5, radius: 8, glow: "rgba(48,99,173,0.32)" },
+      },
+      scales: horizontal
+        ? {
+            x: { display: false, beginAtZero: true, grid: { display: false }, border: { display: false } },
+            y: {
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: PALETTE.axis, font: { size: 11, weight: "600" }, padding: 10, autoSkip: false, crossAlign: "far" },
+            },
+          }
+        : baseScales(),
+    },
+    plugins: [barShadowPlugin, barDataLabelsPlugin, barHoverGrowPlugin],
+  }, isEmpty, emptyLabel);
+}
+
+// Pizza/donut genérica no MESMO estilo de pieTurmas (radial gradient + sombra).
+// `entries` = [{ label, value }, ...]. Use opcionalmente `emptyLabel`.
+export function pieCategorias(id, entries, emptyLabel = "Sem dados.") {
+  const isEmpty = !entries || entries.length === 0;
+  const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
+  return _mount(id, {
+    type: "doughnut",
+    data: {
+      labels: (entries || []).map((c) => c.label),
+      datasets: [{
+        data: (entries || []).map((c) => c.value),
+        backgroundColor: (c) => {
+          const area = c.chart.chartArea;
+          const base = PALETTE.series[c.dataIndex % PALETTE.series.length];
+          if (!area) return base;
+          const cx = (area.left + area.right) / 2;
+          const cy = (area.top + area.bottom) / 2;
+          const r = Math.min(area.width, area.height) / 2;
+          return radialGradient(c.chart.ctx, cx, cy, r * 0.45, r, base);
+        },
+        hoverOffset: 14,
+        borderWidth: 2,
+        borderColor: surface,
+        borderJoinStyle: "round",
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "58%",
+      animation: { animateScale: true, animateRotate: true, duration: 900 },
+      plugins: {
+        legend: { position: "bottom", labels: { font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = total ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+              return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+            },
+          },
+        },
+      },
+    },
+    plugins: [donutShadowPlugin],
+  }, isEmpty, emptyLabel);
+}
+
 export function pieTurmas(id, entries) {
   const isEmpty = entries.length === 0;
   const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
@@ -942,7 +1059,7 @@ export function lineEvolucaoEventos(id, eventos) {
             afterBody: (items) => {
               const ev = eventos[items[0]?.dataIndex];
               if (!ev) return "";
-              const taxa = ev.taxaPresenca != null ? ev.taxaPresenca.toFixed(1) + "%" : "—";
+              const taxa = ev.taxaPresenca != null ? ev.taxaPresenca.toFixed(1) + "%" : "-";
               return [``, `Taxa de presença: ${taxa}`];
             },
           },

@@ -356,7 +356,7 @@ function listarPlanilhas(dir) {
       const base = stripAccents(ent.name).toLowerCase();
       if (base.startsWith("~$")) continue;
       // Pula auxiliares e o próprio arquivo de satisfação (esses não são listas
-      // de participantes — não normalizar).
+      // de participantes - não normalizar).
       if (base.startsWith("satisfacao") || base.startsWith("pesquisa")) continue;
       if (base.includes("sympla")) continue; // raw original do Sympla (manter como referência)
       resultado.push(rel.replace(/\\/g, "/"));
