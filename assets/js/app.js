@@ -2752,7 +2752,8 @@ async function exportPdf() {
   })
 
   // ============== PÁGINAS DE GRÁFICOS (1 por página) ==============
-  const drawChartPage = (title, dataUrl) => {
+  // Preserva o aspect ratio original do canvas para não distorcer barras e textos.
+  const drawChartPage = (title, dataUrl, srcW, srcH) => {
     if (!dataUrl) return
     doc.addPage()
     drawHeaderFooter()
@@ -2763,15 +2764,21 @@ async function exportPdf() {
     doc.setDrawColor(...GREEN)
     doc.setLineWidth(0.6)
     doc.line(pageW / 2 - 24, 32, pageW / 2 + 24, 32)
-    // Gráfico ocupando praticamente toda a área útil
-    const chartW = pageW - 28
-    const chartH = pageH - 80 // entre header (14+20) e footer
-    doc.addImage(dataUrl, "PNG", 14, 42, chartW, chartH)
+    // Área útil entre cabeçalho (~36) e rodapé (~12)
+    const maxW = pageW - 28
+    const maxH = pageH - 80
+    const ratio = srcW / srcH
+    let w = maxW
+    let h = w / ratio
+    if (h > maxH) { h = maxH; w = h * ratio }
+    const x = (pageW - w) / 2
+    const y = 42 + (maxH - h) / 2
+    doc.addImage(dataUrl, "PNG", x, y, w, h)
   }
 
-  drawChartPage("Inscritos x Presentes por Evento", charts.chEventos)
-  drawChartPage("Distribuição de Presença Consolidada", charts.chPresenca)
-  drawChartPage("Top Secretarias por Inscrições", charts.chSec)
+  drawChartPage("Inscritos x Presentes por Evento", charts.chEventos, 1100, 520)
+  drawChartPage("Distribuição de Presença Consolidada", charts.chPresenca, 700, 520)
+  drawChartPage("Top Secretarias por Inscrições", charts.chSec, 1100, Math.max(360, 100 + (ranking?.length ? Math.min(ranking.length, 10) : 6) * 36))
 
   // ============== Página: Quadro Consolidado de Eventos ==============
   doc.addPage()
