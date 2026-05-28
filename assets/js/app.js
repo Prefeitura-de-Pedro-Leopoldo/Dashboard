@@ -514,6 +514,13 @@ function renderPaginatedTable(containerId, participantes, scopeId, opts = {}) {
   const pageSize = opts.pageSize || 10
   const container = document.getElementById(containerId)
   if (!container) return
+  const totalPages = Math.max(1, Math.ceil(participantes.length / pageSize))
+  // Garante que a página atual ainda existe (caso filtros tenham encolhido o
+  // total). Se a anterior virou inválida, volta pra 1.
+  const cur = state.pagerPages[scopeId] || 1
+  if (cur > totalPages) state.pagerPages[scopeId] = 1
+  if (!state.pagerPages[scopeId]) state.pagerPages[scopeId] = 1
+
   const draw = () => {
     const page = state.pagerPages[scopeId] || 1
     container.innerHTML = renderParticipantsTable(participantes, { paginate: true, pageSize, page, scopeId })
@@ -527,8 +534,6 @@ function renderPaginatedTable(containerId, participantes, scopeId, opts = {}) {
       })
     })
   }
-  // Reseta para página 1 se o total mudou (filtros / novo evento)
-  if (!state.pagerPages[scopeId]) state.pagerPages[scopeId] = 1
   draw()
 }
 
@@ -1271,7 +1276,7 @@ function populateFaltasTable() {
 
 function populateParticipantes() {
   const parts = collectParticipantes()
-  document.getElementById("pTable").innerHTML = renderParticipantsTable(parts)
+  renderPaginatedTable("pTable", parts, "participantes-global")
   document.getElementById("pCount").textContent = `${parts.length} pessoa(s)`
 }
 
@@ -1382,6 +1387,7 @@ function renderViewRelatorios() {
         <button class="btn btn--sm" id="rCsv"><i class="fas fa-file-csv"></i> CSV</button>
         <button class="btn btn--sm" id="rPdf"><i class="fas fa-file-pdf"></i> PDF</button>
         <button class="btn btn--sm" id="rXlsx"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn btn--sm" id="rPptx"><i class="fas fa-file-powerpoint"></i> PPTX</button>
       </div>
     </div>
 
@@ -1439,6 +1445,7 @@ function renderViewRelatorios() {
   document.getElementById("rCsv").addEventListener("click", exportCsv)
   document.getElementById("rPdf").addEventListener("click", exportPdf)
   document.getElementById("rXlsx").addEventListener("click", exportXlsx)
+  document.getElementById("rPptx").addEventListener("click", exportPptx)
 
   // Aba ativa
   const activeTab = getActiveTab("relatorios", "eventos")
@@ -1472,7 +1479,7 @@ function populateRelatorios() {
   document.getElementById("rSecCount").textContent = `${ranking.length} secretaria(s)`
 
   const parts = collectParticipantes()
-  document.getElementById("rPartTable").innerHTML = renderParticipantsTable(parts)
+  renderPaginatedTable("rPartTable", parts, "relatorios-participantes")
   document.getElementById("rPartCount").textContent = `${parts.length} pessoa(s)`
 }
 
@@ -1495,13 +1502,95 @@ function getReportDatasets() {
   return { evs, ranking, parts }
 }
 
+// ---- Charts compartilhados nos exports de Relatórios ----
+async function buildRelatorioCharts(evs, ranking) {
+  if (!window.Chart || !evs.length) return {}
+  const evLabels = evs.map(e => e.title.length > 26 ? e.title.slice(0, 24) + "…" : e.title)
+  const inscritos = evs.map(e => e.totalInscritos || 0)
+  const presentes = evs.map(e => e.totalPresentes || 0)
+  const totIns = inscritos.reduce((a, b) => a + b, 0)
+  const totPres = presentes.reduce((a, b) => a + b, 0)
+  const totAus = Math.max(0, totIns - totPres)
+  const top = ranking.slice(0, 10)
+
+  const chEventos = await renderChartToImage("bar", {
+    data: {
+      labels: evLabels,
+      datasets: [
+        { label: "Inscritos", data: inscritos, backgroundColor: MODELO_CHART.navy, borderWidth: 0 },
+        { label: "Presentes", data: presentes, backgroundColor: MODELO_CHART.blueMid, borderWidth: 0 }
+      ]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid } },
+        x: { ticks: { font: { family: MODELO_CHART.font, size: 11 }, color: MODELO_CHART.text, maxRotation: 30, minRotation: 30 }, grid: { display: false } }
+      },
+      plugins: {
+        legend: { position: "top", labels: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text } },
+        title: { display: true, text: "Inscritos x Presentes por Evento", font: { size: 16, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 12 } },
+        datalabels: { display: false }
+      }
+    }
+  }, 1100, 520)
+
+  const chPresenca = await renderChartToImage("doughnut", {
+    data: { labels: ["Presentes", "Ausentes"], datasets: [{ data: [totPres, totAus], backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueLighter], borderWidth: 2, borderColor: "#fff" }] },
+    options: {
+      plugins: {
+        legend: { position: "bottom", labels: { font: { family: MODELO_CHART.font, size: 13 }, color: MODELO_CHART.text } },
+        title: { display: true, text: "Presença Consolidada", font: { size: 16, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 12 } },
+        datalabels: { color: "#fff", font: { weight: "bold", size: 14, family: MODELO_CHART.font }, formatter: (v, ctx) => { const t = ctx.dataset.data.reduce((a, b) => a + b, 0); return t ? `${v}\n${((v / t) * 100).toFixed(1)}%` : v } }
+      }
+    }
+  }, 700, 520)
+
+  const chSec = top.length ? await renderChartToImage("bar", {
+    data: { labels: top.map(r => r.nome.length > 32 ? r.nome.slice(0, 30) + "…" : r.nome), datasets: [{ data: top.map(r => r.qtd), backgroundColor: modeloGradedColors(top.map(r => r.qtd)), borderWidth: 0, barPercentage: 0.75, categoryPercentage: 0.8 }] },
+    options: {
+      indexAxis: "y",
+      scales: {
+        x: { beginAtZero: true, title: { display: true, text: "Inscrições", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid } },
+        y: { ticks: { font: { family: MODELO_CHART.font, size: 11 }, color: MODELO_CHART.text }, grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: "Top Secretarias por Inscrições", font: { size: 16, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 12 } },
+        datalabels: { anchor: "end", align: "end", offset: 6, color: MODELO_CHART.navy, font: { weight: "bold", size: 12, family: MODELO_CHART.font }, formatter: v => v }
+      }
+    }
+  }, 1100, Math.max(360, 100 + top.length * 36)) : null
+
+  return { chEventos, chPresenca, chSec, totIns, totPres, totAus }
+}
+
 function exportCsv() {
-  const { parts } = getReportDatasets()
-  if (!parts.length) {
+  const { parts, evs, ranking } = getReportDatasets()
+  if (!parts.length && !evs.length) {
     showAlert({ title: "Nada para exportar", message: "Nenhum participante para exportar com os filtros atuais.", type: "warn" })
     return
   }
+  const totIns = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0)
+  const totPres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0)
+  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "—"
+  const summary = [
+    ["# Relatório consolidado · Escola de Governo Pedro Leopoldo"],
+    [`# Gerado em ${new Date().toLocaleString("pt-BR")}`],
+    [`# Eventos: ${evs.length} · Inscritos: ${totIns} · Presentes: ${totPres} · Taxa de presença: ${taxa}`],
+    ["# (CSV não suporta gráficos — use PDF, Excel ou PPTX para visualizações.)"],
+    [""],
+    ["## Eventos"],
+    ["Evento", "Data", "Vagas", "Inscritos", "Presentes", "Ausentes", "Taxa de Presença (%)", "Taxa de Ocupação (%)"],
+    ...evs.map(e => [e.title, e.date || "", e.vagas ?? "", e.totalInscritos, e.totalPresentes, e.totalAusentes, e.taxaPresenca ?? "", e.taxaOcupacao ?? ""]),
+    [""],
+    ["## Secretarias"],
+    ["#", "Secretaria", "Inscrições"],
+    ...ranking.map((r, i) => [i + 1, r.nome, r.qtd]),
+    [""],
+    ["## Participantes"]
+  ]
   const rows = [
+    ...summary,
     ["Evento", "Nome", "E-mail", "Turma", "Secretaria", "Presente", "Data Check-in"],
     ...parts.map(p => [p.eventoTitle, p.nome, p.email || "", p.turma || "", p.secretaria || "", p.presente ? "Sim" : "Não", p.dataCheckin || ""])
   ]
@@ -1519,63 +1608,94 @@ function exportCsv() {
   triggerDownload(blob, `relatorio-participantes-${new Date().toISOString().slice(0, 10)}.csv`)
 }
 
-function exportXlsx() {
+async function exportXlsx() {
   const { evs, ranking, parts } = getReportDatasets()
   if (!evs.length && !ranking.length && !parts.length) {
     showAlert({ title: "Nada para exportar", message: "Não há dados para exportar com os filtros atuais.", type: "warn" })
     return
   }
-  const XLSX = window.XLSX
-  const wb = XLSX.utils.book_new()
+  if (!window.ExcelJS) {
+    showAlert({ title: "Biblioteca ausente", message: "ExcelJS não foi carregada. Recarregue a página.", type: "warn" })
+    return
+  }
+  const charts = await buildRelatorioCharts(evs, ranking)
+  const wb = new window.ExcelJS.Workbook()
+  wb.creator = "Escola de Governo - Pedro Leopoldo"
+  wb.created = new Date()
 
-  const eventsSheet = XLSX.utils.aoa_to_sheet([
-    ["Evento", "Data", "Local", "Vagas", "Inscritos", "Presentes", "Ausentes", "Taxa de presença (%)", "Taxa de ocupação (%)", "Status"],
-    ...evs.map(e => [
-      e.title,
-      e.date || "",
-      e.local || "",
-      e.vagas ?? "",
-      e.totalInscritos,
-      e.totalPresentes,
-      e.totalAusentes,
-      e.taxaPresenca ?? "",
-      e.taxaOcupacao ?? "",
-      e.status
-    ])
-  ])
-  XLSX.utils.book_append_sheet(wb, eventsSheet, "Eventos")
+  // --- Sheet "Gráficos" ---
+  const gSheet = wb.addWorksheet("Gráficos", { views: [{ showGridLines: false }] })
+  gSheet.getCell("B2").value = "Relatório Consolidado · Escola de Governo Pedro Leopoldo"
+  gSheet.getCell("B2").font = { name: "Calibri", size: 18, bold: true, color: { argb: "FF1F3864" } }
+  gSheet.getCell("B3").value = `Gerado em ${new Date().toLocaleString("pt-BR")}`
+  gSheet.getCell("B3").font = { name: "Calibri", size: 11, color: { argb: "FF5A6B85" }, italic: true }
+  let row = 5
+  const addImg = async (dataUrl, w, h) => {
+    if (!dataUrl) return
+    const id = wb.addImage({ base64: dataUrl, extension: "png" })
+    gSheet.addImage(id, { tl: { col: 1, row: row - 1 }, ext: { width: w, height: h } })
+    row += Math.ceil(h / 20) + 2
+  }
+  await addImg(charts.chEventos, 720, 340)
+  await addImg(charts.chPresenca, 460, 340)
+  if (charts.chSec) await addImg(charts.chSec, 720, Math.max(240, 80 + (ranking.slice(0, 10).length) * 24))
+  gSheet.getColumn(2).width = 110
 
-  const secSheet = XLSX.utils.aoa_to_sheet([["#", "Secretaria", "Inscrições"], ...ranking.map((r, i) => [i + 1, r.nome, r.qtd])])
-  XLSX.utils.book_append_sheet(wb, secSheet, "Secretarias")
+  // --- Sheet "Eventos" ---
+  const sEv = wb.addWorksheet("Eventos")
+  sEv.columns = [
+    { header: "Evento", key: "title", width: 42 },
+    { header: "Data", key: "date", width: 12 },
+    { header: "Local", key: "local", width: 30 },
+    { header: "Vagas", key: "vagas", width: 8 },
+    { header: "Inscritos", key: "ins", width: 11 },
+    { header: "Presentes", key: "pres", width: 11 },
+    { header: "Ausentes", key: "aus", width: 10 },
+    { header: "Taxa Presença (%)", key: "tp", width: 18 },
+    { header: "Taxa Ocupação (%)", key: "to", width: 18 },
+    { header: "Status", key: "st", width: 12 }
+  ]
+  sEv.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }
+  sEv.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3864" } }
+  evs.forEach(e => sEv.addRow({ title: e.title, date: e.date || "", local: e.local || "", vagas: e.vagas ?? "", ins: e.totalInscritos, pres: e.totalPresentes, aus: e.totalAusentes, tp: e.taxaPresenca ?? "", to: e.taxaOcupacao ?? "", st: e.status }))
 
-  const partsSheet = XLSX.utils.aoa_to_sheet([
-    ["Evento", "Nome", "E-mail", "Turma", "Secretaria", "Cargo", "Matrícula", "Presente", "Data Check-in", "Data Inscrição"],
-    ...parts.map(p => [
-      p.eventoTitle,
-      p.nome,
-      p.email || "",
-      p.turma || "",
-      p.secretaria || "",
-      p.cargo || "",
-      p.matricula || "",
-      p.presente ? "Sim" : "Não",
-      p.dataCheckin || "",
-      p.dataInscricao || ""
-    ])
-  ])
-  XLSX.utils.book_append_sheet(wb, partsSheet, "Participantes")
+  // --- Sheet "Secretarias" ---
+  const sSec = wb.addWorksheet("Secretarias")
+  sSec.columns = [{ header: "#", key: "i", width: 6 }, { header: "Secretaria", key: "n", width: 50 }, { header: "Inscrições", key: "q", width: 14 }]
+  sSec.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }
+  sSec.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3864" } }
+  ranking.forEach((r, i) => sSec.addRow({ i: i + 1, n: r.nome, q: r.qtd }))
 
-  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" })
-  const blob = new Blob([wbout], { type: "application/octet-stream" })
+  // --- Sheet "Participantes" ---
+  const sP = wb.addWorksheet("Participantes")
+  sP.columns = [
+    { header: "Evento", key: "ev", width: 35 },
+    { header: "Nome", key: "n", width: 30 },
+    { header: "E-mail", key: "e", width: 28 },
+    { header: "Turma", key: "t", width: 16 },
+    { header: "Secretaria", key: "s", width: 30 },
+    { header: "Cargo", key: "c", width: 22 },
+    { header: "Matrícula", key: "m", width: 14 },
+    { header: "Presente", key: "pr", width: 10 },
+    { header: "Data Check-in", key: "dc", width: 18 },
+    { header: "Data Inscrição", key: "di", width: 18 }
+  ]
+  sP.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }
+  sP.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3864" } }
+  parts.forEach(p => sP.addRow({ ev: p.eventoTitle, n: p.nome, e: p.email || "", t: p.turma || "", s: p.secretaria || "", c: p.cargo || "", m: p.matricula || "", pr: p.presente ? "Sim" : "Não", dc: p.dataCheckin || "", di: p.dataInscricao || "" }))
+
+  const buf = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
   triggerDownload(blob, `relatorio-egov-${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
-function exportPdf() {
+async function exportPdf() {
   const { evs, ranking, parts } = getReportDatasets()
   if (!evs.length && !ranking.length && !parts.length) {
     showAlert({ title: "Nada para exportar", message: "Não há dados para exportar com os filtros atuais.", type: "warn" })
     return
   }
+  const charts = await buildRelatorioCharts(evs, ranking)
   const { jsPDF } = window.jspdf
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
   const pageW = doc.internal.pageSize.getWidth()
@@ -1596,10 +1716,30 @@ function exportPdf() {
   doc.setTextColor(22, 31, 54)
   doc.setFontSize(13)
   doc.setFont("helvetica", "bold")
-  doc.text("Quadro consolidado de eventos", 14, 38)
+
+  // ---- Resumo gráfico ----
+  let yChart = 38
+  if (charts.chEventos) {
+    doc.text("Resumo gráfico", 14, yChart)
+    yChart += 5
+    doc.addImage(charts.chEventos, "PNG", 14, yChart, 182, 86)
+    yChart += 92
+    if (charts.chPresenca) {
+      const hP = 60
+      doc.addImage(charts.chPresenca, "PNG", 14, yChart, 86, hP)
+      if (charts.chSec) {
+        doc.addImage(charts.chSec, "PNG", 105, yChart, 91, hP)
+      }
+      yChart += hP + 6
+    }
+    if (yChart > 240) { doc.addPage(); yChart = 20 }
+  }
+
+  doc.setFont("helvetica", "bold")
+  doc.text("Quadro consolidado de eventos", 14, yChart)
 
   doc.autoTable({
-    startY: 42,
+    startY: yChart + 4,
     head: [["Evento", "Data", "Vagas", "Inscr.", "Pres.", "Ausentes", "Presença", "Ocupação"]],
     body: evs.map(e => [
       e.title.length > 38 ? e.title.slice(0, 36) + "…" : e.title,
@@ -1665,6 +1805,97 @@ function exportPdf() {
   }
 
   doc.save(`relatorio-egov-${new Date().toISOString().slice(0, 10)}.pdf`)
+}
+
+async function exportPptx() {
+  const { evs, ranking, parts } = getReportDatasets()
+  if (!evs.length && !ranking.length) {
+    showAlert({ title: "Nada para exportar", message: "Não há dados para exportar com os filtros atuais.", type: "warn" })
+    return
+  }
+  if (!window.PptxGenJS) {
+    showAlert({ title: "Biblioteca ausente", message: "PptxGenJS não foi carregada. Recarregue a página.", type: "warn" })
+    return
+  }
+  const charts = await buildRelatorioCharts(evs, ranking)
+  const brand = await loadBrandAssets()
+
+  const pptx = new window.PptxGenJS()
+  pptx.layout = "LAYOUT_WIDE"
+  pptx.author = "Escola de Governo · Pedro Leopoldo"
+  pptx.company = "Prefeitura Municipal de Pedro Leopoldo"
+  pptx.title = "Relatório Consolidado"
+
+  buildEgovPptxMaster(pptx, brand, "Relatório Consolidado")
+
+  // Capa institucional
+  const sCover = pptx.addSlide()
+  sCover.background = { color: EGOV_BRAND.white }
+  sCover.addImage({ data: brand.hero, x: 0, y: 0, w: 13.333, h: 7.5, sizing: { type: "cover", w: 13.333, h: 7.5 } })
+  sCover.addShape("rect", { x: 0, y: 0, w: 13.333, h: 7.5, fill: { color: EGOV_BRAND.white, transparency: 35 } })
+  sCover.addImage({ data: brand.comboLogo, x: 4.3, y: 0.9, w: 4.7, h: 1.2 })
+  sCover.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", { x: 1, y: 2.4, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, bold: true, color: EGOV_BRAND.navy, align: "center", charSpacing: 4 })
+  sCover.addShape("line", { x: 5.4, y: 3.0, w: 2.5, h: 0, line: { color: EGOV_BRAND.green, width: 2 } })
+  sCover.addText("Relatório Consolidado", { x: 1, y: 3.2, w: 11.3, h: 1.1, fontFace: EGOV_BRAND.font, fontSize: 48, bold: true, color: EGOV_BRAND.navy, align: "center" })
+  sCover.addText(`${evs.length} evento(s) · ${parts.length} participante(s)`, { x: 1, y: 4.5, w: 11.3, h: 0.7, fontFace: EGOV_BRAND.font, fontSize: 22, italic: true, color: EGOV_BRAND.text, align: "center" })
+  sCover.addText(new Date().toLocaleDateString("pt-BR"), { x: 1, y: 5.6, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.textMuted, align: "center" })
+
+  // Visão geral / KPIs
+  const sK = pptx.addSlide({ masterName: "EGOV_MASTER" })
+  egovSlideTitle(sK, "Visão Geral")
+  const totIns = charts.totIns || 0, totPres = charts.totPres || 0, totAus = charts.totAus || 0
+  const taxa = totIns ? ((totPres / totIns) * 100).toFixed(1).replace(".", ",") + "%" : "—"
+  const kpi = (slide, x, label, value, accent) => {
+    slide.addShape("roundRect", { x, y: 2.1, w: 2.8, h: 2.2, fill: { color: EGOV_BRAND.white }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.15 })
+    slide.addShape("rect", { x, y: 2.1, w: 2.8, h: 0.1, fill: { color: accent } })
+    slide.addText(String(value), { x, y: 2.35, w: 2.8, h: 1.2, fontFace: EGOV_BRAND.font, fontSize: 48, bold: true, color: accent, align: "center" })
+    slide.addText(label, { x, y: 3.55, w: 2.8, h: 0.6, fontFace: EGOV_BRAND.font, fontSize: 15, color: EGOV_BRAND.textMuted, align: "center" })
+  }
+  kpi(sK, 0.7, "Eventos", evs.length, EGOV_BRAND.navy)
+  kpi(sK, 3.7, "Inscritos", totIns, EGOV_BRAND.navyLight)
+  kpi(sK, 6.7, "Presentes", totPres, EGOV_BRAND.green)
+  kpi(sK, 9.7, "Taxa de presença", taxa, EGOV_BRAND.navyLight)
+  sK.addText(`${totPres} servidores capacitados · ${totAus} ausências em todos os eventos consolidados.`, { x: 0.95, y: 5.5, w: 11.5, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 15, italic: true, color: EGOV_BRAND.text, align: "center" })
+
+  if (charts.chEventos) {
+    const s = pptx.addSlide({ masterName: "EGOV_MASTER" })
+    egovSlideTitle(s, "Inscritos x Presentes por Evento")
+    s.addImage({ data: charts.chEventos, x: 1.2, y: 1.75, w: 11, h: 5.0 })
+  }
+  if (charts.chPresenca) {
+    const s = pptx.addSlide({ masterName: "EGOV_MASTER" })
+    egovSlideTitle(s, "Presença Consolidada")
+    s.addImage({ data: charts.chPresenca, x: 3.5, y: 1.75, w: 6.3, h: 5.0 })
+  }
+  if (charts.chSec) {
+    const s = pptx.addSlide({ masterName: "EGOV_MASTER" })
+    egovSlideTitle(s, "Top Secretarias por Inscrições")
+    s.addImage({ data: charts.chSec, x: 1.2, y: 1.75, w: 11, h: 5.0 })
+  }
+
+  // Tabela de eventos
+  const sT = pptx.addSlide({ masterName: "EGOV_MASTER" })
+  egovSlideTitle(sT, "Quadro Consolidado de Eventos")
+  const tableRows = [[
+    { text: "Evento", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, fontFace: EGOV_BRAND.font, fontSize: 12 } },
+    { text: "Data", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, fontFace: EGOV_BRAND.font, fontSize: 12, align: "center" } },
+    { text: "Inscritos", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, fontFace: EGOV_BRAND.font, fontSize: 12, align: "center" } },
+    { text: "Presentes", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, fontFace: EGOV_BRAND.font, fontSize: 12, align: "center" } },
+    { text: "Presença", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, fontFace: EGOV_BRAND.font, fontSize: 12, align: "center" } }
+  ]]
+  evs.slice(0, 14).forEach((e, i) => {
+    const bg = i % 2 === 0 ? EGOV_BRAND.white : EGOV_BRAND.bgSoft
+    tableRows.push([
+      { text: e.title, options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, color: EGOV_BRAND.text } },
+      { text: e.date ? new Date(e.date).toLocaleDateString("pt-BR") : "—", options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
+      { text: String(e.totalInscritos), options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
+      { text: String(e.totalPresentes), options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text } },
+      { text: e.taxaPresenca != null ? e.taxaPresenca + "%" : "—", options: { fill: { color: bg }, fontFace: EGOV_BRAND.font, fontSize: 11, align: "center", color: EGOV_BRAND.text, bold: true } }
+    ])
+  })
+  sT.addTable(tableRows, { x: 0.7, y: 1.75, w: 11.9, colW: [5.7, 1.7, 1.5, 1.5, 1.5], border: { type: "solid", color: EGOV_BRAND.blueSoft, pt: 0.5 } })
+
+  await pptx.writeFile({ fileName: `relatorio-egov-${new Date().toISOString().slice(0, 10)}.pptx` })
 }
 
 function triggerDownload(blob, filename) {
@@ -3534,13 +3765,47 @@ function renderViewAutoReport() {
           </div>
 
           <div class="card">
-            <div class="card__header"><div><h3>2. Pesquisa de satisfação</h3><p>Respostas do Google Forms ou similar.</p></div></div>
-            <label class="dropzone" id="arDropPesq">
-              <input type="file" id="arFilePesq" accept=".xlsx,.xls,.csv" />
-              <div class="dropzone__icon"><i class="fas fa-clipboard-check"></i></div>
-              <div class="dropzone__title" id="arDropPesqTitle">${s.pesquisa ? escapeHtml(s.pesquisa.fileName) : "Clique ou arraste a planilha"}</div>
-              <div class="dropzone__sub" id="arDropPesqSub">${s.pesquisa ? `${s.pesquisa.respostas} respostas detectadas` : "Colunas detectadas automaticamente"}</div>
-            </label>
+            <div class="card__header"><div><h3>2. Pesquisa de satisfação</h3><p>Use a planilha do evento (se existir) ou envie um arquivo.</p></div></div>
+            <div class="source-tabs" role="tablist" aria-label="Origem da pesquisa">
+              <button type="button" class="source-tab is-active" data-arq-source="evento" role="tab">
+                <i class="fas fa-calendar-day"></i> Evento do sistema
+              </button>
+              <button type="button" class="source-tab" data-arq-source="upload" role="tab">
+                <i class="fas fa-file-arrow-up"></i> Enviar planilha
+              </button>
+            </div>
+
+            <div data-arq-pane="evento">
+              <label class="filter" style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:var(--fs-2xs);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:var(--tracking-wider);color:var(--text-muted);">Evento</span>
+                <select id="arPesqEventSelect" class="event-picker__select">
+                  <option value="">— selecione —</option>
+                  ${(state.data?.eventos || [])
+                    .slice()
+                    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                    .map(
+                      ev => `
+                    <option value="${ev.id}" ${s.pesquisa?.fromEventId === ev.id ? "selected" : ""}>${escapeHtml(ev.title)}${ev.date ? " · " + formatDateBR(ev.date) : ""}</option>
+                  `
+                    )
+                    .join("")}
+                </select>
+              </label>
+              <div id="arPesqEventStatus" class="ar-event-summary">
+                ${s.pesquisa?.fromEventId
+                  ? `<p class="ar-event-summary__empty"><i class="fas fa-check-circle"></i> ${escapeHtml(s.pesquisa.fileName)} · ${s.pesquisa.respostas} respostas</p>`
+                  : `<p class="ar-event-summary__empty"><i class="fas fa-circle-info"></i> Selecione um evento. Se ele tiver <b>satisfacao.xlsx</b> na pasta, será carregada automaticamente.</p>`}
+              </div>
+            </div>
+
+            <div data-arq-pane="upload" hidden>
+              <label class="dropzone" id="arDropPesq">
+                <input type="file" id="arFilePesq" accept=".xlsx,.xls,.csv" />
+                <div class="dropzone__icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="dropzone__title" id="arDropPesqTitle">${s.pesquisa && !s.pesquisa.fromEventId ? escapeHtml(s.pesquisa.fileName) : "Clique ou arraste a planilha"}</div>
+                <div class="dropzone__sub" id="arDropPesqSub">${s.pesquisa && !s.pesquisa.fromEventId ? `${s.pesquisa.respostas} respostas detectadas` : "Colunas detectadas automaticamente"}</div>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -3567,9 +3832,77 @@ function renderViewAutoReport() {
   setupAutoReportUploads()
   setupAutoReportSourceTabs()
   setupAutoReportEventPicker()
+  setupAutoReportPesquisaSourceTabs()
+  setupAutoReportPesquisaEventPicker()
   document.getElementById("arGenerate").addEventListener("click", generateSatisfacaoPdf)
   document.getElementById("arGenerateDocx").addEventListener("click", generateSatisfacaoDocx)
+  const pptxBtn = document.getElementById("arGeneratePptx")
+  if (pptxBtn) pptxBtn.addEventListener("click", generateSatisfacaoPptx)
   updateAutoReportSummary()
+}
+
+function setupAutoReportPesquisaSourceTabs() {
+  const tabs = document.querySelectorAll("[data-arq-source]")
+  const panes = {
+    evento: document.querySelector('[data-arq-pane="evento"]'),
+    upload: document.querySelector('[data-arq-pane="upload"]')
+  }
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const key = tab.dataset.arqSource
+      tabs.forEach(t => t.classList.toggle("is-active", t === tab))
+      Object.entries(panes).forEach(([k, el]) => {
+        if (el) el.hidden = k !== key
+      })
+    })
+  })
+}
+
+function setupAutoReportPesquisaEventPicker() {
+  const sel = document.getElementById("arPesqEventSelect")
+  if (!sel) return
+  sel.addEventListener("change", async () => {
+    const status = document.getElementById("arPesqEventStatus")
+    const id = sel.value
+    if (!id) {
+      state.autoReport.pesquisa = null
+      status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-circle-info"></i> Selecione um evento. Se ele tiver <b>satisfacao.xlsx</b> na pasta, será carregada automaticamente.</p>`
+      updateAutoReportSummary()
+      return
+    }
+    const ev = (state.data?.eventos || []).find(e => e.id === id)
+    if (!ev || !ev.fonte) return
+    const folder = ev.fonte.split("/").slice(0, -1).join("/")
+    if (!folder) {
+      status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-triangle-exclamation"></i> Evento sem pasta vinculada.</p>`
+      return
+    }
+    status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-circle-notch fa-spin"></i> Procurando pesquisa...</p>`
+    // tenta variações comuns do nome
+    const tries = ["satisfacao.xlsx", "Satisfação.xlsx", "satisfação.xlsx", "Satisfacao.xlsx", "pesquisa.xlsx", "Pesquisa.xlsx"]
+    let blob = null
+    let usedName = null
+    for (const name of tries) {
+      const url = `assets/docs/relatorios/${encodeURI(folder)}/${encodeURIComponent(name)}`
+      try {
+        const r = await fetch(url)
+        if (r.ok) {
+          blob = await r.blob()
+          usedName = name
+          break
+        }
+      } catch (_) {}
+    }
+    if (!blob) {
+      state.autoReport.pesquisa = null
+      status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-triangle-exclamation"></i> Este evento não possui <b>satisfacao.xlsx</b>. Use a aba "Enviar planilha".</p>`
+      updateAutoReportSummary()
+      return
+    }
+    const file = new File([blob], usedName, { type: blob.type })
+    handleAutoReportPesquisa(file, { fromEventId: id, displayName: `Evento: ${ev.title}` })
+    status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-check-circle"></i> Pesquisa carregada de <b>${escapeHtml(usedName)}</b>.</p>`
+  })
 }
 
 function setupAutoReportSourceTabs() {
@@ -3855,7 +4188,7 @@ function handleAutoReportParticipantes(file) {
   reader.readAsArrayBuffer(file)
 }
 
-function handleAutoReportPesquisa(file) {
+function handleAutoReportPesquisa(file, meta = {}) {
   const reader = new FileReader()
   reader.onload = e => {
     try {
@@ -3954,7 +4287,8 @@ function handleAutoReportPesquisa(file) {
       let recomendacao = recIdx >= 0 ? criterios[recIdx] : null
 
       state.autoReport.pesquisa = {
-        fileName: file.name,
+        fromEventId: meta.fromEventId || null,
+        fileName: meta.displayName || file.name,
         respostas: rows.length,
         criterios, // [{label, media, dist}, ...] — qualquer quantidade
         recomendacao, // critério "recomend*" se existir; senão null
@@ -3970,13 +4304,18 @@ function handleAutoReportPesquisa(file) {
         .slice(0, 3)
         .map(c => `${c.label.slice(0, 18)}=${c.media.toFixed(2)}`)
         .join(" · ")
-      document.getElementById("arDropPesq").classList.add("has-file")
-      document.getElementById("arDropPesqTitle").textContent = file.name
-      document.getElementById("arDropPesqSub").textContent = `${rows.length} respostas · ${criterios.length} critérios · ${resumoCriterios}`
+      const drop = document.getElementById("arDropPesq")
+      const dropTitle = document.getElementById("arDropPesqTitle")
+      const dropSub = document.getElementById("arDropPesqSub")
+      if (drop) drop.classList.add("has-file")
+      if (dropTitle) dropTitle.textContent = meta.displayName || file.name
+      if (dropSub) dropSub.textContent = `${rows.length} respostas · ${criterios.length} critérios · ${resumoCriterios}`
       updateAutoReportSummary()
     } catch (err) {
-      document.getElementById("arDropPesqTitle").textContent = "Erro ao ler planilha"
-      document.getElementById("arDropPesqSub").textContent = err.message
+      const dropTitle = document.getElementById("arDropPesqTitle")
+      const dropSub = document.getElementById("arDropPesqSub")
+      if (dropTitle) dropTitle.textContent = "Erro ao ler planilha"
+      if (dropSub) dropSub.textContent = err.message
     }
   }
   reader.readAsArrayBuffer(file)
@@ -4185,54 +4524,151 @@ function titleCase(s) {
     .join(" ")
 }
 
-function extractThemes(responses, max = 10) {
-  if (!Array.isArray(responses) || !responses.length) return []
-  const counts = new Map()
-  responses.forEach(r => {
-    const norm = normalizeText(r)
-    // Aplica lematização para unificar curso/cursos, capacitação/capacitações etc.
-    const words = norm
+// ---------------- Agrupamento semântico de respostas abertas ----------------
+// Grupos curados de sinônimos por tema. Cada chave do grupo é o rótulo final.
+// Cada termo pode ser uma palavra-base ou expressão; usamos match por contém.
+// Importante: o primeiro grupo cujos termos casarem com a resposta "ganha".
+const SEMANTIC_GROUPS = [
+  { label: "Palestrante / Mediação",       terms: ["palestrant", "mediad", "instrut", "professor", "facilitad", "ministr", "convidad", "expositor"] },
+  { label: "Conteúdo / Material",          terms: ["conteud", "materia", "apostil", "tema", "assunt", "abordage", "infor"] },
+  { label: "Organização do evento",        terms: ["organiz", "planejament", "coordena", "logístic", "logistic"] },
+  { label: "Duração / Carga horária",      terms: ["duraç", "duracao", "tempo", "horári", "horario", "carga", "longo", "curto", "estendid"] },
+  { label: "Estrutura / Local",            terms: ["estrutura", "local", "espaço", "espaco", "ambient", "ar-condicion", "ar condicion", "audio", "som", "som ", "iluminaç", "iluminac", "sala"] },
+  { label: "Dinâmica / Participação",      terms: ["dinâmic", "dinamic", "interaç", "interac", "particip", "engajament", "atividade", "exercíc", "exercic", "prátic", "pratic"] },
+  { label: "Alimentação / Coquetel",       terms: ["alimentaç", "alimentac", "coquet", "lanche", "café", "cafe", "comida", "bebida", "refeiç", "refeic"] },
+  { label: "Aplicabilidade / Rotina",      terms: ["aplicabilid", "aplicaç", "aplicac", "prátic", "pratic", "rotina", "dia a dia", "uso real"] },
+  { label: "Mais eventos / Frequência",    terms: ["mais event", "mais frequ", "frequenc", "frequên", "regular", "periodic", "mais cursos", "mais capacit"] },
+  { label: "Divulgação / Público",         terms: ["divulgaç", "divulgac", "públic", "public ", "convite", "convocaç", "convocac", "comunic"] },
+  { label: "Liderança / Gestão",           terms: ["liderança", "lideranca", "lider", "gestão de pesso", "gestao de pesso", "chef"] },
+  { label: "Saúde mental / Bem-estar",     terms: ["saúde mental", "saude mental", "bem estar", "bem-estar", "autocuid", "estresse", "ansied", "burnout", "qualidade de vida"] },
+  { label: "Ética / Serviço público",      terms: ["étic", "etic", "moral", "integridad", "conduta", "serviç", "servic público", "servidor"] },
+  { label: "Comunicação / Atendimento",    terms: ["comunicaç", "comunicac", "atend", "oratóri", "oratoria", "escuta", "diál"] },
+  { label: "Inovação / Tecnologia",        terms: ["inovaç", "inovac", "tecnologi", "digital", "inteligência artif", "ia ", "transformaç digital"] },
+  { label: "Legislação / Normas",          terms: ["legislaç", "legislac", "lei ", "norma", "regulamen", "decret", "estatut"] },
+  { label: "Financeiro / Orçamento",       terms: ["financeir", "orçament", "orcament", "tribut", "fiscal", "contábil", "contabil", "tesourar"] },
+  { label: "Diversidade / Inclusão",       terms: ["diversidad", "inclus", "raça", "raca", "gênero", "genero", "lgbt", "pcd", "acessib", "equidade"] },
+  { label: "Compras / Licitação",          terms: ["compras", "licitaç", "licitac", "contrataç", "pregão", "pregao"] },
+  { label: "Avaliação / Indicadores",      terms: ["avaliaç", "indicad", "métric", "metric", "kpi", "monitorament"] }
+]
+
+// Tenta encaixar um texto normalizado em um dos grupos semânticos curados.
+function matchSemanticGroup(text) {
+  if (!text) return null
+  const t = " " + text.toLowerCase() + " "
+  for (const grp of SEMANTIC_GROUPS) {
+    for (const term of grp.terms) {
+      if (t.includes(term)) return grp.label
+    }
+  }
+  return null
+}
+
+// Conjunto de tokens significativos (>=4 chars, sem stopwords, lematizados)
+// para clustering por similaridade quando não há grupo curado.
+function tokenSet(text) {
+  return new Set(
+    normalizeText(text)
       .split(" ")
       .map(lemmatize)
       .filter(w => w.length >= 4 && !PT_STOPWORDS.has(w))
-    // unigramas (uma vez por resposta)
-    const seenU = new Set()
-    words.forEach(w => {
-      if (seenU.has(w)) return
-      seenU.add(w)
-      counts.set(w, (counts.get(w) || 0) + 1)
-    })
-    // bigramas (mais informativos)
-    const seenB = new Set()
-    for (let i = 0; i < words.length - 1; i++) {
-      const bg = words[i] + " " + words[i + 1]
-      if (seenB.has(bg)) continue
-      seenB.add(bg)
-      counts.set(bg, (counts.get(bg) || 0) + 1)
+  )
+}
+
+// Similaridade de Jaccard entre dois conjuntos de tokens.
+function jaccard(a, b) {
+  if (!a.size || !b.size) return 0
+  let inter = 0
+  for (const t of a) if (b.has(t)) inter++
+  return inter / (a.size + b.size - inter)
+}
+
+// Agrupa respostas abertas em temas. Funcionamento:
+// 1) Cada resposta tenta ser encaixada em um grupo semântico curado.
+// 2) Respostas sem grupo curado são clusterizadas por similaridade de Jaccard
+//    (limiar 0.34) — duas respostas com tokens significativos em comum entram
+//    no mesmo cluster, cujo rótulo é o trecho-chave mais informativo do grupo.
+// 3) Devolve até `max` clusters ordenados por frequência.
+function extractThemes(responses, max = 10) {
+  if (!Array.isArray(responses) || !responses.length) return []
+
+  // Limpa, descarta vazios e respostas-fantasma ("não", "nenhum", "tudo bom")
+  const SKIP = /^(n[ãa]o|nenhum[ao]?|nd|nada|tudo (bom|ok|certo)|sem (coment|sugest|opini)|ok)\.?\s*$/i
+  const clean = responses
+    .map(r => String(r || "").trim())
+    .filter(r => r.length >= 3 && !SKIP.test(r))
+
+  if (!clean.length) return []
+
+  // Etapa 1: encaixe em grupos semânticos curados
+  const groupCounts = new Map() // label -> { value, samples: Set }
+  const remaining = []
+  clean.forEach(r => {
+    const g = matchSemanticGroup(r)
+    if (g) {
+      const entry = groupCounts.get(g) || { value: 0, samples: [] }
+      entry.value += 1
+      entry.samples.push(r)
+      groupCounts.set(g, entry)
+    } else {
+      remaining.push(r)
     }
   })
 
-  // Inclui inclusive menções únicas (count >= 1), ordenado por contagem
-  // (bigramas têm prioridade em empate)
-  const entries = [...counts.entries()]
-    .filter(([k, v]) => v >= 1)
-    .sort((a, b) => {
-      const aBg = a[0].includes(" ") ? 1 : 0
-      const bBg = b[0].includes(" ") ? 1 : 0
-      return b[1] - a[1] || bBg - aBg
-    })
+  // Etapa 2: clustering das respostas residuais por Jaccard
+  const tokenSets = remaining.map(r => ({ text: r, tokens: tokenSet(r) }))
+  const clusters = [] // { value, samples, tokens: Set }
+  tokenSets.forEach(({ text, tokens }) => {
+    if (!tokens.size) return
+    let best = null
+    let bestSim = 0
+    for (const c of clusters) {
+      const s = jaccard(c.tokens, tokens)
+      if (s > bestSim) { best = c; bestSim = s }
+    }
+    if (best && bestSim >= 0.34) {
+      best.value += 1
+      best.samples.push(text)
+      // união leve dos tokens
+      for (const t of tokens) best.tokens.add(t)
+    } else {
+      clusters.push({ value: 1, samples: [text], tokens: new Set(tokens) })
+    }
+  })
 
-  const picked = []
-  const usedTokens = new Set()
-  for (const [k, v] of entries) {
-    const tokens = k.split(" ")
-    // Evita repetir tema (ex: "painel" e "paineis conteudo" — escolhe o bigrama)
-    if (tokens.some(t => usedTokens.has(t))) continue
-    picked.push({ label: titleCase(k), value: v })
-    tokens.forEach(t => usedTokens.add(t))
-    if (picked.length >= max) break
+  // Rótulo para cluster sem grupo curado: pega o bigrama mais frequente entre
+  // seus samples; se não houver, pega a palavra mais "rara" (mais informativa).
+  const labelForCluster = c => {
+    const bigCounts = new Map()
+    const uniCounts = new Map()
+    c.samples.forEach(s => {
+      const words = normalizeText(s).split(" ").map(lemmatize).filter(w => w.length >= 4 && !PT_STOPWORDS.has(w))
+      const seenB = new Set()
+      for (let i = 0; i < words.length - 1; i++) {
+        const bg = words[i] + " " + words[i + 1]
+        if (seenB.has(bg)) continue
+        seenB.add(bg)
+        bigCounts.set(bg, (bigCounts.get(bg) || 0) + 1)
+      }
+      new Set(words).forEach(w => uniCounts.set(w, (uniCounts.get(w) || 0) + 1))
+    })
+    let best = null, bestC = 0
+    for (const [k, v] of bigCounts) if (v > bestC) { best = k; bestC = v }
+    if (best && bestC >= 1) return titleCase(best)
+    for (const [k, v] of uniCounts) if (v > bestC) { best = k; bestC = v }
+    return best ? titleCase(best) : "Outros"
   }
-  return picked
+
+  const out = []
+  for (const [label, entry] of groupCounts) {
+    out.push({ label, value: entry.value, samples: entry.samples })
+  }
+  for (const c of clusters) {
+    out.push({ label: labelForCluster(c), value: c.value, samples: c.samples })
+  }
+
+  return out
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+    .slice(0, max)
 }
 
 // ---------------- Geração do PDF ----------------
@@ -4259,6 +4695,8 @@ async function renderChartToImage(type, config, width = 700, height = 400) {
     canvas.style.position = "fixed"
     canvas.style.left = "-9999px"
     document.body.appendChild(canvas)
+    const plugins = []
+    if (window.ChartDataLabels) plugins.push(window.ChartDataLabels)
     const chart = new window.Chart(canvas, {
       type,
       data: config.data,
@@ -4266,8 +4704,10 @@ async function renderChartToImage(type, config, width = 700, height = 400) {
         ...config.options,
         responsive: false,
         animation: false,
-        devicePixelRatio: 2
-      }
+        devicePixelRatio: 2,
+        layout: { padding: { top: 24, right: 32, bottom: 8, left: 8, ...(config.options?.layout?.padding || {}) } }
+      },
+      plugins
     })
     // espera o desenho concluir
     setTimeout(() => {
@@ -4275,7 +4715,107 @@ async function renderChartToImage(type, config, width = 700, height = 400) {
       chart.destroy()
       canvas.remove()
       resolve(img)
-    }, 60)
+    }, 80)
+  })
+}
+
+// Carrega os ativos de marca da Escola de Governo (logos + gradient do
+// Modelo de Apresentação) como data URLs, prontos para uso em PPTX.
+let _brandAssetsCache = null
+async function loadBrandAssets() {
+  if (_brandAssetsCache) return _brandAssetsCache
+  const toDataUrl = async url => {
+    const r = await fetch(url)
+    const blob = await r.blob()
+    return await new Promise(res => {
+      const reader = new FileReader()
+      reader.onload = () => res(reader.result)
+      reader.readAsDataURL(blob)
+    })
+  }
+  const [egovLogo, comboLogo, brasao, hero] = await Promise.all([
+    toDataUrl("assets/img/marca/egov-logo.png"),
+    toDataUrl("assets/img/marca/egov-pl-combo.png"),
+    toDataUrl("assets/img/marca/pl-brasao.png"),
+    toDataUrl("assets/img/marca/hero-gradient.png")
+  ])
+  _brandAssetsCache = { egovLogo, comboLogo, brasao, hero }
+  return _brandAssetsCache
+}
+
+// Define o master institucional da EGov para slides PPTX. Pinta o gradient
+// verde→azul do Modelo de Apresentação no canto superior esquerdo, coloca o
+// brasão de Pedro Leopoldo no canto superior direito e um rodapé sutil com
+// número de página. Garante a identidade visual em todos os slides internos.
+function buildEgovPptxMaster(pptx, brand, rodape = "Relatório") {
+  pptx.defineSlideMaster({
+    title: "EGOV_MASTER",
+    background: { color: "FFFFFF" },
+    objects: [
+      // Faixa decorativa superior (gradient do Modelo)
+      { image: { x: 0, y: 0, w: 13.333, h: 0.55, data: brand.hero, sizing: { type: "cover", w: 13.333, h: 0.55 } } },
+      // Brasão de Pedro Leopoldo no canto direito do header
+      { image: { x: 12.45, y: 0.05, w: 0.78, h: 0.45, data: brand.brasao } },
+      // Texto institucional discreto no header
+      { text: { text: "Escola de Governo · Pedro Leopoldo", options: { x: 0.4, y: 0.05, w: 6, h: 0.45, fontFace: "Calibri", fontSize: 11, bold: true, color: "1B2A4E", valign: "middle" } } },
+      // Rodapé com nome do relatório
+      { rect: { x: 0, y: 7.18, w: 13.333, h: 0.32, fill: { color: "F5F8FB" } } },
+      { rect: { x: 0, y: 7.18, w: 13.333, h: 0.04, fill: { color: "4DAD33" } } },
+      { text: { text: rodape, options: { x: 0.4, y: 7.18, w: 6, h: 0.32, fontFace: "Calibri", fontSize: 9, color: "5A6B85", valign: "middle" } } },
+      { text: { text: "Prefeitura Municipal de Pedro Leopoldo", options: { x: 7, y: 7.18, w: 5.5, h: 0.32, fontFace: "Calibri", fontSize: 9, color: "5A6B85", valign: "middle", align: "right" } } }
+    ],
+    slideNumber: { x: 12.75, y: 7.18, w: 0.5, h: 0.32, fontFace: "Calibri", fontSize: 9, color: "5A6B85" }
+  })
+}
+
+// Cabeçalho padrão de slide interno: barra verde + título marinho.
+function egovSlideTitle(slide, text) {
+  slide.addShape("rect", { x: 0.7, y: 0.95, w: 0.16, h: 0.55, fill: { color: EGOV_BRAND.green } })
+  slide.addText(text, { x: 0.95, y: 0.9, w: 11.8, h: 0.65, fontFace: EGOV_BRAND.font, fontSize: 26, bold: true, color: EGOV_BRAND.navy })
+}
+
+// Paleta institucional Pedro Leopoldo / EGov (azul-marinho do brasão + verde
+// EGov + tons suaves do Modelo Apresentação)
+const EGOV_BRAND = {
+  navy: "1B2A4E",        // azul-marinho do brasão
+  navyLight: "243759",
+  green: "4DAD33",       // verde EGov
+  greenLight: "82C56F",
+  greenSoft: "DCEFD2",
+  blueSoft: "E6EEF7",
+  bgSoft: "F5F8FB",
+  text: "1B2A4E",
+  textMuted: "5A6B85",
+  white: "FFFFFF",
+  font: "Calibri"
+}
+
+// Paleta institucional do Modelo.docx (azuis Pedro Leopoldo)
+const MODELO_CHART = {
+  navy: "#1F3864",
+  blue: "#4472C4",
+  blueMid: "#5B9BD5",
+  blueLight: "#9DC3E6",
+  blueLighter: "#BDD7EE",
+  bgSoft: "#F7FAFD",
+  grid: "#E1E7EF",
+  text: "#1F3864",
+  textMuted: "#5A6B85",
+  font: "Calibri, 'Carlito', Arial, sans-serif"
+}
+
+// Devolve cores para barras "graded" — valores menores recebem tons mais claros,
+// valores maiores recebem azul-marinho, exatamente como no Modelo.
+function modeloGradedColors(values) {
+  if (!values.length) return []
+  const max = Math.max(...values)
+  return values.map(v => {
+    if (max <= 0) return MODELO_CHART.blueLight
+    const r = v / max
+    if (r >= 0.75) return MODELO_CHART.navy
+    if (r >= 0.5) return MODELO_CHART.blue
+    if (r >= 0.25) return MODELO_CHART.blueMid
+    return MODELO_CHART.blueLighter
   })
 }
 
@@ -4393,7 +4933,7 @@ async function generateSatisfacaoPdf() {
   y += 9
   justified(intro)
 
-  // Gráfico 1: participação no evento
+  // Gráfico 1: participação no evento (vertical bars, padrão Modelo)
   status.textContent = "Renderizando Gráfico 1..."
   const inscritos = s.participantes.totalInscritos
   const presentes = s.participantes.totalPresentes
@@ -4401,47 +4941,60 @@ async function generateSatisfacaoPdf() {
   const naoAdquiridos = cap - inscritos
   const taxaPresenca = ((presentes / inscritos) * 100).toFixed(1)
 
-  // Paleta padrão Excel (mesma família do PDF de referência)
-  const EXCEL = {
-    blue: "#4472C4",
-    orange: "#ED7D31",
-    gray: "#A5A5A5",
-    yellow: "#FFC000",
-    lightblue: "#5B9BD5",
-    green: "#70AD47",
-    darkblue: "#264478",
-    darkgreen: "#43682B"
-  }
-  const EXCEL_FONT = { family: "Calibri, 'Carlito', Arial, sans-serif" }
-
   const g1Img = await renderChartToImage(
-    "doughnut",
+    "bar",
     {
       data: {
-        labels: ["Presentes", "Ausentes", "Ingressos não adquiridos"],
+        labels: ["Ingressos Disponibilizados", "Ingressos Adquiridos", "Presentes"],
         datasets: [
           {
-            data: [presentes, ausentes, naoAdquiridos],
-            backgroundColor: [EXCEL.blue, EXCEL.orange, EXCEL.gray],
-            borderWidth: 2,
-            borderColor: "#fff"
+            data: [cap, inscritos, presentes],
+            backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueMid, MODELO_CHART.blueLighter],
+            borderWidth: 0,
+            barPercentage: 0.65,
+            categoryPercentage: 0.7
           }
         ]
       },
       options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted, precision: 0 },
+            grid: { color: MODELO_CHART.grid, drawBorder: false }
+          },
+          x: {
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text, maxRotation: 0, autoSkip: false },
+            grid: { display: false, drawBorder: false }
+          }
+        },
         plugins: {
-          legend: { position: "bottom", labels: { font: { size: 13, family: EXCEL_FONT.family }, color: "#000" } },
-          title: { display: true, text: "Gráfico 1 - Participação no evento", font: { size: 14, weight: "bold", family: EXCEL_FONT.family }, color: "#000" }
+          legend: { display: false },
+          title: {
+            display: true,
+            text: "Gráfico 1 - Participação no Evento",
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 16 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "top",
+            font: { weight: "bold", size: 14, family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            formatter: v => v
+          }
         }
       }
     },
-    700,
-    460
+    900,
+    520
   )
 
-  ensureSpace(110)
-  doc.addImage(g1Img, "PNG", M + 20, y, W - 40, 95)
-  y += 100
+  ensureSpace(120)
+  doc.addImage(g1Img, "PNG", M + 10, y, W - 20, 105)
+  y += 110
 
   justified(`O gráfico acima apresenta a consolidação das presenças confirmadas no evento.`)
   justified(
@@ -4468,39 +5021,65 @@ async function generateSatisfacaoPdf() {
     return lines.slice(0, 3)
   }
 
-  const palette = [EXCEL.blue, EXCEL.orange, EXCEL.gray, EXCEL.yellow, EXCEL.lightblue, EXCEL.green, EXCEL.darkblue, EXCEL.darkgreen]
+  const mediaValues = criterios.map(c => Number(c.media.toFixed(2)))
   const g2Img = await renderChartToImage(
     "bar",
     {
       data: {
-        labels: criterios.map(c => wrapLabel(c.label)),
+        labels: criterios.map(c => wrapLabel(c.label, 22)),
         datasets: [
           {
-            label: "Média (1 a 5)",
-            data: criterios.map(c => Number(c.media.toFixed(2))),
-            backgroundColor: criterios.map((_, i) => palette[i % palette.length]),
-            borderColor: "#fff",
-            borderWidth: 1
+            label: "Média (escala 1-5)",
+            data: mediaValues,
+            backgroundColor: modeloGradedColors(mediaValues),
+            borderWidth: 0,
+            barPercentage: 0.7,
+            categoryPercentage: 0.75
           }
         ]
       },
       options: {
+        indexAxis: "y",
         scales: {
-          y: { beginAtZero: true, max: 5, ticks: { stepSize: 1, font: { family: EXCEL_FONT.family } }, grid: { color: "#d9d9d9" } },
-          x: { ticks: { font: { family: EXCEL_FONT.family, size: 11 } }, grid: { display: false } }
+          x: {
+            beginAtZero: true,
+            max: 5,
+            title: { display: true, text: "Média (escala 1-5)", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { stepSize: 1, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+            grid: { color: MODELO_CHART.grid, drawBorder: false }
+          },
+          y: {
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text },
+            grid: { display: false, drawBorder: false }
+          }
         },
         plugins: {
           legend: { display: false },
-          title: { display: true, text: "Gráfico 2 - Médias das avaliações", font: { size: 14, weight: "bold", family: EXCEL_FONT.family }, color: "#000" }
+          title: {
+            display: true,
+            text: "Gráfico 2 - Médias das Avaliações",
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 16 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "end",
+            offset: 6,
+            font: { weight: "bold", size: 13, family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            formatter: v => Number(v).toFixed(2).replace(".", ",")
+          }
         }
       }
     },
-    700,
-    420
+    900,
+    Math.max(360, 90 + criterios.length * 60)
   )
-  ensureSpace(95)
-  doc.addImage(g2Img, "PNG", M, y, W, 85)
-  y += 90
+  const g2H = Math.min(120, 40 + criterios.length * 14)
+  ensureSpace(g2H + 8)
+  doc.addImage(g2Img, "PNG", M, y, W, g2H)
+  y += g2H + 6
 
   const respostas = s.pesquisa.respostas
   justified(
@@ -4536,8 +5115,10 @@ async function generateSatisfacaoPdf() {
   )
 
   // ===== PÁGINAS 3-5: análises qualitativas =====
-  const renderCategoryChart = async (titulo, cats, cor) => {
+  const renderCategoryChart = async (titulo, cats) => {
     if (!cats.length) return
+    const vals = cats.map(c => c.value)
+    const maxV = Math.max(...vals)
     const img = await renderChartToImage(
       "bar",
       {
@@ -4545,32 +5126,56 @@ async function generateSatisfacaoPdf() {
           labels: cats.map(c => c.label),
           datasets: [
             {
-              label: "Menções",
-              data: cats.map(c => c.value),
-              backgroundColor: cor,
-              borderColor: "#fff",
-              borderWidth: 1
+              label: "Nº de menções",
+              data: vals,
+              backgroundColor: modeloGradedColors(vals),
+              borderWidth: 0,
+              barPercentage: 0.72,
+              categoryPercentage: 0.78
             }
           ]
         },
         options: {
           indexAxis: "y",
           scales: {
-            x: { beginAtZero: true, ticks: { stepSize: 1, font: { family: EXCEL_FONT.family } }, grid: { color: "#d9d9d9" } },
-            y: { ticks: { font: { family: EXCEL_FONT.family, size: 11 } }, grid: { display: false } }
+            x: {
+              beginAtZero: true,
+              suggestedMax: maxV + 1,
+              title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+              ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+              grid: { color: MODELO_CHART.grid, drawBorder: false }
+            },
+            y: {
+              ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text },
+              grid: { display: false, drawBorder: false }
+            }
           },
           plugins: {
             legend: { display: false },
-            title: { display: true, text: titulo, font: { size: 14, weight: "bold", family: EXCEL_FONT.family }, color: "#000" }
+            title: {
+              display: true,
+              text: titulo,
+              font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              padding: { bottom: 16 }
+            },
+            datalabels: {
+              anchor: "end",
+              align: "end",
+              offset: 6,
+              font: { weight: "bold", size: 13, family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              formatter: v => v
+            }
           }
         }
       },
-      700,
-      80 + cats.length * 32
+      900,
+      Math.max(320, 100 + cats.length * 48)
     )
     newPage()
     ensureSpace(95)
-    const h = Math.min(140, 36 + cats.length * 11)
+    const h = Math.min(150, 44 + cats.length * 14)
     doc.addImage(img, "PNG", M, y, W, h)
     y += h + 4
   }
@@ -4581,7 +5186,7 @@ async function generateSatisfacaoPdf() {
   const cSugest = s.pesquisa.temas?.sugestoes || []
 
   if (cAltos.length) {
-    await renderCategoryChart("Gráfico 3 - Principais pontos altos", cAltos, EXCEL.blue)
+    await renderCategoryChart("Gráfico 3 - Principais Pontos Altos", cAltos)
     justified(
       `A análise qualitativa das respostas evidencia que os principais pontos altos do evento foram ${cAltos
         .slice(0, 2)
@@ -4590,7 +5195,7 @@ async function generateSatisfacaoPdf() {
     )
   }
   if (cMelhor.length) {
-    await renderCategoryChart("Gráfico 4 - O que pode ser melhorado?", cMelhor, EXCEL.orange)
+    await renderCategoryChart("Gráfico 4 - O que pode ser melhorado?", cMelhor)
     justified(
       `A principal oportunidade de melhoria identificada é ${cMelhor[0].label.toLowerCase()} (${cMelhor[0].value} ${cMelhor[0].value === 1 ? "menção" : "menções"}).`
     )
@@ -4600,7 +5205,7 @@ async function generateSatisfacaoPdf() {
     }
   }
   if (cSugest.length) {
-    await renderCategoryChart("Gráfico 5 - Sugestões de temas para as próximas ações", cSugest, EXCEL.lightblue)
+    await renderCategoryChart("Gráfico 5 - Sugestões de Temas para as Próximas Ações", cSugest)
     justified(
       `A análise das sugestões evidencia maior interesse em ${cSugest
         .slice(0, 2)
@@ -4748,45 +5353,57 @@ async function generateSatisfacaoDocx() {
   const destaque = s.pesquisa.recomendacao || criterios.reduce((a, b) => (a.media >= b.media ? a : b))
   const destPct = ((destaque.dist[5] / Math.max(destaque.dist.total, 1)) * 100).toFixed(1).replace(".", ",")
   const minMedia = Math.min(...criterios.map(c => c.media))
-  // Paleta padrão Excel (mesma família do PDF de referência)
-  const EXCEL = {
-    blue: "#4472C4",
-    orange: "#ED7D31",
-    gray: "#A5A5A5",
-    yellow: "#FFC000",
-    lightblue: "#5B9BD5",
-    green: "#70AD47",
-    darkblue: "#264478",
-    darkgreen: "#43682B"
-  }
-  const EXCEL_FONT_FAMILY = "Calibri, 'Carlito', Arial, sans-serif"
-  const palette = [EXCEL.blue, EXCEL.orange, EXCEL.gray, EXCEL.yellow, EXCEL.lightblue, EXCEL.green, EXCEL.darkblue, EXCEL.darkgreen]
-
-  // Renderiza Charts em PNG
+  // Renderiza Charts em PNG (paleta institucional do Modelo)
   status.textContent = "Renderizando Gráfico 1..."
   const g1 = await renderChartToImage(
-    "doughnut",
+    "bar",
     {
       data: {
-        labels: ["Presentes", "Ausentes", "Ingressos não adquiridos"],
+        labels: ["Ingressos Disponibilizados", "Ingressos Adquiridos", "Presentes"],
         datasets: [
           {
-            data: [presentes, ausentes, naoAdquiridos],
-            backgroundColor: [EXCEL.blue, EXCEL.orange, EXCEL.gray],
-            borderWidth: 2,
-            borderColor: "#fff"
+            data: [cap, inscritos, presentes],
+            backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueMid, MODELO_CHART.blueLighter],
+            borderWidth: 0,
+            barPercentage: 0.65,
+            categoryPercentage: 0.7
           }
         ]
       },
       options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted, precision: 0 },
+            grid: { color: MODELO_CHART.grid, drawBorder: false }
+          },
+          x: {
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text, maxRotation: 0, autoSkip: false },
+            grid: { display: false, drawBorder: false }
+          }
+        },
         plugins: {
-          legend: { position: "bottom", labels: { font: { size: 13, family: EXCEL_FONT_FAMILY }, color: "#000" } },
-          title: { display: true, text: "Gráfico 1 - Participação no evento", font: { size: 14, weight: "bold", family: EXCEL_FONT_FAMILY }, color: "#000" }
+          legend: { display: false },
+          title: {
+            display: true,
+            text: "Gráfico 1 - Participação no Evento",
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 16 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "top",
+            font: { weight: "bold", size: 14, family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            formatter: v => v
+          }
         }
       }
     },
-    700,
-    460
+    900,
+    520
   )
 
   status.textContent = "Renderizando Gráfico 2..."
@@ -4799,42 +5416,70 @@ async function generateSatisfacaoDocx() {
     })
     return lines.slice(0, 3)
   }
+  const mediaValuesDocx = criterios.map(c => Number(c.media.toFixed(2)))
   const g2 = await renderChartToImage(
     "bar",
     {
       data: {
-        labels: criterios.map(c => wrapLabel(c.label)),
+        labels: criterios.map(c => wrapLabel(c.label, 22)),
         datasets: [
           {
-            label: "Média (1 a 5)",
-            data: criterios.map(c => Number(c.media.toFixed(2))),
-            backgroundColor: criterios.map((_, i) => palette[i % palette.length]),
-            borderColor: "#fff",
-            borderWidth: 1
+            label: "Média (escala 1-5)",
+            data: mediaValuesDocx,
+            backgroundColor: modeloGradedColors(mediaValuesDocx),
+            borderWidth: 0,
+            barPercentage: 0.7,
+            categoryPercentage: 0.75
           }
         ]
       },
       options: {
+        indexAxis: "y",
         scales: {
-          y: { beginAtZero: true, max: 5, ticks: { stepSize: 1, font: { family: EXCEL_FONT_FAMILY } }, grid: { color: "#d9d9d9" } },
-          x: { ticks: { font: { family: EXCEL_FONT_FAMILY, size: 11 } }, grid: { display: false } }
+          x: {
+            beginAtZero: true,
+            max: 5,
+            title: { display: true, text: "Média (escala 1-5)", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { stepSize: 1, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+            grid: { color: MODELO_CHART.grid, drawBorder: false }
+          },
+          y: {
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text },
+            grid: { display: false, drawBorder: false }
+          }
         },
         plugins: {
           legend: { display: false },
-          title: { display: true, text: "Gráfico 2 - Médias das avaliações", font: { size: 14, weight: "bold", family: EXCEL_FONT_FAMILY }, color: "#000" }
+          title: {
+            display: true,
+            text: "Gráfico 2 - Médias das Avaliações",
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 16 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "end",
+            offset: 6,
+            font: { weight: "bold", size: 13, family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            formatter: v => Number(v).toFixed(2).replace(".", ",")
+          }
         }
       }
     },
-    700,
-    420
+    900,
+    Math.max(360, 90 + criterios.length * 60)
   )
 
   status.textContent = "Renderizando Gráficos 3-5..."
   const cAltos = s.pesquisa.temas?.altos || []
   const cMelhor = s.pesquisa.temas?.melhorias || []
   const cSugest = s.pesquisa.temas?.sugestoes || []
-  const renderCat = async (titulo, cats, cor) => {
+  const renderCat = async (titulo, cats) => {
     if (!cats.length) return null
+    const vals = cats.map(c => c.value)
+    const maxV = Math.max(...vals)
     return renderChartToImage(
       "bar",
       {
@@ -4842,33 +5487,57 @@ async function generateSatisfacaoDocx() {
           labels: cats.map(c => c.label),
           datasets: [
             {
-              label: "Menções",
-              data: cats.map(c => c.value),
-              backgroundColor: cor,
-              borderColor: "#fff",
-              borderWidth: 1
+              label: "Nº de menções",
+              data: vals,
+              backgroundColor: modeloGradedColors(vals),
+              borderWidth: 0,
+              barPercentage: 0.72,
+              categoryPercentage: 0.78
             }
           ]
         },
         options: {
           indexAxis: "y",
           scales: {
-            x: { beginAtZero: true, ticks: { stepSize: 1, font: { family: EXCEL_FONT_FAMILY } }, grid: { color: "#d9d9d9" } },
-            y: { ticks: { font: { family: EXCEL_FONT_FAMILY, size: 11 } }, grid: { display: false } }
+            x: {
+              beginAtZero: true,
+              suggestedMax: maxV + 1,
+              title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+              ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+              grid: { color: MODELO_CHART.grid, drawBorder: false }
+            },
+            y: {
+              ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text },
+              grid: { display: false, drawBorder: false }
+            }
           },
           plugins: {
             legend: { display: false },
-            title: { display: true, text: titulo, font: { size: 14, weight: "bold", family: EXCEL_FONT_FAMILY }, color: "#000" }
+            title: {
+              display: true,
+              text: titulo,
+              font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              padding: { bottom: 16 }
+            },
+            datalabels: {
+              anchor: "end",
+              align: "end",
+              offset: 6,
+              font: { weight: "bold", size: 13, family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              formatter: v => v
+            }
           }
         }
       },
-      700,
-      80 + cats.length * 32
+      900,
+      Math.max(320, 100 + cats.length * 48)
     )
   }
-  const g3 = await renderCat("Gráfico 3 - Principais pontos altos", cAltos, EXCEL.blue)
-  const g4 = await renderCat("Gráfico 4 - O que pode ser melhorado?", cMelhor, EXCEL.orange)
-  const g5 = await renderCat("Gráfico 5 - Sugestões de temas para as próximas ações", cSugest, EXCEL.lightblue)
+  const g3 = await renderCat("Gráfico 3 - Principais Pontos Altos", cAltos)
+  const g4 = await renderCat("Gráfico 4 - O que pode ser melhorado?", cMelhor)
+  const g5 = await renderCat("Gráfico 5 - Sugestões de Temas para as Próximas Ações", cSugest)
 
   status.textContent = "Montando documento Word..."
 
@@ -5127,4 +5796,202 @@ async function generateSatisfacaoDocx() {
 
   status.classList.add("is-success")
   status.textContent = `DOCX "${evento}" gerado!`
+}
+
+// ---------------- Geração do PPTX ----------------
+async function generateSatisfacaoPptx() {
+  const s = state.autoReport
+  const status = document.getElementById("arStatus")
+  status.className = "auto-report-status"
+  if (!s.participantes) { status.classList.add("is-error"); status.textContent = "Faça upload da planilha de participantes."; return }
+  if (!s.pesquisa) { status.classList.add("is-error"); status.textContent = "Faça upload da pesquisa de satisfação."; return }
+  if (!window.PptxGenJS) { status.classList.add("is-error"); status.textContent = "Biblioteca PptxGenJS não carregou. Recarregue a página."; return }
+  status.classList.remove("is-error")
+  status.textContent = "Gerando apresentação..."
+
+  const evento = s.participantes.evento
+  const data = s.participantes.data || ""
+  const local = s.participantes.local || ""
+  const cap = s.participantes.capacidade
+  const inscritos = s.participantes.totalInscritos
+  const presentes = s.participantes.totalPresentes
+  const ausentes = s.participantes.totalAusentes
+  const naoAdquiridos = cap - inscritos
+  const taxaPresenca = ((presentes / inscritos) * 100).toFixed(1).replace(".", ",")
+  const criterios = s.pesquisa.criterios || []
+  if (!criterios.length) { status.classList.add("is-error"); status.textContent = "Pesquisa sem critérios numéricos detectados."; return }
+  const respostas = s.pesquisa.respostas
+  const destaque = s.pesquisa.recomendacao || criterios.reduce((a, b) => (a.media >= b.media ? a : b))
+  const minMedia = Math.min(...criterios.map(c => c.media))
+  const cAltos = s.pesquisa.temas?.altos || []
+  const cMelhor = s.pesquisa.temas?.melhorias || []
+  const cSugest = s.pesquisa.temas?.sugestoes || []
+
+  // Renderiza charts em PNG
+  status.textContent = "Renderizando gráficos..."
+  const g1 = await renderChartToImage("bar", {
+    data: {
+      labels: ["Ingressos Disponibilizados", "Ingressos Adquiridos", "Presentes"],
+      datasets: [{ data: [cap, inscritos, presentes], backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueMid, MODELO_CHART.blueLighter], borderWidth: 0, barPercentage: 0.65, categoryPercentage: 0.7 }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted, precision: 0 }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
+        x: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text, maxRotation: 0, autoSkip: false }, grid: { display: false, drawBorder: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: "Participação no Evento", font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
+        datalabels: { anchor: "end", align: "top", font: { weight: "bold", size: 16, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+      }
+    }
+  }, 1200, 700)
+
+  const mediaVals = criterios.map(c => Number(c.media.toFixed(2)))
+  const wrapL = (txt, max = 22) => {
+    const w = txt.split(/\s+/); const ls = [""]
+    w.forEach(x => { if ((ls[ls.length - 1] + " " + x).trim().length > max) ls.push(x); else ls[ls.length - 1] = (ls[ls.length - 1] + " " + x).trim() })
+    return ls.slice(0, 3)
+  }
+  const g2 = await renderChartToImage("bar", {
+    data: { labels: criterios.map(c => wrapL(c.label)), datasets: [{ data: mediaVals, backgroundColor: modeloGradedColors(mediaVals), borderWidth: 0, barPercentage: 0.7, categoryPercentage: 0.75 }] },
+    options: {
+      indexAxis: "y",
+      scales: {
+        x: { beginAtZero: true, max: 5, title: { display: true, text: "Média (escala 1-5)", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { stepSize: 1, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
+        y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: "Médias das Avaliações", font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
+        datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 14, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => Number(v).toFixed(2).replace(".", ",") }
+      }
+    }
+  }, 1200, Math.max(500, 130 + criterios.length * 70))
+
+  const renderCatPpt = async (titulo, cats) => {
+    if (!cats.length) return null
+    const vals = cats.map(c => c.value)
+    return renderChartToImage("bar", {
+      data: { labels: cats.map(c => c.label), datasets: [{ data: vals, backgroundColor: modeloGradedColors(vals), borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.78 }] },
+      options: {
+        indexAxis: "y",
+        scales: {
+          x: { beginAtZero: true, suggestedMax: Math.max(...vals) + 1, title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
+          y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: titulo, font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
+          datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 14, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+        }
+      }
+    }, 1200, Math.max(500, 140 + cats.length * 60))
+  }
+  const g3 = await renderCatPpt("Principais Pontos Altos", cAltos)
+  const g4 = await renderCatPpt("O que pode ser melhorado?", cMelhor)
+  const g5 = await renderCatPpt("Sugestões de Temas para Próximas Ações", cSugest)
+
+  status.textContent = "Montando apresentação..."
+
+  const brand = await loadBrandAssets()
+  const pptx = new window.PptxGenJS()
+  pptx.layout = "LAYOUT_WIDE" // 13.333 x 7.5
+  pptx.author = "Escola de Governo · Pedro Leopoldo"
+  pptx.company = "Prefeitura Municipal de Pedro Leopoldo"
+  pptx.title = `Relatório de Satisfação · ${evento}`
+
+  buildEgovPptxMaster(pptx, brand, "Relatório de Satisfação")
+
+  // ===== Slide 1: capa institucional (gradient + logo EGov) =====
+  const s1 = pptx.addSlide()
+  s1.background = { color: EGOV_BRAND.white }
+  s1.addImage({ data: brand.hero, x: 0, y: 0, w: 13.333, h: 7.5, sizing: { type: "cover", w: 13.333, h: 7.5 } })
+  s1.addShape("rect", { x: 0, y: 0, w: 13.333, h: 7.5, fill: { color: EGOV_BRAND.white, transparency: 35 } })
+  s1.addImage({ data: brand.comboLogo, x: 4.3, y: 0.9, w: 4.7, h: 1.2 })
+  s1.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", { x: 1, y: 2.4, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, bold: true, color: EGOV_BRAND.navy, align: "center", charSpacing: 4 })
+  s1.addShape("line", { x: 5.4, y: 3.0, w: 2.5, h: 0, line: { color: EGOV_BRAND.green, width: 2 } })
+  s1.addText("Relatório de Satisfação", { x: 1, y: 3.2, w: 11.3, h: 1.1, fontFace: EGOV_BRAND.font, fontSize: 48, bold: true, color: EGOV_BRAND.navy, align: "center" })
+  s1.addText(evento, { x: 1, y: 4.5, w: 11.3, h: 1, fontFace: EGOV_BRAND.font, fontSize: 26, italic: true, color: EGOV_BRAND.text, align: "center" })
+  if (data) s1.addText(data, { x: 1, y: 5.7, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.textMuted, align: "center" })
+  if (local) s1.addText(local, { x: 1, y: 6.15, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, color: EGOV_BRAND.textMuted, align: "center" })
+
+  // ===== Slide 2: visão geral / KPIs =====
+  const s2 = pptx.addSlide({ masterName: "EGOV_MASTER" })
+  egovSlideTitle(s2, "Visão Geral")
+  const kpiBox = (slide, x, label, value, accent) => {
+    slide.addShape("roundRect", { x, y: 2.0, w: 2.8, h: 2.2, fill: { color: EGOV_BRAND.white }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.15 })
+    slide.addShape("rect", { x, y: 2.0, w: 2.8, h: 0.1, fill: { color: accent }, line: { color: accent, width: 0 } })
+    slide.addText(String(value), { x, y: 2.25, w: 2.8, h: 1.2, fontFace: EGOV_BRAND.font, fontSize: 52, bold: true, color: accent, align: "center" })
+    slide.addText(label, { x, y: 3.45, w: 2.8, h: 0.6, fontFace: EGOV_BRAND.font, fontSize: 15, color: EGOV_BRAND.textMuted, align: "center" })
+  }
+  kpiBox(s2, 0.7, "Inscritos", inscritos, EGOV_BRAND.navy)
+  kpiBox(s2, 3.7, "Presentes", presentes, EGOV_BRAND.green)
+  kpiBox(s2, 6.7, "Ausentes", ausentes, "C0392B")
+  kpiBox(s2, 9.7, "Taxa de presença", `${taxaPresenca}%`, EGOV_BRAND.navyLight)
+  s2.addText(`O evento foi avaliado por ${respostas} participantes através da pesquisa de satisfação.`, { x: 0.95, y: 5.5, w: 11.5, h: 0.6, fontFace: EGOV_BRAND.font, fontSize: 16, italic: true, color: EGOV_BRAND.text, align: "center" })
+
+  // ===== Slide 3: Gráfico 1 =====
+  const s3 = pptx.addSlide({ masterName: "EGOV_MASTER" })
+  egovSlideTitle(s3, "Participação no Evento")
+  s3.addImage({ data: g1, x: 1.2, y: 1.75, w: 11, h: 5.0 })
+
+  // ===== Slide 4: Gráfico 2 =====
+  const s4 = pptx.addSlide({ masterName: "EGOV_MASTER" })
+  egovSlideTitle(s4, "Médias das Avaliações")
+  s4.addImage({ data: g2, x: 1.2, y: 1.75, w: 11, h: 5.0 })
+
+  // ===== Slide 5: tabela Nota 4 / Nota 5 =====
+  const s5 = pptx.addSlide({ masterName: "EGOV_MASTER" })
+  egovSlideTitle(s5, "Distribuição de Notas Altas")
+  const tableRows = [[
+    { text: "Critério", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "left", fontFace: EGOV_BRAND.font, fontSize: 14 } },
+    { text: "Nota 4", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "center", fontFace: EGOV_BRAND.font, fontSize: 14 } },
+    { text: "Nota 5", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "center", fontFace: EGOV_BRAND.font, fontSize: 14 } }
+  ]]
+  criterios.forEach((c, i) => {
+    const tot = Math.max(c.dist.total, 1)
+    const p4 = c.dist[4] ? ` (${((c.dist[4]/tot)*100).toFixed(1).replace(".", ",")}%)` : ""
+    const p5 = c.dist[5] ? ` (${((c.dist[5]/tot)*100).toFixed(1).replace(".", ",")}%)` : ""
+    const bg = i % 2 === 0 ? EGOV_BRAND.white : EGOV_BRAND.bgSoft
+    tableRows.push([
+      { text: c.label, options: { fill: { color: bg }, color: EGOV_BRAND.text, fontFace: EGOV_BRAND.font, fontSize: 13 } },
+      { text: `${c.dist[4]}${p4}`, options: { fill: { color: bg }, color: EGOV_BRAND.text, align: "center", fontFace: EGOV_BRAND.font, fontSize: 13 } },
+      { text: `${c.dist[5]}${p5}`, options: { fill: { color: bg }, color: EGOV_BRAND.text, align: "center", fontFace: EGOV_BRAND.font, fontSize: 13 } }
+    ])
+  })
+  s5.addTable(tableRows, { x: 0.95, y: 1.75, w: 11.4, colW: [6.4, 2.5, 2.5], border: { type: "solid", color: EGOV_BRAND.blueSoft, pt: 0.5 } })
+
+  // ===== Slides 6-8: análises qualitativas =====
+  const addChartSlide = (titulo, img, narrativa) => {
+    if (!img) return
+    const slide = pptx.addSlide({ masterName: "EGOV_MASTER" })
+    egovSlideTitle(slide, titulo)
+    slide.addImage({ data: img, x: 0.95, y: 1.7, w: 8.5, h: 5.1 })
+    slide.addShape("roundRect", { x: 9.65, y: 1.7, w: 3.15, h: 5.1, fill: { color: EGOV_BRAND.bgSoft }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.1 })
+    slide.addText(narrativa, { x: 9.85, y: 1.85, w: 2.8, h: 4.9, fontFace: EGOV_BRAND.font, fontSize: 13, color: EGOV_BRAND.text, valign: "top" })
+  }
+  if (g3) addChartSlide("Principais Pontos Altos", g3, `Os participantes destacaram ${cAltos.slice(0, 2).map(c => `${c.label} (${c.value} ${c.value === 1 ? "menção" : "menções"})`).join(" e ")} como os pontos altos do evento.`)
+  if (g4) addChartSlide("Oportunidades de Melhoria", g4, `A principal sugestão de melhoria foi ${cMelhor[0].label.toLowerCase()} (${cMelhor[0].value} ${cMelhor[0].value === 1 ? "menção" : "menções"}).`)
+  if (g5) addChartSlide("Sugestões para Próximas Ações", g5, `Há interesse predominante em ${cSugest.slice(0, 2).map(c => c.label).join(" e ")} como temas para futuras capacitações.`)
+
+  // ===== Slide final: conclusão =====
+  const sN = pptx.addSlide({ masterName: "EGOV_MASTER" })
+  egovSlideTitle(sN, "Conclusão")
+  sN.addShape("roundRect", { x: 0.95, y: 1.75, w: 11.4, h: 4.8, fill: { color: EGOV_BRAND.bgSoft }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.15 })
+  sN.addShape("rect", { x: 0.95, y: 1.75, w: 0.12, h: 4.8, fill: { color: EGOV_BRAND.green } })
+  const txt = [
+    { text: `O evento "${evento}" alcançou ${taxaPresenca}% de presença e médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala 1 a 5).`, options: { fontFace: EGOV_BRAND.font, fontSize: 18, color: EGOV_BRAND.text } },
+    { text: "\n\n", options: {} },
+    { text: `O critério "${destaque.label}" obteve o maior reconhecimento do público, consolidando a percepção positiva da iniciativa.`, options: { fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.text, italic: true } },
+    { text: "\n\n", options: {} },
+    { text: "Recomenda-se a continuidade e institucionalização desta linha de capacitação como ação estratégica da Escola de Governo.", options: { fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.navy, bold: true } }
+  ]
+  sN.addText(txt, { x: 1.4, y: 2.05, w: 10.5, h: 4, valign: "top" })
+
+  const slug = (evento || "evento").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  await pptx.writeFile({ fileName: `Relatorio Satisfacao - ${slug}.pptx` })
+
+  status.classList.add("is-success")
+  status.textContent = `PPTX "${evento}" gerado!`
 }

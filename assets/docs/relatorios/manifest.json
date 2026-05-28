@@ -1,7 +1,12 @@
 {
-  "geradoEm": "2026-05-27T21:07:10.785Z",
+  "geradoEm": "2026-05-28T18:58:37.826Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "planilhas": [
+    {
+      "id": "ciclo-de-debates-pl-por-elas",
+      "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx",
+      "titulo": "Ciclo de Debates PL por Elas"
+    },
     {
       "id": "workshop-sei-usar",
       "arquivo": "workshop-sei-2026-04/participantes.xlsx",
@@ -9,28 +14,33 @@
     },
     {
       "id": "comissao-recursal-1-turma-2026-05",
-      "arquivo": "comissao-recursal-2026-05/t1.xlsx",
+      "arquivo": "comissao-recursal-2026-05/turma 1/participantes.xlsx",
       "titulo": "Formação para Membros da Comissão Recursal - 1ª turma"
     },
     {
       "id": "fundamentos-da-gestao-publica",
-      "arquivo": "fundamentos-gestao-publica-2026-05/participantes.xlsx",
+      "arquivo": "fundamentos-gestao-publica-2026-05/turma 1/participantes.xlsx",
       "titulo": "Fundamentos da Gestão Pública"
     },
     {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",
-      "arquivo": "mapa-gerenciamento-risco-2026-05/t1.xlsx",
+      "arquivo": "mapa-gerenciamento-risco-2026-05/turma 1/participantes.xlsx",
       "titulo": "Elaboração do Mapa de Gerenciamento de Risco - 1ª turma"
     },
     {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-2-turma",
-      "arquivo": "mapa-gerenciamento-risco-2026-05/t2.xlsx",
+      "arquivo": "mapa-gerenciamento-risco-2026-05/turma 2/participantes.xlsx",
       "titulo": "Elaboração do Mapa de Gerenciamento de Risco - 2ª turma"
     },
     {
       "id": "comunicacao-que-aproxima",
       "arquivo": "comunicacao-que-aproxima-2026-05/participantes.xlsx",
       "titulo": "Comunicação que aproxima: O papel do servidor na construção da confiança pública"
+    },
+    {
+      "id": "gestao-para-resultados",
+      "arquivo": "gestao-para-resultados-2026-05/turma 1/participantes.xlsx",
+      "titulo": "Gestão Pública para Resultados"
     }
   ]
 }

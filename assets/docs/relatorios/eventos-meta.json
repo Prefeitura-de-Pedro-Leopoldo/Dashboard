@@ -13,7 +13,7 @@
       "vagas": 80,
       "grupo": null
     },
-    "comissao-recursal-2026-05/t1.xlsx": {
+    "comissao-recursal-2026-05/turma 1/participantes.xlsx": {
       "id": "comissao-recursal-1-turma-2026-05",
       "title": "Formação para Membros da Comissão Recursal - 1ª Turma",
       "tituloCurto": "Formação para Membros da Comissão Recursal - 1ª turma",
@@ -25,7 +25,7 @@
       "vagas": 4,
       "grupo": null
     },
-    "fundamentos-gestao-publica-2026-05/participantes.xlsx": {
+    "fundamentos-gestao-publica-2026-05/turma 1/participantes.xlsx": {
       "id": "fundamentos-da-gestao-publica",
       "title": "Fundamentos da Gestão Pública",
       "tituloCurto": "Fundamentos da Gestão Pública",
@@ -41,7 +41,7 @@
       ],
       "grupo": null
     },
-    "mapa-gerenciamento-risco-2026-05/t1.xlsx": {
+    "mapa-gerenciamento-risco-2026-05/turma 1/participantes.xlsx": {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",
       "title": "Elaboração do Mapa de Gerenciamento de Risco 1ª TURMA",
       "tituloCurto": "Elaboração do Mapa de Gerenciamento de Risco - 1ª turma",
@@ -58,7 +58,7 @@
         "modulo": null
       }
     },
-    "mapa-gerenciamento-risco-2026-05/t2.xlsx": {
+    "mapa-gerenciamento-risco-2026-05/turma 2/participantes.xlsx": {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-2-turma",
       "title": "Elaboração do Mapa de Gerenciamento de Risco 2ª TURMA",
       "tituloCurto": "Elaboração do Mapa de Gerenciamento de Risco - 2ª turma",
@@ -85,6 +85,30 @@
       "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
       "city": "Pedro Leopoldo",
       "vagas": 40,
+      "grupo": null
+    },
+    "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx": {
+      "id": "ciclo-de-debates-pl-por-elas",
+      "title": "Ciclo de Debates PL por Elas",
+      "tituloCurto": "Ciclo de Debates PL por Elas",
+      "date": "2026-04-13",
+      "dateRaw": "Data: 13/04/2026 14h - 17h30",
+      "time": "14h",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
+      "city": "Pedro Leopoldo",
+      "vagas": 40,
+      "grupo": null
+    },
+    "gestao-para-resultados-2026-05/turma 1/participantes.xlsx": {
+      "id": "gestao-para-resultados",
+      "title": "Gestão Pública para Resultados",
+      "tituloCurto": "Gestão Pública para Resultados",
+      "date": "2026-05-28",
+      "dateRaw": "Data: 28/05/2026 09h",
+      "time": "09h",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
+      "city": "Pedro Leopoldo",
+      "vagas": 50,
       "grupo": null
     }
   }

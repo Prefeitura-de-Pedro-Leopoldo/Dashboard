@@ -20,22 +20,120 @@ const COLUNAS_ESPERADAS = [
   "check-in", "data de inscrição", "data de check-in",
 ];
 
+// Mapa de normalização de Secretarias. As chaves são fragmentos buscados
+// no texto normalizado (sem acentos, minúsculo, contains) — a primeira chave
+// que bater define a Secretaria canônica.
+//
+// Ordem importa: chaves mais específicas devem vir ANTES das genéricas
+// (ex.: "vice" antes de "gabinete"; "chefia de gabinete" antes de "gabinete").
 const SECRETARIA_MAP = [
-  [["educacao"], "Secretaria Municipal de Educação"],
-  [["saude"], "Secretaria Municipal de Saúde"],
-  [["gestao e financas", "gestao e administracao", "transformacao digital", "saga"],
-    "Secretaria Municipal de Gestão e Finanças"],
-  [["desenvolvimento economico"], "Secretaria Municipal de Desenvolvimento Econômico"],
-  [["desenvolvimento social"], "Secretaria Municipal de Desenvolvimento Social"],
-  [["bem estar", "bem-estar"], "Secretaria Municipal de Bem Estar"],
-  [["meio ambiente"], "Secretaria Municipal de Meio Ambiente"],
-  [["seguranca"], "Secretaria Municipal de Segurança Pública"],
-  [["obras"], "Secretaria Municipal de Obras"],
-  [["controladoria"], "Controladoria Geral do Município"],
-  [["vice"], "Gabinete do Vice-Prefeito"],
-  [["gabinete do prefeito"], "Gabinete do Prefeito"],
+  // ===== Gabinete / Vice / Chefia =====
+  [["vice-prefeito", "vice prefeito", "gabinete do vice"], "Gabinete do Vice-Prefeito"],
   [["chefia de gabinete"], "Chefia de Gabinete"],
-  [["governo"], "Secretaria Municipal de Governo"],
+  [["gabinete do prefeito", "gabinete prefeito"], "Gabinete do Prefeito"],
+
+  // ===== Governo (inclui assessoria executiva, SATD, comunicação institucional) =====
+  [
+    [
+      " governo ", "secretaria de governo", "secretaria municipal de governo", "smg",
+      "assessoria executiva", "ase ", " ase", "ase,", "satd",
+      "comunicacao institucional", "comunicacao social"
+    ],
+    "Secretaria Municipal de Governo"
+  ],
+
+  // ===== Controladoria =====
+  [["controladoria", "cgm", "auditoria interna"], "Controladoria Geral do Município"],
+
+  // ===== Gestão e Finanças (SMGF / DIRGEP / Patrimônio / Protocolo / Receitas) =====
+  [
+    [
+      "gestao e financas", "gestao e administracao", "gestao financas",
+      "gertao e financas", "smgf", "gefin", "saga", "transformacao digital",
+      "dirgep", "dirgerp", "digerp", "diretoria de gestao de pessoas",
+      "diretoria de pessoas", "dca ",
+      "arquivo e patrimonio", "patrimonio", "almoxarifado",
+      "protocolo", "compras", "licitacao", "pregao",
+      "tributos", "tributaria", "divida ativa", "cadastro de imoveis",
+      "iptu", "receita municipal", "tesouraria", "contabilidade",
+      "tecnologia da informacao", " ti "
+    ],
+    "Secretaria Municipal de Gestão e Finanças"
+  ],
+
+  // ===== Educação =====
+  [
+    [
+      "educacao", "smed", "escola municipal", "creche", "cmei",
+      "ensino fundamental", "ensino infantil"
+    ],
+    "Secretaria Municipal de Educação"
+  ],
+
+  // ===== Saúde (todas as unidades: HMFG, PA, CAPS, ESF, UBS, vigilância) =====
+  [
+    [
+      "saude", "saúde", "sms ", "ses", "secretaria municipal de saude",
+      "hospital municipal", "hmfg", "francisco goncal",
+      "pa central", "pa lagoa", "pronto atendimento", "pronto-atendimento",
+      "caps ", "centro de atencao psicossocial",
+      "esf ", "estrategia saude da familia",
+      "ubs ", "unidade basica de saude", "posto de saude",
+      "vigilancia em saude", "vigilancia sanitaria", "vigilancia epidemiologica",
+      "samu", "siate", "farmacia municipal", "cemai", "epidemiologia",
+      "saude mental", "secretaria de saude"
+    ],
+    "Secretaria Municipal de Saúde"
+  ],
+
+  // ===== Desenvolvimento Social (CRAS, CREAS, Casa da Cidadania) =====
+  [
+    [
+      "desenvolvimento social", "smds", "assistencia social",
+      "cras", "creas", "centro pop", "casa da cidadania",
+      "abrigo institucional", "conselho tutelar"
+    ],
+    "Secretaria Municipal de Desenvolvimento Social"
+  ],
+
+  // ===== Desenvolvimento Econômico =====
+  [
+    [
+      "desenvolvimento economico", "smde", "agricultura", "turismo",
+      "trabalho e renda", "industria e comercio"
+    ],
+    "Secretaria Municipal de Desenvolvimento Econômico"
+  ],
+
+  // ===== Bem Estar (Esporte, Cultura, Lazer, Juventude) =====
+  [
+    [
+      "bem estar", "bem-estar", "esporte", "esportes", "lazer",
+      "juventude", "cultura", "biblioteca municipal", "teatro municipal"
+    ],
+    "Secretaria Municipal de Bem Estar"
+  ],
+
+  // ===== Meio Ambiente =====
+  [["meio ambiente", "smma"], "Secretaria Municipal de Meio Ambiente"],
+
+  // ===== Obras e Serviços Públicos =====
+  [
+    [
+      "obras", "servicos publicos", "limpeza urbana", "iluminacao publica",
+      "manutencao urbana", "engenharia"
+    ],
+    "Secretaria Municipal de Obras"
+  ],
+
+  // ===== Segurança Pública =====
+  [
+    [
+      "seguranca publica", "seguranca", "guarda municipal", "defesa civil",
+      "transito", "trânsito"
+    ],
+    "Secretaria Municipal de Segurança Pública"
+  ],
 ];
 
 const stripAccents = (s) =>
@@ -47,15 +145,36 @@ const slugify = (s) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
 
-function normalizeSecretaria(raw) {
-  if (!raw) return null;
-  const s = String(raw).trim().replace(/\s*\([^)]*\)\s*$/, "").trim();
+// Tenta encaixar uma string única em uma das Secretarias canônicas.
+function matchSecretariaCanon(value) {
+  if (!value) return null;
+  const s = String(value).trim().replace(/\s*\([^)]*\)\s*$/, "").trim();
   if (!s) return null;
-  const key = stripAccents(s).toLowerCase();
+  // padding com espaços para que chaves curtas como " ase " / " ti " só batam
+  // como palavra isolada (evita "ti" pegar "assistente", por exemplo).
+  const key = " " + stripAccents(s).toLowerCase().replace(/\s+/g, " ") + " ";
   for (const [chaves, canon] of SECRETARIA_MAP) {
     if (chaves.some((c) => key.includes(c))) return canon;
   }
-  return s.replace(/\S+/g, (w) =>
+  return null;
+}
+
+// Normaliza Secretaria. Aceita opcionalmente a Lotação como fallback —
+// útil quando a coluna Secretaria está vazia ou contém só uma sigla local
+// ("CGM", "GEFIN", "SATD") e a Lotação ("Caps Livremente", "PA Central",
+// "DIRGEP") revela a Secretaria real. Estratégia:
+//   1. Tenta casar Secretaria com o mapa canônico.
+//   2. Se não casar, tenta casar Lotação com o mapa canônico.
+//   3. Se nenhuma casar, devolve a Secretaria em Title Case (ou Lotação,
+//      ou null) para o relatório de inconsistências.
+function normalizeSecretaria(secretaria, lotacao) {
+  const canonSec = matchSecretariaCanon(secretaria);
+  if (canonSec) return canonSec;
+  const canonLot = matchSecretariaCanon(lotacao);
+  if (canonLot) return canonLot;
+  const raw = (secretaria && String(secretaria).trim()) || (lotacao && String(lotacao).trim()) || "";
+  if (!raw) return null;
+  return raw.replace(/\S+/g, (w) =>
     w.length > 2 ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()
   );
 }
@@ -135,7 +254,8 @@ function mapHeader(headerRow) {
     nome:        find("nome completo", "nome"),
     sobrenome:   find("sobrenome"),
     email:       find("e-mail", "email"),
-    secretaria:  find("secretaria", "lotacao", "lotação"),
+    secretaria:  find("secretaria"),
+    lotacao:     find("lotacao", "lotação", "setor", "departamento"),
     cargo:       find("cargo/funcao", "cargo/função", "cargo", "funcao", "função"),
     matricula:   find("matricula", "matrícula"),
     turma:       find("tipo de ingresso", "turma"),
@@ -156,10 +276,29 @@ function isLinhaRodape(nome) {
          n.includes("horário de brasília") || n.includes("horario de brasilia");
 }
 
+// Alguns exports (notavelmente do LibreOffice) gravam um `dimension ref`
+// truncado — só a primeira coluna —, o que faz o SheetJS ignorar todas as
+// outras. Recalcula o range a partir das células reais para recuperar os dados.
+function fixSheetRange(sheet) {
+  if (!sheet || !sheet["!ref"]) return;
+  let maxCol = 0, maxRow = 0;
+  for (const k of Object.keys(sheet)) {
+    if (k.startsWith("!")) continue;
+    const a = XLSX.utils.decode_cell(k);
+    if (a.c > maxCol) maxCol = a.c;
+    if (a.r > maxRow) maxRow = a.r;
+  }
+  const declared = XLSX.utils.decode_range(sheet["!ref"]);
+  if (maxCol > declared.e.c || maxRow > declared.e.r) {
+    sheet["!ref"] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: maxCol, r: maxRow } });
+  }
+}
+
 function parsePlanilha(filePath) {
   const wb = XLSX.readFile(filePath, { cellDates: true });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) throw new Error("Planilha sem aba.");
+  fixSheetRange(sheet);
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
   const headerIdx = detectHeaderRow(rows);
   if (headerIdx < 0) {
@@ -205,7 +344,13 @@ function parsePlanilha(filePath) {
       nome,
       email: cols.email >= 0 ? String(r[cols.email] ?? "").trim() || null : null,
       turma: cols.turma >= 0 ? (String(r[cols.turma] ?? "").trim() || null) : null,
-      secretaria: cols.secretaria >= 0 ? normalizeSecretaria(r[cols.secretaria]) : null,
+      secretaria: normalizeSecretaria(
+        cols.secretaria >= 0 ? r[cols.secretaria] : null,
+        cols.lotacao    >= 0 ? r[cols.lotacao]    : null
+      ),
+      // Lotação preservada como veio na planilha — pode revelar a unidade real
+      // (PA Central, CAPS, DIRGEP, etc.) e ser útil para análises futuras.
+      lotacao: cols.lotacao >= 0 ? (String(r[cols.lotacao] ?? "").trim() || null) : null,
       cargo: cols.cargo >= 0 ? (String(r[cols.cargo] ?? "").trim() || null) : null,
       matricula: cols.matricula >= 0 ? (String(r[cols.matricula] ?? "").trim() || null) : null,
       pagamento: null,
@@ -375,8 +520,9 @@ function buildResumo(eventos) {
 function listarPlanilhas(dir) {
   // Varre recursivamente o diretório de relatórios e devolve caminhos
   // relativos a `dir` (com separador "/") para todo .xlsx de participantes.
-  // Ignora _originais/ e arquivos cujo basename comece com "satisfacao",
-  // "pesquisa" ou "~$" (lock files do Excel).
+  // Ignora _originais/ e arquivos de pesquisa/satisfação (qualquer grafia,
+  // com ou sem acento) e lock files do Excel.
+  const normalize = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const resultado = [];
   const walk = (sub) => {
     const full = path.join(dir, sub);
@@ -385,7 +531,7 @@ function listarPlanilhas(dir) {
       const rel = sub ? `${sub}/${ent.name}` : ent.name;
       if (ent.isDirectory()) { walk(rel); continue; }
       if (!ent.name.toLowerCase().endsWith(".xlsx")) continue;
-      const base = ent.name.toLowerCase();
+      const base = normalize(ent.name);
       if (base.startsWith("~$")) continue;
       if (base.startsWith("satisfacao") || base.startsWith("pesquisa")) continue;
       resultado.push(rel.replace(/\\/g, "/"));
@@ -421,6 +567,12 @@ function main() {
       eventos.push(buildEvento(arquivo, eventoMeta, participantes));
       console.log(`[build-data] ✓ ${arquivo} → ${participantes.length} participantes (${eventoMeta.id})`);
     } catch (err) {
+      // Cabeçalho não reconhecido = arquivo não é lista de participantes
+      // (ex.: export de Google Forms). Pula com aviso, não trava o build.
+      if (/Cabeçalho não reconhecido/.test(err.message)) {
+        console.warn(`[build-data] ⚠ Pulando "${arquivo}": ${err.message}`);
+        continue;
+      }
       erros.push(`${arquivo}: ${err.message}`);
       console.error(`[build-data] ✗ ${arquivo}: ${err.message}`);
     }
