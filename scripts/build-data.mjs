@@ -1,11 +1,10 @@
-#!/usr/bin/env node
 // Build: lê todas as planilhas .xlsx em assets/docs/relatorios/, padroniza,
 // e gera eventos-data.json (raiz) + manifest.json (relatorios/).
 // Roda em `npm run build` e no Vercel.
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import XLSX from "xlsx";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -139,7 +138,7 @@ const SECRETARIA_MAP = [
 const stripAccents = (s) =>
   String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-const slugify = (s) =>
+export const slugify = (s) =>
   stripAccents(s).toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
@@ -296,6 +295,10 @@ function fixSheetRange(sheet) {
 
 function parsePlanilha(filePath) {
   const wb = XLSX.readFile(filePath, { cellDates: true });
+  return parsePlanilhaFromWorkbook(wb);
+}
+
+export function parsePlanilhaFromWorkbook(wb) {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) throw new Error("Planilha sem aba.");
   fixSheetRange(sheet);
@@ -367,7 +370,7 @@ function parsePlanilha(filePath) {
   return participantes;
 }
 
-function buildEvento(arquivo, meta, participantes) {
+export function buildEvento(arquivo, meta, participantes) {
   const totalInscritos = participantes.length;
   const presentes = participantes.filter((p) => p.presente);
   const totalPresentes = presentes.length;
@@ -480,7 +483,7 @@ function buildEvento(arquivo, meta, participantes) {
   };
 }
 
-function buildResumo(eventos) {
+export function buildResumo(eventos) {
   const totalEventos = eventos.length;
   const eventosRealizados = eventos.filter((e) => e.status === "realizado").length;
   const eventosAgendados = totalEventos - eventosRealizados;
@@ -612,4 +615,8 @@ function main() {
   console.log(`[build-data] manifest.json escrito (${manifest.planilhas.length} planilhas).`);
 }
 
-main();
+// Só roda o build quando executado diretamente (node scripts/build-data.mjs),
+// não quando importado por api/eventos.js.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

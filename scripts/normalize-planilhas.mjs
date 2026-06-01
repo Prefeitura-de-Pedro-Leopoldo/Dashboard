@@ -29,7 +29,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import XLSX from "xlsx";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -241,6 +241,10 @@ function isLinhaRodape(nome) {
 // ---------- Extração de registros do arquivo de origem ----------
 function extractRegistros(filePath) {
   const wb = XLSX.readFile(filePath, { cellDates: true });
+  return extractRegistrosFromWorkbook(wb);
+}
+
+export function extractRegistrosFromWorkbook(wb) {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) throw new Error("Planilha sem aba.");
   fixSheetRange(sheet);
@@ -295,7 +299,7 @@ function extractRegistros(filePath) {
 }
 
 // ---------- Montagem do output ----------
-function buildSchemaA(regs, sourceHasModulos) {
+export function buildSchemaA(regs, sourceHasModulos) {
   // Se a fonte só tem Check-in simples mas o evento exige Schema A, propaga
   // o Check-in único para M1 = M2 = Apto.
   return [
@@ -315,7 +319,7 @@ function buildSchemaA(regs, sourceHasModulos) {
   ];
 }
 
-function buildSchemaB(regs, sourceHasModulos) {
+export function buildSchemaB(regs, sourceHasModulos) {
   return [
     HEADER_B.slice(),
     ...regs.map((p) => {
@@ -400,4 +404,7 @@ function main() {
   console.log(`[normalize-planilhas] Concluído: ${ok} normalizadas, ${fail} puladas.`);
 }
 
-main();
+// Só roda quando executado diretamente, não quando importado por api/eventos.js.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

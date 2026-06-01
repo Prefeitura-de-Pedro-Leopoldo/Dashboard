@@ -16,6 +16,11 @@
  * Aba `Palestrantes` (linha 1 = cabecalho):
  *   A ID | B Nome | C Eixos | D CursoId | E CursoTitulo | F MiniBio
  *   G FotoFileId | H CriadoEm | I AtualizadoEm | J Status | K Origem
+ *   L Foto (smart chip clicavel / link para o arquivo no Drive)
+ *
+ * Para o "Foto" virar um smart chip com preview, habilite o servico avancado
+ * "Google Sheets API" no projeto (Editor -> Servicos (+) -> Google Sheets API).
+ * Sem o servico, vira um HYPERLINK clicavel "Ver foto" (tambem funciona).
  *
  * Aba `Convites`:
  *   A Token | B Status | C CriadoEm | D UsadoEm | E PalestranteId
@@ -50,10 +55,11 @@ const COL = {
   ATUALIZADO_EM: 9,
   STATUS:        10,
   ORIGEM:        11,
+  FOTO:          12,
 };
 const HEADER = [
   'ID', 'Nome', 'Eixos', 'CursoId', 'CursoTitulo', 'MiniBio',
-  'FotoFileId', 'CriadoEm', 'AtualizadoEm', 'Status', 'Origem',
+  'FotoFileId', 'CriadoEm', 'AtualizadoEm', 'Status', 'Origem', 'Foto',
 ];
 
 // Colunas da aba Convites (1-based).
@@ -166,6 +172,7 @@ function _update(payload) {
   sheet.getRange(linha, COL.MINIBIO).setValue(dados.miniBio);
   sheet.getRange(linha, COL.FOTO_FILE_ID).setValue(fotoFileId);
   sheet.getRange(linha, COL.ATUALIZADO_EM).setValue(new Date());
+  _marcarFoto(sheet, linha, fotoFileId);
 
   const row = sheet.getRange(linha, 1, 1, HEADER.length).getValues()[0];
   return { ok: true, palestrante: _linhaParaObjeto(row) };
@@ -203,6 +210,8 @@ function _inserirPalestrante(dados, payload, origem) {
     dados.miniBio, fotoFileId, agora, agora, STATUS_ATIVO, origem,
   ];
   sheet.appendRow(row);
+  // Coluna "Foto": smart chip / link clicavel para o arquivo no Drive.
+  _marcarFoto(sheet, sheet.getLastRow(), fotoFileId);
   return row;
 }
 
@@ -342,6 +351,57 @@ function _descartarArquivo(fileId) {
   catch (err) { Logger.log('Falha ao descartar ' + fileId + ': ' + (err && err.message)); }
 }
 
+/**
+ * Marca a coluna "Foto" como um Smart Chip clicavel apontando para o arquivo
+ * da foto no Drive (com preview). Se o servico avancado "Google Sheets API"
+ * nao estiver habilitado, cai num HYPERLINK clicavel "Ver foto".
+ * A coluna FotoFileId continua guardando o ID puro (o sistema le de la).
+ */
+function _marcarFoto(sheet, linha, fileId) {
+  const cel = sheet.getRange(linha, COL.FOTO);
+  if (!fileId) { cel.clearContent(); return; }
+
+  let url = 'https://drive.google.com/file/d/' + fileId + '/view';
+  let mime = 'image/jpeg';
+  try {
+    const f = DriveApp.getFileById(fileId);
+    url = f.getUrl();
+    mime = f.getMimeType() || mime;
+  } catch (e) {}
+
+  // Tenta o Smart Chip (precisa do servico avancado "Google Sheets API").
+  try {
+    const ss = sheet.getParent();
+    Sheets.Spreadsheets.batchUpdate({
+      requests: [{
+        updateCells: {
+          range: {
+            sheetId: sheet.getSheetId(),
+            startRowIndex: linha - 1,
+            endRowIndex: linha,
+            startColumnIndex: COL.FOTO - 1,
+            endColumnIndex: COL.FOTO,
+          },
+          rows: [{
+            values: [{
+              userEnteredValue: { stringValue: '@' },
+              chipRuns: [{
+                startIndex: 0,
+                chip: { richLinkProperties: { uri: url, mimeType: mime } },
+              }],
+            }],
+          }],
+          fields: 'userEnteredValue,chipRuns',
+        },
+      }],
+    }, ss.getId());
+  } catch (err) {
+    // Fallback universal (sem servico avancado): link clicavel.
+    cel.setFormula('=HYPERLINK("' + url + '","Ver foto")');
+    Logger.log('Smart chip da foto falhou, usei HYPERLINK. Detalhe: ' + (err && err.message));
+  }
+}
+
 function _encontrarLinha(sheet, id) {
   const n = sheet.getLastRow();
   if (n < 2) return -1;
@@ -397,6 +457,15 @@ function _obterAba(nome, header) {
   } else if (sheet.getLastRow() === 0) {
     sheet.appendRow(header);
     sheet.setFrozenRows(1);
+  } else {
+    // Garante o cabecalho completo em planilhas ja existentes (ex.: a nova
+    // coluna "Foto"). So reescreve se algo diferir.
+    const atual = sheet.getRange(1, 1, 1, header.length).getValues()[0];
+    let difere = false;
+    for (let i = 0; i < header.length; i++) {
+      if (String(atual[i] || '').trim() !== header[i]) { difere = true; break; }
+    }
+    if (difere) sheet.getRange(1, 1, 1, header.length).setValues([header]);
   }
   return sheet;
 }

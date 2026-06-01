@@ -4,14 +4,34 @@
  * exclusivamente os .xlsx em docs/eventos/).
  */
 
-const DATA_URL = "eventos-data.json";
+// Fonte primária: API ao vivo (processa as planilhas do Drive em runtime, então
+// atualizar uma planilha reflete sem novo deploy). Fallback: o JSON estático
+// gerado no build (rápido e sempre disponível, mesmo se a API estiver fora).
+const LIVE_URL = "/api/eventos";
+const STATIC_URL = "eventos-data.json";
 
 let _cache = null;
 
 export async function loadData() {
   if (_cache) return _cache;
-  const res = await fetch(DATA_URL, { cache: "no-cache" });
-  if (!res.ok) throw new Error(`Falha ao carregar ${DATA_URL}: ${res.status}`);
+
+  // 1) Tenta a API ao vivo.
+  try {
+    const res = await fetch(LIVE_URL, { cache: "no-cache" });
+    if (res.ok) {
+      const raw = await res.json();
+      if (raw && Array.isArray(raw.eventos)) {
+        _cache = normalize(raw);
+        return _cache;
+      }
+    }
+  } catch (_) {
+    // ignora e cai no estático
+  }
+
+  // 2) Fallback: JSON estático do build.
+  const res = await fetch(STATIC_URL, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`Falha ao carregar ${STATIC_URL}: ${res.status}`);
   const raw = await res.json();
   _cache = normalize(raw);
   return _cache;

@@ -13,16 +13,15 @@ import { escapeHtml, formatDateBR } from "./ui.js"
 
 // ---- Eixos temáticos sugeridos (padroniza a digitação; aceita "Outro") ----
 const EIXOS_TEMATICOS = [
-  "Gestão Pública",
-  "Liderança e Pessoas",
-  "Tecnologia e Inovação",
-  "Comunicação",
-  "Finanças e Orçamento",
-  "Direito e Legislação",
-  "Saúde",
-  "Educação",
-  "Meio Ambiente",
-  "Cidadania e Direitos",
+  "Governança e Gestão Pública",
+  "Planejamento, Orçamento e Responsabilidade Fiscal",
+  "Licitações e Contratos Administrativos",
+  "Controle Interno, Integridade e Compliance",
+  "Governo Digital, Transformação Digital e Inovação",
+  "Proteção de Dados e Segurança da Informação",
+  "Liderança Pública e Gestão de Pessoas",
+  "Atendimento ao Cidadão e Experiência do Usuário",
+  "Sustentabilidade e Desenvolvimento Territorial",
 ]
 
 const MINIBIO_MAX = 500
@@ -178,63 +177,64 @@ export function renderCadastro() {
       </div>
 
       <form id="palForm" novalidate>
-        <div class="pal-form-grid">
-          <div class="pal-form-main">
-            <div class="field">
-              <label for="palNome">Nome completo *</label>
-              <input type="text" id="palNome" required minlength="3" maxlength="120"
-                placeholder="Use o nome completo ou profissional"
-                value="${escapeHtml(p.nome || "")}" autocomplete="off" />
-            </div>
-
-            <div class="field">
-              <label>Eixo temático * <span class="pal-label-aux">(selecione um ou mais)</span></label>
-              <div class="pal-eixos" id="palEixos">${eixosChecks}</div>
-            </div>
-
-            <div class="field">
-              <label for="palCurso">Curso ministrado *</label>
-              <select id="palCurso" required ${eventos.length ? "" : "disabled"}>
-                <option value="" ${p.cursoId ? "" : "selected"} disabled>${eventos.length ? "Selecione o curso/evento" : "Nenhum evento disponível"}</option>
-                ${cursoOptions}
-              </select>
-            </div>
-
-            <div class="field">
-              <div class="pal-bio-head">
-                <label for="palBio">Mini bio</label>
-                <div class="pal-bio-tools">
-                  <button type="button" class="pal-link-btn" id="palBioTemplate" title="Inserir estrutura padrão">
-                    <i class="fas fa-wand-magic-sparkles"></i> Inserir estrutura
-                  </button>
-                  <span class="pal-bio-count" id="palBioCount">${bioLen}/${MINIBIO_MAX}</span>
-                </div>
+        <div class="pal-form2">
+          <div class="pal-top">
+            <div class="pal-photo">
+              <label class="field__label-block">Foto</label>
+              <div class="pal-photo-box" id="palPhotoBox">
+                ${avatarHtml(p, "xl")}
               </div>
-              <textarea id="palBio" rows="4" maxlength="${MINIBIO_MAX}"
-                placeholder="Quem é, cargo/especialidade, formação/experiência e foco/propósito.">${escapeHtml(p.miniBio || "")}</textarea>
-              <p class="pal-hint">
-                <b>Estrutura recomendada:</b> Nome → Cargo e Especialidade →
-                Formação ou Experiência → Foco/Propósito.
-              </p>
+              <div class="pal-photo-actions">
+                <label class="btn btn--sm pal-upload-btn">
+                  <i class="fas fa-image"></i> <span>${p.fotoUrl || _fotoPendente ? "Trocar foto" : "Escolher foto"}</span>
+                  <input type="file" id="palFoto" accept="image/png,image/jpeg" hidden />
+                </label>
+                <button type="button" class="btn btn--sm pal-photo-remove" id="palFotoRemove"
+                  ${(_fotoPendente || (p.fotoUrl && !_removerFoto)) ? "" : "hidden"}>
+                  <i class="fas fa-trash-can"></i> Remover
+                </button>
+              </div>
+              <p class="pal-hint pal-hint--center">JPG ou PNG. Redimensionada automaticamente.</p>
+            </div>
+
+            <div class="pal-top-fields">
+              <div class="field">
+                <label for="palNome">Nome completo *</label>
+                <input type="text" id="palNome" required minlength="3" maxlength="120"
+                  placeholder="Use o nome completo ou profissional"
+                  value="${escapeHtml(p.nome || "")}" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="palCurso">Curso ministrado *</label>
+                <select id="palCurso" required ${eventos.length ? "" : "disabled"}>
+                  <option value="" ${p.cursoId ? "" : "selected"} disabled>${eventos.length ? "Selecione o curso/evento" : "Nenhum evento disponível"}</option>
+                  ${cursoOptions}
+                </select>
+              </div>
             </div>
           </div>
 
-          <div class="pal-form-aside">
-            <label class="field__label-block">Foto</label>
-            <div class="pal-photo-box" id="palPhotoBox">
-              ${avatarHtml(p, "xl")}
+          <div class="field">
+            <label>Eixo temático * <span class="pal-label-aux">(selecione um ou mais)</span></label>
+            <div class="pal-eixos" id="palEixos">${eixosChecks}</div>
+          </div>
+
+          <div class="field">
+            <div class="pal-bio-head">
+              <label for="palBio">Mini bio</label>
+              <div class="pal-bio-tools">
+                <button type="button" class="pal-link-btn" id="palBioTemplate" title="Inserir estrutura padrão">
+                  <i class="fas fa-wand-magic-sparkles"></i> Inserir estrutura
+                </button>
+                <span class="pal-bio-count" id="palBioCount">${bioLen}/${MINIBIO_MAX}</span>
+              </div>
             </div>
-            <div class="pal-photo-actions">
-              <label class="btn btn--sm pal-upload-btn">
-                <i class="fas fa-image"></i> <span>${p.fotoUrl || _fotoPendente ? "Trocar foto" : "Escolher foto"}</span>
-                <input type="file" id="palFoto" accept="image/png,image/jpeg" hidden />
-              </label>
-              <button type="button" class="btn btn--sm pal-photo-remove" id="palFotoRemove"
-                ${(_fotoPendente || (p.fotoUrl && !_removerFoto)) ? "" : "hidden"}>
-                <i class="fas fa-trash-can"></i> Remover
-              </button>
-            </div>
-            <p class="pal-hint pal-hint--center">JPG ou PNG. Redimensionada automaticamente.</p>
+            <textarea id="palBio" rows="6" maxlength="${MINIBIO_MAX}"
+              placeholder="Quem é, cargo/especialidade, formação/experiência e foco/propósito.">${escapeHtml(p.miniBio || "")}</textarea>
+            <p class="pal-hint">
+              <b>Estrutura recomendada:</b> Nome → Cargo e Especialidade →
+              Formação ou Experiência → Foco/Propósito.
+            </p>
           </div>
         </div>
 
@@ -271,6 +271,11 @@ function wireCadastro(p) {
     removeBtn.hidden = !temFoto
   }
 
+  // Cresce a textarea conforme o conteúdo (sem scroll), para caber os 500 chars.
+  const autoGrow = () => {
+    bio.style.height = "auto"
+    bio.style.height = Math.max(bio.scrollHeight, 120) + "px"
+  }
   // Contador da bio com cor progressiva.
   const updateCount = () => {
     const len = bio.value.length
@@ -278,8 +283,10 @@ function wireCadastro(p) {
     count.classList.toggle("is-warn", len >= MINIBIO_MAX * 0.85 && len < MINIBIO_MAX)
     count.classList.toggle("is-full", len >= MINIBIO_MAX)
   }
-  bio.addEventListener("input", updateCount)
+  bio.addEventListener("input", () => { updateCount(); autoGrow() })
   updateCount()
+  // autoGrow após render (a view já está visível neste ponto).
+  requestAnimationFrame(autoGrow)
 
   // Realça os eixos marcados.
   document.querySelectorAll("#palEixos .pal-eixo-opt").forEach((opt) => {
@@ -295,6 +302,7 @@ function wireCadastro(p) {
     if (!bio.value.trim()) {
       bio.value = BIO_TEMPLATE
       updateCount()
+      autoGrow()
     }
     bio.focus()
   })
@@ -526,7 +534,7 @@ function eixosDe(p) {
 function cardHtml(p) {
   const fotoBkp = _fotoPendente, removeBkp = _removerFoto
   _fotoPendente = null; _removerFoto = false // garante uso de p.fotoUrl
-  const avatar = avatarHtml(p, "lg")
+  const avatar = avatarHtml(p, "card")
   _fotoPendente = fotoBkp; _removerFoto = removeBkp
 
   const bio = p.miniBio
@@ -538,15 +546,12 @@ function cardHtml(p) {
     ? `<span class="pal-origem" title="Cadastrado via link de convite"><i class="fas fa-link"></i></span>`
     : ""
 
+  // Layout vertical: a FOTO é o destaque (topo), depois nome, eixo, curso, bio.
   return `
-    <article class="pal-card">
-      <div class="pal-card__top">
-        ${avatar}
-        <div class="pal-card__id">
-          <h4 class="pal-card__name" title="${escapeHtml(p.nome)}">${origemBadge}${escapeHtml(p.nome)}</h4>
-          ${chips ? `<div class="pal-card__chips">${chips}</div>` : ""}
-        </div>
-      </div>
+    <article class="pal-card pal-card--v">
+      <div class="pal-card__photo">${avatar}</div>
+      <h4 class="pal-card__name" title="${escapeHtml(p.nome)}">${origemBadge}${escapeHtml(p.nome)}</h4>
+      ${chips ? `<div class="pal-card__chips">${chips}</div>` : ""}
       ${p.cursoTitulo ? `<div class="pal-card__curso"><i class="fas fa-chalkboard-user"></i> ${escapeHtml(p.cursoTitulo)}</div>` : ""}
       ${bio}
       <div class="pal-card__foot">
