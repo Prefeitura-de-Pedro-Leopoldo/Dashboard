@@ -17,12 +17,13 @@
 
 // ============ CONFIGURACOES ============
 
-// ID da pasta RAIZ no Drive que espelha assets/docs/relatorios/.
+// ID da pasta RAIZ no Drive que espelha assets/docs/relatorios/ (pasta "Relatorios EGov").
 //   https://drive.google.com/drive/folders/<FOLDER_ID>
-const ROOT_FOLDER_ID = 'COLE_AQUI_O_ID_DA_PASTA_RAIZ_DOS_RELATORIOS';
+const ROOT_FOLDER_ID = '1F6omxUG5yYW84m7sVK0RweAO8ge5q27p';
 
 // Token compartilhado com o build (env RELATORIOS_TOKEN na Vercel).
-const SHARED_TOKEN = 'TROQUE_POR_UM_TOKEN_LONGO_E_ALEATORIO';
+// DEVE ser identico ao valor de RELATORIOS_TOKEN na Vercel.
+const SHARED_TOKEN = 'a3hYegIm6Nt085dP4nEc7LWGTykxqvzuCjAfwDZQU2OiJ9sV';
 
 // Apenas estes tipos sao listados/servidos (ignora eventos-meta.json etc.).
 const EXTENSOES = ['.xlsx', '.xls'];

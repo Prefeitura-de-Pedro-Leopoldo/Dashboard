@@ -28,17 +28,17 @@
 
 // ============ CONFIGURACOES ============
 
-// ID da pasta do Drive onde as fotos serao salvas.
+// ID da pasta do Drive onde as fotos serao salvas (pasta "Fotos Palestrantes").
 //   https://drive.google.com/drive/folders/<FOLDER_ID>
-const PHOTOS_FOLDER_ID = 'COLE_AQUI_O_ID_DA_PASTA_DE_FOTOS';
+const PHOTOS_FOLDER_ID = '1vS5VNSxrHoV6yOgw7_nJFxXdXrjfRI07';
 
 // Abas (criadas automaticamente se nao existirem).
 const SHEET_NAME   = 'Palestrantes';
 const INVITE_SHEET = 'Convites';
 
-// Token compartilhado com o proxy /api/palestrantes (env PALESTRANTES_TOKEN).
-// Troque por uma string longa e aleatoria.
-const SHARED_TOKEN = 'TROQUE_POR_UM_TOKEN_LONGO_E_ALEATORIO';
+// Token compartilhado com o proxy /api/palestrantes (env PALESTRANTES_TOKEN
+// na Vercel). DEVE ser identico ao valor de PALESTRANTES_TOKEN na Vercel.
+const SHARED_TOKEN = '2mci9bkYuIewAFJfnUgv1lSVtXBQ6aEjoKpNHdrD07zTh8MW';
 
 const MINIBIO_MAX = 500;
 
