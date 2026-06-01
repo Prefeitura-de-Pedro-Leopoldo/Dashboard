@@ -1,0 +1,10 @@
+/* ================================================================
+   DARK THEME refinements
+   ================================================================ */
+[data-theme="dark"] .kpi__icon { background: rgba(110, 155, 214, 0.16); }
+[data-theme="dark"] .event-card__stats { background: var(--surface-muted); }
+[data-theme="dark"] table.data thead th { background: var(--surface-subtle); }
+[data-theme="dark"] .dropzone { background: var(--surface-subtle); }
+[data-theme="dark"] .canvas-frame { background: var(--surface-subtle); }
+[data-theme="dark"] .source-tabs { background: var(--surface-subtle); }
+

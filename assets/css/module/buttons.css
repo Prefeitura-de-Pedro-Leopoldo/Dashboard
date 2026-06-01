@@ -1,0 +1,48 @@
+/* ================================================================
+   BUTTONS
+   ================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  transition: var(--transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-soft-bg);
+}
+.btn--primary {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--text-on-brand);
+}
+.btn--primary:hover {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  color: var(--text-on-brand);
+  box-shadow: var(--shadow-brand);
+}
+.btn--accent {
+  background: var(--brand-accent);
+  border-color: var(--brand-accent);
+  color: #fff;
+}
+.btn--accent:hover {
+  background: var(--brand-accent-hover);
+  border-color: var(--brand-accent-hover);
+  color: #fff;
+}
+.btn--sm { padding: 6px 10px; font-size: var(--fs-xs); }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+

@@ -1,0 +1,76 @@
+/* ================================================================
+   STATE · Loading (capelo girando) — reaproveitado do site da EGov.
+   Mostrado quando uma página/aba ainda não tem 100% das informações.
+   ================================================================ */
+.egov-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-12) var(--space-4);
+  min-height: 240px;
+}
+
+/* Variante que cobre um container (com position:relative) durante o load. */
+.egov-loader--cover {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: color-mix(in srgb, var(--surface-bg) 86%, transparent);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  padding: 0;
+  transition: opacity 320ms ease;
+}
+.egov-loader--cover.is-hiding { opacity: 0; pointer-events: none; }
+
+/* O capelo só aparece se o load passar de um curto atraso (via JS). */
+.egov-loader__inner { opacity: 0; transition: opacity 220ms ease; }
+.egov-loader.is-revealed .egov-loader__inner,
+.egov-loader:not(.egov-loader--cover) .egov-loader__inner { opacity: 1; }
+
+.diploma-loader__stage {
+  position: relative; width: 96px; height: 96px;
+  display: grid; place-items: center;
+}
+.diploma-loader__ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--brand-primary, #3063ad);
+  border-right-color: var(--brand-accent, #4dad33);
+  animation: diploma-ring-spin 1.1s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+}
+.diploma-loader__ring--inner {
+  inset: 10px; border-width: 2px;
+  border-top-color: transparent; border-right-color: transparent;
+  border-bottom-color: var(--brand-accent, #4dad33);
+  border-left-color: var(--brand-primary, #3063ad);
+  animation-duration: 1.6s; animation-direction: reverse; opacity: 0.55;
+}
+@keyframes diploma-ring-spin { to { transform: rotate(360deg); } }
+
+.diploma-loader__cap {
+  width: 52px; height: 52px;
+  animation: diploma-cap-pulse 2.2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 10px rgba(48, 99, 173, 0.25));
+}
+.diploma-loader__cap .tassel-group {
+  transform-box: fill-box; transform-origin: 0% 0%;
+  animation: diploma-tassel-sway 2.2s ease-in-out infinite;
+}
+@keyframes diploma-cap-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes diploma-tassel-sway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(8deg); } }
+
+.egov-loader__text {
+  font-size: var(--fs-sm, 0.9rem);
+  color: var(--text-muted, #6b7280);
+  letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+  animation: diploma-text-pulse 1.8s ease-in-out infinite;
+}
+@keyframes diploma-text-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .diploma-loader__ring, .diploma-loader__cap,
+  .diploma-loader__cap .tassel-group, .egov-loader__text { animation: none; }
+}

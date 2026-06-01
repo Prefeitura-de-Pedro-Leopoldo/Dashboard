@@ -1,0 +1,106 @@
+/* ================================================================
+   INSIGHTS BOARD
+   ================================================================ */
+.insights-board { display: grid; gap: var(--space-4); }
+.insights-board .grid-2 { gap: var(--space-4); }
+
+/* Funil capacidade → inscritos → presentes */
+.funil { display: grid; gap: 12px; padding: 8px 0 4px; }
+.funil__row { display: grid; gap: 4px; }
+.funil__label { display: flex; justify-content: space-between; font-size: 0.88rem; color: var(--text-secondary); font-weight: 600; }
+.funil__label b { color: var(--text-primary); }
+.funil__bar { background: var(--gray-100, #F1F4FB); border-radius: 10px; height: 14px; overflow: hidden; }
+.funil__bar > span { display: block; height: 100%; border-radius: 10px; transition: width 0.4s ease; }
+.funil__caption { margin-top: 12px; padding: 10px 14px; background: var(--brand-soft-bg, rgba(48,99,173,0.06)); border-left: 3px solid var(--brand-primary); border-radius: 6px; font-size: 0.85rem; color: var(--text-secondary); }
+
+/* Lista de ranking de servidores / cargos */
+.rank-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.rank-list__item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  transition: background 0.18s;
+}
+.rank-list__item:hover { background: var(--gray-100, #F1F4FB); }
+.rank-list__pos { font-family: var(--font-display, inherit); font-weight: 800; color: var(--brand-primary); font-size: 1.1rem; text-align: center; }
+.rank-list__body { min-width: 0; }
+.rank-list__name { font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-list__meta { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-list__badge { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; background: linear-gradient(135deg, var(--blue-700,#1B2A4E), var(--blue-600,#3B5BA5)); color: #fff; padding: 6px 14px; border-radius: 10px; font-weight: 800; line-height: 1; font-size: 1.1rem; }
+.rank-list__badge small { font-size: 0.62rem; font-weight: 500; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
+.rank-list__empty { padding: 16px; color: var(--text-muted); font-style: italic; }
+
+/* Tags */
+.rank-tag { display: inline-block; padding: 1px 8px; margin-left: 6px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: middle; }
+.rank-tag--gold { background: #FFE9B0; color: #8A5A00; }
+.rank-tag--silver { background: #E1E7EF; color: #4B5C7A; }
+.cell-sub { color: var(--text-muted); font-size: 0.78rem; }
+
+/* Heatmap mês × dia da semana */
+.heatmap { padding: 4px 0; }
+.heatmap__grid {
+  display: grid;
+  grid-template-columns: 44px repeat(7, 1fr);
+  gap: 4px;
+  align-items: center;
+}
+.heatmap__corner { }
+.heatmap__head { text-align: center; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.heatmap__rowlabel { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-align: right; padding-right: 6px; }
+.heatmap__cell {
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.heatmap__caption { margin-top: 10px; font-size: 0.78rem; color: var(--text-muted); text-align: center; }
+.empty-cell { padding: 22px; text-align: center; color: var(--text-muted); font-style: italic; }
+
+/* Medalhas pódio */
+.rank-list__item--gold { background: linear-gradient(135deg, #FFF6D0 0%, #FFE9A0 100%); border-color: #E5C24A; }
+.rank-list__item--gold .rank-list__pos { color: #8A5A00; }
+.rank-list__item--gold .rank-list__pos i { color: #D4A017; font-size: 1.4rem; }
+.rank-list__item--gold .rank-list__badge { background: linear-gradient(135deg, #D4A017, #8A5A00); }
+.rank-list__item--silver { background: linear-gradient(135deg, #F4F6F9 0%, #DDE3EA 100%); border-color: #B8C2CE; }
+.rank-list__item--silver .rank-list__pos { color: #4B5C7A; }
+.rank-list__item--silver .rank-list__pos i { color: #8A99B0; font-size: 1.3rem; }
+.rank-list__item--silver .rank-list__badge { background: linear-gradient(135deg, #8A99B0, #4B5C7A); }
+.rank-list__item--bronze { background: linear-gradient(135deg, #F8E2C8 0%, #E9B989 100%); border-color: #C68A4E; }
+.rank-list__item--bronze .rank-list__pos { color: #7A4A1F; }
+.rank-list__item--bronze .rank-list__pos i { color: #B8722E; font-size: 1.25rem; }
+.rank-list__item--bronze .rank-list__badge { background: linear-gradient(135deg, #B8722E, #7A4A1F); }
+.rank-list__pos { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.rank-list__pos small { font-size: 0.7rem; font-weight: 700; opacity: 0.75; }
+.servidores-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-4); align-items: start; }
+@media (max-width: 960px) { .servidores-layout { grid-template-columns: 1fr; } }
+.servidores-podio { position: sticky; top: var(--space-3); }
+.participantes-split { gap: var(--space-4); }
+@media (max-width: 1100px) { .participantes-split { grid-template-columns: 1fr; } }
+
+/* Linhas de medalha em Servidores destaque (sequencial 1-2-3) */
+.row-medal-gold {
+  background: linear-gradient(90deg, #FFF6D0 0%, #FFE9A0 80%) !important;
+}
+.row-medal-gold td { color: #8A5A00; font-weight: 600; }
+.row-medal-gold td i.fa-medal { color: #D4A017; font-size: 1.05rem; }
+.row-medal-silver {
+  background: linear-gradient(90deg, #F4F6F9 0%, #DDE3EA 80%) !important;
+}
+.row-medal-silver td { color: #4B5C7A; font-weight: 600; }
+.row-medal-silver td i.fa-medal { color: #8A99B0; font-size: 1.0rem; }
+.row-medal-bronze {
+  background: linear-gradient(90deg, #F8E2C8 0%, #E9B989 80%) !important;
+}
+.row-medal-bronze td { color: #7A4A1F; font-weight: 600; }
+.row-medal-bronze td i.fa-medal { color: #B8722E; font-size: 0.95rem; }
+
+/* Top servidores no Insights: altura fixa para nao "dancar" entre paginas */
+#insTopHost { min-height: 380px; }
+

@@ -49,6 +49,7 @@ import {
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
 import { initPalestrantes, renderCadastro as renderPalestrantesCadastro, renderLista as renderPalestrantesLista } from "./palestrantes.js"
+import { showCover } from "./loader.js"
 
 // ================ Modal (substitui alert/confirm nativos) ================
 // API: showAlert({title, message, type, confirmLabel}) -> Promise<void>
@@ -444,14 +445,22 @@ const VIEW_TO_GROUP = (() => {
 
 async function reloadData() {
   showDashboardSkeleton()
-  try {
-    const raw = await loadData()
+  // Loader (capelo) sobre o conteúdo enquanto os dados não chegam. Com atraso
+  // de revelação: carregamento rápido (estático local) não chega a exibir.
+  const hideLoader = showCover(document.getElementById("mainContent"), "Carregando informações…")
+  const applyData = (raw) => {
     // Consolida eventos com mesmo grupo (turmas/módulos) em um único evento agregado.
-    // Mantém referência aos eventos originais em `_turmas` caso seja preciso o detalhe.
-    state.data = { ...raw, eventos: consolidarPorGrupo(raw.eventos || []) }
     state.dataRaw = raw
+    state.data = { ...raw, eventos: consolidarPorGrupo(raw.eventos || []) }
     renderAll()
+  }
+  try {
+    // Renderiza já com o estático; a atualização ao vivo re-renderiza se mudou.
+    const raw = await loadData((live) => applyData(live))
+    applyData(raw)
+    hideLoader()
   } catch (err) {
+    hideLoader()
     document.getElementById("mainContent").innerHTML = `
       <div class="empty-state">
         <div class="empty-state__art"><i class="fas fa-circle-exclamation"></i></div>

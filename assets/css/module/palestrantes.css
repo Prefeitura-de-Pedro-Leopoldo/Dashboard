@@ -1,0 +1,289 @@
+/* ================================================================
+   PALESTRANTES - cadastro e galeria
+   ================================================================ */
+.pal-form-card { max-width: none; width: 100%; }
+/* Form ocupa toda a largura disponível da view, sem buracos nas laterais. */
+.pal-top { grid-template-columns: 230px minmax(0, 1fr); }
+@media (min-width: 1100px) {
+  /* Em telas largas, Nome e Curso lado a lado preenchem a linha (sem célula vazia). */
+  .pal-top-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-content: start; }
+}
+
+.pal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .pal-form-grid { grid-template-columns: 1fr; }
+  .pal-form-aside { order: -1; }
+}
+
+.pal-form-main { display: flex; flex-direction: column; gap: var(--space-4); }
+.pal-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+@media (max-width: 560px) { .pal-form-row { grid-template-columns: 1fr; } }
+
+/* Campos */
+.pal-form-card .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pal-form-card .field > label,
+.field__label-block {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+  font-weight: var(--fw-bold);
+}
+.field__label-block { display: block; margin-bottom: 6px; }
+
+.pal-form-card input[type="text"],
+.pal-form-card input[type="search"],
+.pal-form-card select,
+.pal-form-card textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+  background: var(--surface-card);
+  transition: var(--transition-fast);
+  min-width: 0;
+}
+.pal-form-card textarea { resize: vertical; line-height: 1.5; }
+.pal-form-card input:focus,
+.pal-form-card select:focus,
+.pal-form-card textarea:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-ring);
+}
+.pal-form-card select:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Mini bio: cabeçalho + contador */
+.pal-bio-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.pal-bio-tools { display: inline-flex; align-items: center; gap: 12px; }
+.pal-link-btn {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--brand-primary); font-weight: var(--fw-semibold);
+  font-size: var(--fs-xs); display: inline-flex; align-items: center; gap: 5px;
+}
+.pal-link-btn:hover { text-decoration: underline; }
+.pal-bio-count {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.pal-bio-count.is-warn { color: #b8860b; }
+.pal-bio-count.is-full { color: var(--red); }
+
+.pal-hint {
+  margin: 2px 0 0; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;
+}
+.pal-hint b { color: var(--text-secondary); }
+.pal-hint--center { text-align: center; }
+
+/* Foto */
+.pal-form-aside { display: flex; flex-direction: column; align-items: center; }
+.pal-photo-box {
+  width: 100%; display: grid; place-items: center;
+  padding: var(--space-3); border: 1.5px dashed var(--border-default);
+  border-radius: var(--radius-md); background: var(--surface-muted);
+  margin-bottom: var(--space-3);
+}
+.pal-avatar {
+  border-radius: 50%; object-fit: cover; background: var(--surface-muted);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.pal-avatar--lg { width: 56px; height: 56px; }
+.pal-avatar--xl { width: 132px; height: 132px; }
+.pal-avatar--ph {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-active));
+  color: #fff; font-weight: 800; font-family: var(--font-display);
+}
+.pal-avatar--xl.pal-avatar--ph { font-size: 2.6rem; }
+.pal-avatar--lg.pal-avatar--ph { font-size: 1.1rem; }
+
+.pal-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pal-upload-btn { cursor: pointer; }
+.pal-photo-remove { color: var(--red); }
+.pal-photo-remove:hover { border-color: var(--red); color: var(--red); background: rgba(192,57,43,0.06); }
+
+/* Rodapé do form */
+.pal-form-footer {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);
+  margin-top: var(--space-6); padding-top: var(--space-4);
+  border-top: 1px solid var(--border-default); flex-wrap: wrap;
+}
+.pal-form-card .err {
+  color: var(--red); font-size: var(--fs-sm);
+  display: flex; align-items: center; gap: 6px; min-height: 1.1em;
+}
+.pal-form-card .err:empty { display: none; }
+.pal-form-footer .err { margin: 0; text-align: left; justify-content: flex-start; }
+.pal-form-footer__actions { margin-left: auto; }
+.pal-submit.is-loading, #palSubmit.is-loading { opacity: 0.7; pointer-events: none; }
+
+/* ---- Galeria ---- */
+.pal-list-actions { display: inline-flex; align-items: center; gap: 8px; }
+.pal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+.pal-card {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  transition: var(--transition-fast);
+  min-width: 0; overflow: hidden;
+}
+.pal-card > * { min-width: 0; max-width: 100%; }
+.pal-card:hover { border-color: var(--brand-primary); box-shadow: var(--shadow-sm); }
+.pal-card--skel { align-items: center; text-align: center; gap: 10px; }
+
+.pal-card__top { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.pal-card__id { min-width: 0; }
+.pal-card__name {
+  margin: 0 0 4px; font-size: var(--fs-base); font-weight: var(--fw-bold);
+  color: var(--text-primary); line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pal-chip {
+  display: inline-block; padding: 2px 9px; border-radius: var(--radius-pill);
+  background: var(--brand-soft-bg, rgba(48,99,173,0.08)); color: var(--brand-primary);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  text-transform: uppercase; letter-spacing: var(--tracking-wide);
+}
+.pal-card__curso {
+  font-size: var(--fs-xs); color: var(--text-secondary);
+  display: flex; align-items: center; gap: 6px;
+}
+.pal-card__curso i { color: var(--text-muted); }
+.pal-card__bio {
+  margin: 0; font-size: var(--fs-sm); color: var(--text-secondary); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere; word-break: break-word;
+}
+.pal-card__bio--empty { color: var(--text-faint); font-style: italic; }
+.pal-card__foot {
+  margin-top: auto; padding-top: var(--space-2);
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid var(--border-default);
+}
+.pal-card__date { font-size: var(--fs-2xs); color: var(--text-muted); }
+.pal-card__actions { display: inline-flex; gap: 4px; }
+.pal-icon-btn {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  background: var(--surface-card); color: var(--text-muted); cursor: pointer;
+  transition: var(--transition-fast); font-size: var(--fs-xs);
+}
+.pal-icon-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.pal-icon-btn--danger:hover { border-color: var(--red); color: var(--red); }
+
+.empty-state--inline { padding: var(--space-8) var(--space-4); }
+
+/* ---- Palestrantes: eixos multi, chips, convite ---- */
+.pal-label-aux { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-faint); }
+.pal-eixos { display: flex; flex-wrap: wrap; gap: 8px; }
+.pal-eixo-opt {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+  padding: 8px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-pill);
+  font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  color: var(--text-secondary); background: var(--surface-card);
+  line-height: 1.2;
+  transition: border-color .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.pal-eixo-opt:hover { border-color: var(--brand-primary); color: var(--text-primary); transform: translateY(-1px); }
+.pal-eixo-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.pal-eixo-opt::before {
+  content: "+"; display: inline-grid; place-items: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); color: var(--text-muted);
+  font-size: 12px; font-weight: var(--fw-bold); line-height: 1;
+  transition: background .15s ease, color .15s ease;
+}
+.pal-eixo-opt.is-checked {
+  border-color: var(--brand-primary);
+  background: var(--brand-soft-bg, rgba(48,99,173,0.12));
+  color: var(--brand-primary);
+  box-shadow: 0 0 0 1px var(--brand-primary) inset;
+}
+.pal-eixo-opt.is-checked::before {
+  content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+  background: var(--brand-primary); color: #fff; font-size: 9px;
+}
+.pal-eixo-opt:focus-within { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+
+.pal-card__chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.pal-origem { color: var(--brand-primary); font-size: 0.75em; margin-right: 6px; }
+
+.pal-invite {
+  margin-bottom: var(--space-4); padding: var(--space-4);
+  border: 1px solid var(--brand-primary); border-radius: var(--radius-md);
+  background: var(--brand-soft-bg, rgba(48,99,173,0.06));
+}
+.pal-invite--loading, .pal-invite--err {
+  display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm);
+  border-color: var(--border-default); background: var(--surface-muted); color: var(--text-secondary);
+}
+.pal-invite--err { color: var(--red); border-color: var(--red); }
+.pal-invite__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pal-invite__head strong { font-size: var(--fs-base); color: var(--text-primary); }
+.pal-invite__badge {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); text-transform: uppercase;
+  letter-spacing: var(--tracking-wide); color: var(--brand-primary);
+  border: 1px solid var(--brand-primary); border-radius: var(--radius-pill); padding: 2px 9px;
+}
+.pal-invite__close {
+  margin-left: auto; background: none; border: 0; cursor: pointer;
+  color: var(--text-muted); font-size: 1rem; padding: 2px 6px; border-radius: var(--radius-xs);
+}
+.pal-invite__close:hover { color: var(--red); }
+.pal-invite__row { display: flex; gap: 8px; align-items: center; }
+.pal-invite__row input {
+  flex: 1; min-width: 0; padding: 9px 12px; font-size: var(--fs-sm);
+  border: 1.5px solid var(--border-default); border-radius: var(--radius-sm);
+  background: var(--surface-card); color: var(--text-primary);
+}
+.pal-invite__hint { margin: 10px 0 0; font-size: var(--fs-xs); color: var(--text-secondary); line-height: 1.5; }
+
+/* ---- Palestrantes v2: cadastro preenchido + card foto-destaque ---- */
+.pal-form2 { display: flex; flex-direction: column; gap: var(--space-5); }
+.pal-top {
+  display: grid; grid-template-columns: 210px 1fr; gap: var(--space-6); align-items: start;
+}
+@media (max-width: 640px) { .pal-top { grid-template-columns: 1fr; } }
+.pal-photo { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+.pal-photo .field__label-block { align-self: flex-start; margin-bottom: 0; }
+.pal-top-fields { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* Bio cresce com o conteúdo (auto-grow via JS), sem scroll */
+.pal-form-card textarea { overflow: hidden; min-height: 120px; resize: none; }
+
+/* Avatar tamanho "card" (galeria) */
+.pal-avatar--card { width: 120px; height: 120px; }
+.pal-avatar--card.pal-avatar--ph { font-size: 2.4rem; }
+
+/* Card vertical: a FOTO é o destaque */
+.pal-card--v { align-items: center; text-align: center; }
+.pal-card--v .pal-card__photo { margin-bottom: 2px; }
+.pal-card--v .pal-card__name {
+  white-space: normal; overflow: hidden; font-size: var(--fs-md);
+  overflow-wrap: anywhere; word-break: break-word; text-overflow: clip;
+}
+.pal-card--v .pal-card__curso { overflow-wrap: anywhere; word-break: break-word; }
+.pal-card--v .pal-card__chips { justify-content: center; }
+.pal-card--v .pal-card__curso { justify-content: center; font-weight: var(--fw-semibold); }
+.pal-card--v .pal-card__bio { text-align: center; }
+.pal-card--v .pal-card__foot { width: 100%; }

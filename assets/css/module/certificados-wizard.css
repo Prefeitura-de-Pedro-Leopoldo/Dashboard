@@ -1,0 +1,500 @@
+/* ================================================================
+   WIZARD (etapas) - usado em Emitir Certificados
+   ================================================================ */
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.wizard__steps {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.wizard__step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  background: var(--surface-muted);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+  overflow: hidden;
+}
+.wizard__step:hover { transform: translateY(-1px); }
+.wizard__step.is-active {
+  background: var(--brand-soft-bg);
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-brand);
+}
+.wizard__step.is-done {
+  background: var(--brand-soft-accent);
+}
+.wizard__step.is-done .wizard__step-num {
+  background: var(--green-500);
+  border-color: var(--green-500);
+  color: #fff;
+}
+.wizard__step.is-done .wizard__step-num::before {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.wizard__step.is-done .wizard__step-num span { display: none; }
+.wizard__step-num {
+  flex: 0 0 36px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--surface-card);
+  border: 2px solid var(--border-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+  font-family: var(--font-display);
+  color: var(--text-muted);
+  transition: all 0.18s ease;
+}
+.wizard__step-num span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.wizard__step.is-active .wizard__step-num {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+  box-shadow: 0 4px 10px -4px rgba(48, 99, 173, 0.6);
+}
+.wizard__step-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1.25;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.wizard__step-label strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wizard__step-label em {
+  font-size: 0.75rem;
+  font-style: normal;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wizard__panel {
+  animation: fadeSlide 0.25s ease;
+}
+
+/* Wizard de certificados - wrapper principal não deve ter overflow */
+#view-certificados, .wizard { overflow: hidden; min-width: 0; max-width: 100%; }
+.wizard { gap: var(--space-4); }
+.wizard__nav { margin-top: var(--space-2); }
+.wizard__panel { min-width: 0; overflow: hidden; }
+.wizard__panel .grid-2 { min-width: 0; }
+/* Steps mais compactos */
+.wizard__steps { gap: var(--space-2); }
+.wizard__step { padding: 10px 14px; }
+.wizard__step__num { width: 28px; height: 28px; font-size: 0.875rem; }
+.wizard__step__label { font-size: 0.875rem; }
+.wizard__step__hint { font-size: 0.7rem; }
+.wizard__nav { padding: 14px 18px; }
+.wizard__nav .btn { padding: 7px 12px; font-size: 0.8125rem; }
+.wizard__nav .btn i { font-size: 0.75rem; }
+
+/* Etapa 1: cards com altura fixa para evitar crescimento/encolhimento. */
+.wizard__panel[data-panel="1"] .grid-2 { align-items: stretch; }
+.wizard__panel[data-panel="1"] .grid-2 > .card {
+  height: 380px;
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  overflow: hidden;
+  min-width: 0;
+}
+.wizard__panel[data-panel="1"] .grid-2 > .card > .card__header { margin-bottom: 10px; flex-shrink: 0; }
+.wizard__panel[data-panel="1"] .grid-2 > .card > .source-tabs { margin-bottom: 10px; flex-shrink: 0; }
+.wizard__panel[data-panel="1"] .grid-2 > .card > #sourceEvento,
+.wizard__panel[data-panel="1"] .grid-2 > .card > #sourcePlanilha {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+.wizard__panel[data-panel="1"] .grid-2 > .card > #sourceEvento[hidden],
+.wizard__panel[data-panel="1"] .grid-2 > .card > #sourcePlanilha[hidden] { display: none !important; }
+.wizard__panel[data-panel="1"] .grid-2 > .card .dropzone {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-3);
+}
+.wizard__panel[data-panel="1"] .grid-2 > .card .dropzone-hint { flex-shrink: 0; }
+.wizard__panel[data-panel="1"] .grid-2 > .card .filter { flex-shrink: 0; }
+.wizard__panel[data-panel="1"] .grid-2 > .card .filters {
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  gap: var(--space-2);
+  margin-bottom: 0 !important;
+}
+
+/* Etapa 2: tabela compacta + paginação, sem scroll na página. */
+.wizard__panel[data-panel="2"] { display: flex; flex-direction: column; gap: 10px; }
+.wizard__panel[data-panel="2"][hidden] { display: none !important; }
+.wizard__panel[data-panel="2"] .filters {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  margin-bottom: 0;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+.wizard__panel[data-panel="2"] .filters .filter label { font-size: 0.65rem; margin-bottom: 2px; }
+.wizard__panel[data-panel="2"] .filters input[type="search"] { padding: 7px 10px; font-size: 0.8125rem; }
+.wizard__panel[data-panel="2"] .table-wrap {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.wizard__panel[data-panel="2"] .table-wrap__head {
+  flex-shrink: 0;
+  padding: 8px 14px;
+}
+.wizard__panel[data-panel="2"] .table-wrap__head h3 { font-size: 0.95rem; }
+.wizard__panel[data-panel="2"] #certTable { min-height: 0; }
+.wizard__panel[data-panel="2"] .table-scroll { max-height: none; overflow: visible; }
+.wizard__panel[data-panel="2"] table.data thead th { padding: 6px 10px; font-size: 0.625rem; }
+.wizard__panel[data-panel="2"] table.data tbody td { padding: 7px 10px; font-size: 0.8125rem; }
+.wizard__panel[data-panel="2"] .cell-status { padding: 2px 6px; font-size: 0.625rem; }
+.wizard__panel[data-panel="2"] .pager { padding: 6px 12px; }
+.wizard__panel[data-panel="2"] .pager__btn { height: 28px; min-width: 28px; }
+.wizard__panel[data-panel="2"] .pager__current { height: 28px; min-width: 48px; }
+
+/* Garante que panel 1 e 3 também respeitem o [hidden] */
+.wizard__panel[data-panel="1"][hidden],
+.wizard__panel[data-panel="3"][hidden] { display: none !important; }
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.wizard__nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 5;
+  box-shadow: 0 -4px 16px -8px rgba(22, 31, 54, 0.15);
+}
+.wizard__nav-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.btn--lg {
+  padding: 12px 22px;
+  font-size: 0.95rem;
+}
+@media (max-width: 1100px) {
+  .wizard__step-label em { display: none; }
+}
+@media (max-width: 768px) {
+  .wizard__steps {
+    grid-template-columns: 1fr;
+    padding: var(--space-3);
+    gap: var(--space-2);
+  }
+  .wizard__step { padding: 12px 14px; }
+  .wizard__step-label em { display: block; }
+}
+
+/* Emit step layout: preview + resumo lado a lado */
+.cert-emit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 360px);
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 1024px) {
+  .cert-emit-layout { grid-template-columns: 1fr; }
+}
+.cert-emit-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+/* Sticky só em telas altas o suficiente - evita scroll interno cortando o painel
+   de tipografia em laptops pequenos (1366×768, 1440×900 com zoom etc.). */
+@media (min-height: 900px) {
+  .cert-emit-side {
+    position: sticky;
+    top: 84px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .cert-emit-side::-webkit-scrollbar { width: 6px; }
+  .cert-emit-side::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 999px;
+  }
+  .cert-emit-side::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+}
+
+/* Caixa "Arrastar e soltar" no painel lateral */
+.cert-pos-card {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cert-pos-card__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cert-pos-card__toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+}
+.cert-pos-card__toggle input { display: none; }
+.cert-pos-card__switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border-default);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.cert-pos-card__switch::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.cert-pos-card__toggle input:checked ~ .cert-pos-card__switch {
+  background: var(--brand-primary);
+}
+.cert-pos-card__toggle input:checked ~ .cert-pos-card__switch::after {
+  transform: translateX(16px);
+}
+.cert-pos-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.25;
+}
+.cert-pos-card__text strong {
+  font-size: 0.82rem;
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+}
+.cert-pos-card__text strong i {
+  color: var(--brand-primary);
+  margin-right: 6px;
+}
+.cert-pos-card__text small {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: var(--fw-medium);
+}
+.cert-pos-card__reset {
+  flex: 0 0 auto;
+  width: 32px; height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.cert-pos-card__hint {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding-left: 46px;
+}
+.cert-pos-card__hint:empty { display: none; }
+.cert-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+}
+.cert-preview-toolbar .btn {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.cert-preview-toolbar .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+/* Seletor de modelo de certificado */
+.cert-template-picker {
+  margin-bottom: var(--space-3);
+  padding: 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+.cert-template-picker__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.cert-template-picker__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cert-template-picker__label i {
+  color: var(--brand-primary);
+  margin-right: 6px;
+}
+.cert-template-picker__hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.cert-template-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+.cert-template-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px;
+  background: var(--surface-card);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
+}
+.cert-template-thumb__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, var(--brand-accent, #4dad33), var(--green-700, #2e7a1c));
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 10px -3px rgba(77, 173, 51, 0.5);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cert-template-thumb__badge i { font-size: 0.6rem; }
+.cert-template-thumb:hover {
+  transform: translateY(-1px);
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 12px -6px rgba(48, 99, 173, 0.4);
+}
+.cert-template-thumb.is-active {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(48, 99, 173, 0.18);
+}
+.cert-template-thumb img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 3px;
+  display: block;
+  background: #fff;
+}
+.cert-template-thumb__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.2;
+}
+.cert-template-thumb.is-active .cert-template-thumb__label {
+  color: var(--brand-primary);
+}
+
+/* Toolbar do editor visual de posicoes (etapa 3) */
+.cert-pos-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--space-3);
+  padding: 8px 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.cert-pos-toolbar__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+}
+.cert-pos-toolbar__toggle i { color: var(--brand-primary); }
+.cert-pos-toolbar__toggle input { accent-color: var(--brand-primary); }
+.cert-pos-toolbar__hint {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+

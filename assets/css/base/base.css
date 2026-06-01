@@ -1,0 +1,56 @@
+/* ================================================================
+   EGov-PL · Admin Panel
+   Importa o design system institucional + estilos do painel.
+   ================================================================ */
+
+
+/* ---------------- Reset ---------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100vw;
+}
+html { overflow-x: clip; }
+body { overflow-x: clip; }
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+  background: var(--surface-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button { font-family: inherit; cursor: pointer; }
+a { color: var(--brand-primary); text-decoration: none; }
+a:hover { color: var(--brand-primary-hover); }
+::selection { background: var(--selection-bg); color: var(--selection-fg); }
+
+/* Acessibilidade: focus ring consistente apenas para teclado */
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-xs);
+}
+.btn:focus-visible,
+.nav-link:focus-visible,
+.topbar__btn:focus-visible,
+.event-card:focus-visible,
+.course-card__turma:focus-visible,
+.checkbox:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

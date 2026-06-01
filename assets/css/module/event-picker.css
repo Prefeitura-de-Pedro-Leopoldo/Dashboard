@@ -1,0 +1,49 @@
+/* ================================================================
+   EVENT PICKER (Análise por Evento) - seletor inline elegante
+   ================================================================ */
+.event-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-xs);
+}
+.event-picker__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  padding-right: var(--space-3);
+  border-right: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+.event-picker__label i { color: var(--brand-primary); }
+.event-picker__select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.event-picker__select:hover { border-color: var(--brand-primary); }
+.event-picker__select:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-ring);
+}
+

@@ -1,0 +1,60 @@
+/* ================================================================
+   COURSE CARD - herda .event-card; só ajusta lista de turmas
+   ================================================================ */
+.course-card { cursor: default; }
+.course-card .event-card__title { cursor: default; }
+.status-badge.curso {
+  background: var(--brand-soft-bg);
+  color: var(--brand-primary);
+}
+.course-card__turmas {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+.course-card__turma {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: var(--transition-fast);
+}
+.course-card__turma:hover {
+  border-color: var(--brand-primary);
+  background: var(--brand-soft-bg);
+  transform: translateX(2px);
+}
+.course-card__turma-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.course-card__turma-name i {
+  color: var(--brand-primary);
+  font-size: 0.8em;
+}
+.course-card__turma-meta {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-align: right;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.35;
+}
+

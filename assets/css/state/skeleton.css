@@ -1,0 +1,75 @@
+/* ================================================================
+   SKELETON LOADING
+   ================================================================ */
+.skel {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--surface-muted) 0%,
+    var(--surface-subtle) 50%,
+    var(--surface-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-xs);
+  color: transparent;
+  user-select: none;
+}
+.skel--line { height: 12px; width: 100%; margin: 4px 0; }
+.skel--line.sm { height: 10px; }
+.skel--line.lg { height: 16px; }
+.skel--title { height: 22px; width: 55%; margin-bottom: 10px; border-radius: var(--radius-sm); }
+.skel--block { height: 100%; min-height: 120px; border-radius: var(--radius-sm); }
+.skel--circle { width: 132px; height: 132px; border-radius: 50%; }
+.skel--bar { height: 8px; width: 100%; border-radius: var(--radius-pill); }
+.skel-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+}
+.skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+.skel-kpis {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+@media (max-width: 1180px) {
+  .skel-kpis { grid-template-columns: 1fr 1fr; }
+  .skel-kpis > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .skel-kpis { grid-template-columns: 1fr; }
+}
+.skel-kpis .skel-card { min-height: 140px; }
+.skel-kpis .skel-card.hero { min-height: 180px; flex-direction: row; align-items: center; gap: var(--space-5); }
+.skel-kpis .skel-card.hero .skel--circle { flex-shrink: 0; }
+.skel-kpis .skel-card.hero .skel-card__body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+@keyframes skel-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+}
+
+.na-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+  font-style: italic;
+  cursor: help;
+}
+.na-tooltip i { font-size: 0.7rem; }
+

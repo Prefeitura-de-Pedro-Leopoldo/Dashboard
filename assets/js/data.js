@@ -12,29 +12,61 @@ const STATIC_URL = "eventos-data.json";
 
 let _cache = null;
 
-export async function loadData() {
+/**
+ * Carrega os dados com estratégia "stale-while-revalidate":
+ *   1. Resolve já com o JSON ESTÁTICO (local, instantâneo) → tela aparece rápido.
+ *   2. Em segundo plano, busca a API AO VIVO e, se os números mudaram, chama
+ *      `onLiveUpdate(dados)` para a tela se atualizar sem novo deploy.
+ *
+ * Se não houver estático, espera o ao vivo. Se ambos falharem, lança erro.
+ *
+ * @param {(dados:object)=>void} [onLiveUpdate]
+ */
+export async function loadData(onLiveUpdate) {
   if (_cache) return _cache;
 
-  // 1) Tenta a API ao vivo.
-  try {
-    const res = await fetch(LIVE_URL, { cache: "no-cache" });
-    if (res.ok) {
-      const raw = await res.json();
-      if (raw && Array.isArray(raw.eventos)) {
-        _cache = normalize(raw);
-        return _cache;
+  const livePromise = fetchNorm(LIVE_URL); // pode resolver null
+
+  // Estático primeiro (rápido) para a primeira renderização.
+  const estatico = await fetchNorm(STATIC_URL);
+  if (estatico) {
+    _cache = estatico;
+    // Revalida com o ao vivo em segundo plano; só re-renderiza se mudou.
+    livePromise.then((live) => {
+      if (live && _sig(live) !== _sig(estatico)) {
+        _cache = live;
+        if (typeof onLiveUpdate === "function") onLiveUpdate(live);
       }
-    }
-  } catch (_) {
-    // ignora e cai no estático
+    });
+    return _cache;
   }
 
-  // 2) Fallback: JSON estático do build.
-  const res = await fetch(STATIC_URL, { cache: "no-cache" });
-  if (!res.ok) throw new Error(`Falha ao carregar ${STATIC_URL}: ${res.status}`);
-  const raw = await res.json();
-  _cache = normalize(raw);
-  return _cache;
+  // Sem estático: depende do ao vivo.
+  const live = await livePromise;
+  if (live) {
+    _cache = live;
+    return _cache;
+  }
+  throw new Error("Não foi possível carregar os dados (ao vivo e estático indisponíveis).");
+}
+
+async function fetchNorm(url) {
+  try {
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) return null;
+    const raw = await res.json();
+    if (!raw || !Array.isArray(raw.eventos)) return null;
+    return normalize(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
+// Assinatura barata para detectar se os números mudaram (evita re-render à toa).
+function _sig(d) {
+  return (d.eventos || [])
+    .map((e) => `${e.id}:${e.totalInscritos}:${e.totalPresentes}`)
+    .join("|");
 }
 
 /**

@@ -1,0 +1,50 @@
+/* ================================================================
+   RESPONSIVE - sidebar sempre visivel (slim em mobile)
+   ================================================================ */
+@media (max-width: 1280px) {
+  .app-shell { grid-template-columns: 220px 1fr; }
+  .nav-link { font-size: 0.8125rem; padding: 7px 10px; }
+}
+
+@media (max-width: 1024px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .app-shell { grid-template-columns: 64px 1fr; }
+  .app-shell.is-mobile-open { grid-template-columns: 240px 1fr; }
+  .app-shell.is-mobile-open .sidebar__brand,
+  .app-shell.is-mobile-open .sidebar__group-label,
+  .app-shell.is-mobile-open .nav-link span,
+  .app-shell.is-mobile-open .sidebar__user,
+  .app-shell.is-mobile-open .sidebar__logout { display: flex; }
+  .sidebar__brand, .sidebar__group-label, .nav-link span,
+  .sidebar__user, .sidebar__logout, .nav-link__badge { display: none; }
+  .nav-link.is-active::before { display: none; }
+  .nav-link.is-active {
+    background: var(--brand-primary);
+    color: #fff;
+  }
+  .nav-link.is-active i { color: #fff; }
+  .sidebar__header { justify-content: center; padding: 0; }
+  .sidebar__toggle { margin-left: 0; order: 0; }
+  .app-shell.is-mobile-open .sidebar__toggle { margin-left: auto; order: 2; }
+  .sidebar__nav { padding: var(--space-3) 8px; }
+  .nav-link { justify-content: center; padding: 10px 0; gap: 0; }
+  .sidebar__footer { justify-content: center; padding: 10px 8px; }
+}
+
+@media (max-width: 768px) {
+  .main { padding: var(--space-4); }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .sidebar__header { height: 56px; }
+  .topbar__sub { display: none; }
+}
+
+@media (max-width: 480px) {
+  .app-shell { grid-template-columns: 56px 1fr; }
+  .sidebar__logo { width: 28px; height: 28px; font-size: 0.8125rem; }
+  .nav-link i { font-size: 0.8125rem; }
+  .topbar { height: 64px; padding: 0 var(--space-3); }
+  .sidebar__header { height: 64px; }
+  .main { padding: var(--space-3); }
+}
+

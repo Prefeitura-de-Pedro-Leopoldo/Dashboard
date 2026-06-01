@@ -1,0 +1,90 @@
+/* ================================================================
+   COMPARE BAR
+   ================================================================ */
+.compare-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-4) var(--space-5);
+  background:
+    linear-gradient(180deg, var(--surface-card) 0%, var(--surface-muted) 100%);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  position: relative;
+}
+.compare-bar__label {
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: var(--space-3);
+  margin-right: var(--space-1);
+  border-right: 1px solid var(--border-default);
+  height: 32px;
+}
+.compare-bar__label i {
+  color: var(--brand-primary);
+  font-size: 0.875rem;
+}
+.compare-bar #compareClear {
+  margin-left: auto;
+}
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+  max-width: 100%;
+  box-shadow: var(--shadow-xs);
+}
+.checkbox input { display: none; }
+.checkbox:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.checkbox.is-checked {
+  background: var(--brand-soft-bg);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--brand-primary);
+}
+.checkbox.is-checked::before {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 0.7rem;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: #fff;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.checkbox__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  white-space: nowrap;
+}
+

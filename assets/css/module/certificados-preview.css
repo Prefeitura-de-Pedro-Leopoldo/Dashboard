@@ -1,0 +1,93 @@
+/* ================================================================
+   CERTIFICADOS - preview grande e configs lado a lado
+   ================================================================ */
+.cert-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (max-width: 1180px) {
+  .cert-layout { grid-template-columns: 1fr; }
+}
+.cert-side {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.cert-side::-webkit-scrollbar { width: 6px; }
+.cert-side::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+.cert-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.cert-preview-card {
+  background: linear-gradient(180deg, var(--surface-card) 0%, var(--surface-muted) 100%);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-md);
+}
+.cert-preview-card .card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+.cert-preview-card .card__header h3 i {
+  color: var(--brand-primary);
+  margin-right: 6px;
+}
+.cert-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, var(--green-500), var(--green-600));
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px -4px rgba(77, 173, 51, 0.5);
+}
+.cert-preview-badge i { font-size: 0.65rem; }
+.canvas-frame {
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  overflow: hidden;
+}
+.canvas-frame--lg {
+  padding: var(--space-4);
+  background:
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.015) 0 8px, transparent 8px 16px),
+    var(--surface-muted);
+}
+.canvas-frame canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.6) inset,
+    0 16px 40px -12px rgba(22, 31, 54, 0.3),
+    0 4px 8px -2px rgba(22, 31, 54, 0.12);
+  background: #fff;
+}
+[data-theme="dark"] .qr-canvas-frame {
+  background:
+    repeating-conic-gradient(var(--surface-subtle) 0 25%, var(--surface-muted) 0 50%) 50% / 24px 24px;
+}
+

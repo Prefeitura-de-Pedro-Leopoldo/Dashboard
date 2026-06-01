@@ -1,0 +1,120 @@
+/* ================================================================
+   TABLES - sem scroll horizontal
+   ================================================================ */
+.table-wrap {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: var(--space-4);
+}
+
+.table-wrap__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-default);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.table-wrap__head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-wrap__head h3 i { color: var(--brand-primary); font-size: 0.95rem; }
+
+.table-scroll {
+  max-height: 540px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  table-layout: auto;
+}
+table.data thead th {
+  position: sticky; top: 0;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  text-align: left;
+  padding: 11px 14px;
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  border-bottom: 1px solid var(--border-default);
+  z-index: 2;
+}
+table.data tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  vertical-align: middle;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+table.data tbody tr:hover { background: var(--surface-muted); }
+table.data tbody tr:last-child td { border-bottom: 0; }
+.cell-name { font-weight: var(--fw-semibold); color: var(--text-primary); }
+.cell-num { font-variant-numeric: tabular-nums; }
+.cell-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.cell-status.green { background: var(--brand-soft-accent); color: var(--green-700); }
+.cell-status.red { background: rgba(192, 57, 43, 0.12); color: var(--red); }
+.cell-status.muted { background: var(--surface-subtle); color: var(--text-muted); }
+
+/* Célula de turma - sempre em uma linha, trunca com ellipsis (tooltip via title) */
+.cell-turma {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+/* Célula sem dado válido (e-mail anônimo, campo nulo, etc.) */
+.cell-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  cursor: help;
+}
+
+/* Página Secretarias: gráfico e ranking lado a lado, alturas idênticas. */
+.secretarias-grid { align-items: stretch; }
+.secretarias-grid > .card {
+  display: flex;
+  flex-direction: column;
+}
+.secretarias-grid > .card > .chart-wrap {
+  flex: 1;
+  height: auto;
+  min-height: 280px;
+}
+
+/* Grid de participantes (Presentes + Faltou lado a lado) */
+.participantes-grid { align-items: start; }
+.participantes-grid .table-wrap { min-width: 0; }
+.participantes-grid table.data thead th,
+.participantes-grid table.data tbody td { padding: 9px 10px; }
+.participantes-grid .col-hide-md { display: none; }
+.participantes-grid .col-presence { display: none; }
+@media (max-width: 1024px) {
+  .participantes-grid { grid-template-columns: 1fr; }
+}
+

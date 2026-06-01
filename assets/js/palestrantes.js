@@ -10,6 +10,7 @@
  */
 
 import { escapeHtml, formatDateBR } from "./ui.js"
+import { loaderHtml } from "./loader.js"
 
 // ---- Eixos temáticos sugeridos (padroniza a digitação; aceita "Outro") ----
 const EIXOS_TEMATICOS = [
@@ -403,21 +404,14 @@ export async function renderLista() {
   const view = document.getElementById("view-palestrantes-lista")
   if (!view) return
 
-  // Skeleton de carregamento.
+  // Loader enquanto a lista não chegou da API.
   if (!_cache) {
     view.innerHTML = `
       <div class="card">
         <div class="card__header">
-          <div><h3><i class="fas fa-users-rectangle"></i> Palestrantes</h3><p>Carregando...</p></div>
+          <div><h3><i class="fas fa-users-rectangle"></i> Palestrantes</h3><p>Buscando cadastros…</p></div>
         </div>
-        <div class="pal-grid">
-          ${Array.from({ length: 4 }).map(() => `
-            <div class="pal-card pal-card--skel">
-              <div class="skel skel--circle"></div>
-              <div class="skel skel--line" style="width:70%"></div>
-              <div class="skel skel--line" style="width:50%"></div>
-            </div>`).join("")}
-        </div>
+        ${loaderHtml("Carregando informações…")}
       </div>`
   }
 

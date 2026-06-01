@@ -1,0 +1,51 @@
+/* ================================================================
+   EMPTY STATES
+   ================================================================ */
+.empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-5);
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+.empty-state__art {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 30%, var(--brand-soft-bg) 0%, transparent 70%),
+    var(--surface-muted);
+  display: grid;
+  place-items: center;
+  color: var(--brand-primary);
+  font-size: 2rem;
+  border: 1px solid var(--border-subtle);
+}
+.empty-state i:not(.empty-state__art i) {
+  font-size: 2.2rem;
+  color: var(--text-faint);
+  display: block;
+}
+.empty-state h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-tight);
+}
+.empty-state p {
+  margin: 0 auto;
+  max-width: 44ch;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+.empty-state__actions {
+  margin-top: var(--space-2);
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+

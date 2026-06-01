@@ -1,0 +1,46 @@
+/* ================================================================
+   GROUP TABS (barra de sub-abas abaixo do topbar)
+   ================================================================ */
+/* Group-tabs (sub-abas da sidebar) usam exatamente o mesmo visual das
+   view-tabs (abas internas como em Visão Geral). Padrão único de tabs no app. */
+.group-tabs-host { margin: 0 0 var(--space-4); }
+.group-tabs-host:empty { display: none; }
+.group-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  margin-bottom: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.group-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease;
+}
+.group-tab i { font-size: 0.85rem; color: inherit; }
+.group-tab:hover {
+  background: var(--brand-soft-bg, rgba(48, 99, 173, 0.06));
+  color: var(--brand-primary);
+}
+.group-tab.is-active {
+  background: linear-gradient(135deg, var(--blue-700), var(--blue-600));
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(48, 99, 173, 0.5);
+}
+.group-tab.is-active i { color: #fff; }
+

@@ -1,0 +1,115 @@
+/* ================================================================
+   RESPONSIVE - ajustes globais para componentes novos
+   ================================================================ */
+
+/* Modal em telas muito pequenas: ocupa quase a tela toda */
+@media (max-width: 480px) {
+  .app-modal__overlay { padding: 12px; align-items: flex-end; }
+  .app-modal {
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    animation: modalSlideUp 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes modalSlideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .app-modal__head { padding: 18px 18px 12px; }
+  .app-modal__actions { padding: 12px 16px 16px; flex-direction: column-reverse; }
+  .app-modal__btn { width: 100%; min-width: 0; padding: 12px 16px; font-size: 0.95rem; }
+}
+
+/* Painel de tipografia: header empilha em mobile (título acima, ações abaixo) */
+@media (max-width: 720px) {
+  .cert-typo-panel__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .cert-typo-panel__actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .cert-typo-link {
+    flex: 1;
+    justify-content: center;
+  }
+  .cert-typo-panel__grid { padding: 12px; gap: 12px; }
+  .cert-typo-control__value { font-size: 0.68rem; min-width: 38px; padding: 2px 6px; }
+}
+
+/* View Insights - KPIs e seções */
+#view-insights .kpi-grid { gap: var(--space-3); }
+@media (max-width: 1024px) {
+  #view-insights .grid-2 { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 600px) {
+  #view-insights .section-header h2 { font-size: 1rem; }
+  #view-insights .section-header p { font-size: 0.78rem; }
+  #view-insights .kpi__value { font-size: 1.35rem; }
+}
+/* Heatmaps com scroll horizontal forçado em telas pequenas */
+#wrap-insMatriz, #wrap-insHeat {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+#wrap-insMatriz::-webkit-scrollbar,
+#wrap-insHeat::-webkit-scrollbar { height: 8px; }
+#wrap-insMatriz::-webkit-scrollbar-thumb,
+#wrap-insHeat::-webkit-scrollbar-thumb {
+  background: var(--border-strong, #c8cfdc);
+  border-radius: 4px;
+}
+
+/* Tabelas dentro de cards (Insights, etc.) - wrapper para scroll horizontal */
+.data-table { min-width: 360px; }
+.card .data-table { width: 100%; }
+.card__content { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Cert wizard step 1: form fields stack em mobile */
+@media (max-width: 640px) {
+  .filters { grid-template-columns: 1fr !important; }
+  /* Picker de modelos: força 2 colunas no celular para os 6 modelos não ficarem tiny */
+  .cert-template-picker__grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Cert wizard step 2 (lista de elegíveis): tabela com scroll horizontal */
+@media (max-width: 768px) {
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cert-template-thumb img { aspect-ratio: 5 / 3; }
+}
+
+/* Topbar mais compacta em mobile, evita cortar título longo */
+@media (max-width: 600px) {
+  .topbar__title { font-size: 1rem; line-height: 1.2; }
+  .topbar__btn span { display: none; }
+  .topbar__btn { padding: 8px 10px; }
+}
+
+/* Section header não estoura em mobile */
+@media (max-width: 600px) {
+  .section-header { flex-wrap: wrap; gap: 8px; }
+  .section-header__actions { width: 100%; justify-content: flex-end; }
+}
+
+/* Canvas do certificado: sempre cabe na largura do container */
+.cert-canvas-stage canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Drag handles em mobile: levemente maiores para toque */
+@media (hover: none) and (pointer: coarse) {
+  .cert-drag-handle__grip {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+  }
+  .cert-typo-control__range { height: 6px; }
+  .cert-typo-control__range::-webkit-slider-thumb { width: 20px; height: 20px; }
+  .cert-typo-control__range::-moz-range-thumb     { width: 20px; height: 20px; }
+}
+

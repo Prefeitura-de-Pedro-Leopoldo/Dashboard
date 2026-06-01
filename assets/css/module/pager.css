@@ -1,0 +1,98 @@
+/* ================================================================
+   PAGER (paginação de tabelas)
+   ================================================================ */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  flex-wrap: wrap;
+}
+.pager__info {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pager__info b { color: var(--text-primary); font-weight: var(--fw-semibold); }
+.pager__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pager__btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.pager__btn i { font-size: 0.7rem; }
+.pager__btn:hover:not(.is-disabled):not(.is-active) {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-soft-bg);
+}
+.pager__btn.is-active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--text-on-brand);
+  cursor: default;
+}
+.pager__btn.is-disabled,
+.pager__btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.pager__ellipsis {
+  padding: 0 4px;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  user-select: none;
+}
+.pager__current {
+  min-width: 56px;
+  padding: 0 12px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+.pager__current b {
+  color: var(--text-primary);
+  font-weight: var(--fw-bold);
+  margin-right: 2px;
+}
+@media (max-width: 480px) {
+  .pager { flex-direction: column; align-items: stretch; }
+  .pager__controls { justify-content: center; flex-wrap: wrap; }
+}
+
+/* Hide secondary columns on narrow screens to prevent horizontal scroll */
+@media (max-width: 900px) {
+  table.data .col-hide-md { display: none; }
+}
+@media (max-width: 640px) {
+  table.data .col-hide-sm { display: none; }
+  table.data thead th, table.data tbody td { padding: 10px 10px; }
+}
+
