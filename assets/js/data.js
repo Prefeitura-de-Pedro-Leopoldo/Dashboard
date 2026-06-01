@@ -22,8 +22,19 @@ let _cache = null;
  *
  * @param {(dados:object)=>void} [onLiveUpdate]
  */
-export async function loadData(onLiveUpdate) {
-  if (_cache) return _cache;
+export async function loadData(onLiveUpdate, opts = {}) {
+  const force = !!opts.force;
+  if (_cache && !force) return _cache;
+
+  // Atualização forçada (botão "Atualizar"): busca o AO VIVO fresco, ignorando
+  // o cache do cliente e o do servidor (?fresh=1), e espera por ele.
+  if (force) {
+    const live = await fetchNorm(LIVE_URL + "?fresh=1");
+    if (live) { _cache = live; return _cache; }
+    const est = await fetchNorm(STATIC_URL);
+    if (est) { _cache = est; return _cache; }
+    throw new Error("Não foi possível atualizar os dados.");
+  }
 
   const livePromise = fetchNorm(LIVE_URL); // pode resolver null
 

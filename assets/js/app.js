@@ -50,80 +50,9 @@ import {
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
 import { initPalestrantes, renderCadastro as renderPalestrantesCadastro, renderLista as renderPalestrantesLista } from "./palestrantes.js"
 import { showCover } from "./loader.js"
-
-// ================ Modal (substitui alert/confirm nativos) ================
-// API: showAlert({title, message, type, confirmLabel}) -> Promise<void>
-//      showConfirm({title, message, type, confirmLabel, cancelLabel, danger}) -> Promise<boolean>
-// Apenas 1 modal por vez; ESC e clique no overlay fecham (confirm = cancela).
-let _activeModal = null
-function _closeModal(resolveValue) {
-  if (!_activeModal) return
-  const { overlay, resolve, escHandler } = _activeModal
-  document.removeEventListener("keydown", escHandler)
-  overlay.classList.add("is-closing")
-  _activeModal = null
-  setTimeout(() => overlay.remove(), 160)
-  resolve(resolveValue)
-}
-function _openModal({ title, message, type = "info", confirmLabel = "OK", cancelLabel = null, danger = false }) {
-  // Se já tem um aberto, fecha primeiro (cancela)
-  if (_activeModal) _closeModal(false)
-
-  const icons = {
-    info: "fa-circle-info",
-    success: "fa-circle-check",
-    warn: "fa-triangle-exclamation",
-    error: "fa-circle-exclamation",
-    confirm: "fa-circle-question"
-  }
-  const variant = cancelLabel ? "confirm" : type
-  const icon = icons[type] || icons.info
-
-  const overlay = document.createElement("div")
-  overlay.className = "app-modal__overlay"
-  overlay.setAttribute("role", "dialog")
-  overlay.setAttribute("aria-modal", "true")
-  overlay.innerHTML = `
-    <div class="app-modal app-modal--${variant}" style="position:relative">
-      <button type="button" class="app-modal__close" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
-      <div class="app-modal__head">
-        <div class="app-modal__icon"><i class="fas ${icon}"></i></div>
-        <div class="app-modal__text">
-          ${title ? `<h3 class="app-modal__title">${escapeHtml(title)}</h3>` : ""}
-          <p class="app-modal__message">${escapeHtml(message || "").replace(/\n/g, "<br>")}</p>
-        </div>
-      </div>
-      <div class="app-modal__actions">
-        ${cancelLabel ? `<button type="button" class="app-modal__btn app-modal__btn--ghost" data-modal-cancel>${escapeHtml(cancelLabel)}</button>` : ""}
-        <button type="button" class="app-modal__btn ${danger ? "app-modal__btn--danger" : "app-modal__btn--primary"}" data-modal-confirm>${escapeHtml(confirmLabel)}</button>
-      </div>
-    </div>
-  `
-  document.body.appendChild(overlay)
-
-  return new Promise(resolve => {
-    const escHandler = (e) => { if (e.key === "Escape") _closeModal(cancelLabel ? false : undefined) }
-    _activeModal = { overlay, resolve, escHandler }
-    document.addEventListener("keydown", escHandler)
-
-    overlay.addEventListener("click", (e) => { if (e.target === overlay) _closeModal(cancelLabel ? false : undefined) })
-    overlay.querySelector(".app-modal__close").addEventListener("click", () => _closeModal(cancelLabel ? false : undefined))
-    overlay.querySelector("[data-modal-confirm]").addEventListener("click", () => _closeModal(cancelLabel ? true : undefined))
-    const cancelBtn = overlay.querySelector("[data-modal-cancel]")
-    if (cancelBtn) cancelBtn.addEventListener("click", () => _closeModal(false))
-
-    // Foco no botão primário
-    setTimeout(() => overlay.querySelector("[data-modal-confirm]")?.focus(), 50)
-  })
-}
-function showAlert(opts) {
-  if (typeof opts === "string") opts = { message: opts }
-  return _openModal({ ...opts, cancelLabel: null })
-}
-function showConfirm(opts) {
-  if (typeof opts === "string") opts = { message: opts }
-  return _openModal({ type: "confirm", cancelLabel: "Cancelar", confirmLabel: "Confirmar", ...opts })
-}
+import { state } from "./core/state.js"
+import { showAlert, showConfirm } from "./core/modal.js"
+import { renderPaginatedTable, renderTabsNav, wireTabs, getActiveTab } from "./core/ui-kit.js"
 
 // ================ Auth gate ================
 const session = sessionStorage.getItem("egov_admin_session")
@@ -137,23 +66,7 @@ const userData = (() => {
 })()
 
 // ================ State ================
-const state = {
-  data: null,
-  view: "dashboard",
-  _certTypoLinked: true,    // padrão: manter proporções entre os campos
-  _certDragEnabled: true,   // padrão: arrasta-e-solta ligado
-  selectedEventId: null,
-  compareIds: new Set(),
-  reportFilters: { eventoId: "", secretaria: "", turma: "", busca: "" },
-  certEventId: null, // id da planilha do sistema selecionada (aba "Do sistema")
-  certSource: "evento", // 'evento' (planilha do sistema) ou 'planilha' (upload)
-  certUploaded: null, // dados de planilha enviada via upload
-  certManifest: null, // índice lido de relatorios/manifest.json
-  certSystemCache: {}, // id -> participantes elegíveis já parseados da planilha
-  certPendingArquivo: null, // arquivo a resolver quando o manifesto terminar de carregar
-  templateImg: null, // Image do modelo atualmente carregado
-  certTemplateId: "modelo-1" // id em CERT_TEMPLATES (selecionado na etapa 3)
-}
+// O estado compartilhado agora vive em ./core/state.js (importado acima).
 
 // Modelos disponiveis em assets/img/modelos_certificados/. Declarado no topo
 // pois preloadTemplate() roda em init() antes da secao CERTIFICADOS ser definida.
@@ -443,11 +356,14 @@ const VIEW_TO_GROUP = (() => {
   await reloadData()
 })()
 
-async function reloadData() {
+async function reloadData(opts = {}) {
   showDashboardSkeleton()
   // Loader (capelo) sobre o conteúdo enquanto os dados não chegam. Com atraso
   // de revelação: carregamento rápido (estático local) não chega a exibir.
-  const hideLoader = showCover(document.getElementById("mainContent"), "Carregando informações…")
+  // Na atualização forçada (botão), mostra logo (revealMs baixo).
+  const hideLoader = showCover(document.getElementById("mainContent"),
+    opts.force ? "Atualizando informações…" : "Carregando informações…",
+    opts.force ? 0 : 200)
   const applyData = (raw) => {
     // Consolida eventos com mesmo grupo (turmas/módulos) em um único evento agregado.
     state.dataRaw = raw
@@ -456,7 +372,7 @@ async function reloadData() {
   }
   try {
     // Renderiza já com o estático; a atualização ao vivo re-renderiza se mudou.
-    const raw = await loadData((live) => applyData(live))
+    const raw = await loadData((live) => applyData(live), opts)
     applyData(raw)
     hideLoader()
   } catch (err) {
@@ -551,7 +467,7 @@ function setupUserChrome() {
     sessionStorage.removeItem("egov_admin_session")
     window.location.replace("login.html")
   })
-  document.getElementById("refreshBtn").addEventListener("click", reloadData)
+  document.getElementById("refreshBtn").addEventListener("click", () => reloadData({ force: true }))
 }
 
 function setupThemeToggle() {
@@ -624,72 +540,8 @@ function renderGroupTabs(groupId) {
 }
 
 // ================ Helpers de UI: Tabs internas ================
-// state.viewTabs[viewName] guarda a aba ativa de cada pagina
-state.viewTabs = state.viewTabs || {}
-// Estado de paginação por escopo (e.g. "ev-{id}", "participantes-global")
-state.pagerPages = state.pagerPages || {}
-
-function renderPaginatedTable(containerId, participantes, scopeId, opts = {}) {
-  const pageSize = opts.pageSize || 10
-  const container = document.getElementById(containerId)
-  if (!container) return
-  const totalPages = Math.max(1, Math.ceil(participantes.length / pageSize))
-  // Garante que a página atual ainda existe (caso filtros tenham encolhido o
-  // total). Se a anterior virou inválida, volta pra 1.
-  const cur = state.pagerPages[scopeId] || 1
-  if (cur > totalPages) state.pagerPages[scopeId] = 1
-  if (!state.pagerPages[scopeId]) state.pagerPages[scopeId] = 1
-
-  const draw = () => {
-    const page = state.pagerPages[scopeId] || 1
-    container.innerHTML = renderParticipantsTable(participantes, { paginate: true, pageSize, page, scopeId, hideEmail: !!opts.hideEmail, hideTurma: !!opts.hideTurma })
-    container.querySelectorAll(`[data-pager-scope="${scopeId}"][data-pager-page]`).forEach(btn => {
-      btn.addEventListener("click", e => {
-        e.preventDefault()
-        const p = parseInt(btn.dataset.pagerPage, 10)
-        if (!Number.isFinite(p) || p < 1) return
-        state.pagerPages[scopeId] = p
-        draw()
-      })
-    })
-  }
-  draw()
-}
-
-function renderTabsNav(viewKey, tabs) {
-  const active = state.viewTabs[viewKey] || tabs[0].id
-  return `
-    <nav class="view-tabs" role="tablist" data-view="${viewKey}">
-      ${tabs
-        .map(
-          t => `
-        <button class="view-tab ${active === t.id ? "is-active" : ""}" data-tab="${t.id}" role="tab" aria-selected="${active === t.id}">
-          ${t.icon ? `<i class="fas ${t.icon}"></i>` : ""}
-          <span>${escapeHtml(t.label)}</span>
-          ${t.badge != null ? `<span class="view-tab__badge">${escapeHtml(String(t.badge))}</span>` : ""}
-        </button>
-      `
-        )
-        .join("")}
-    </nav>
-  `
-}
-
-function wireTabs(viewKey, onSwitch) {
-  const nav = document.querySelector(`.view-tabs[data-view="${viewKey}"]`)
-  if (!nav) return
-  nav.querySelectorAll(".view-tab").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.tab
-      state.viewTabs[viewKey] = id
-      onSwitch(id)
-    })
-  })
-}
-
-function getActiveTab(viewKey, defaultId) {
-  return state.viewTabs[viewKey] || defaultId
-}
+// (renderPaginatedTable, renderTabsNav, wireTabs, getActiveTab vivem em
+//  ./core/ui-kit.js — importados acima.)
 
 // ================ Render orchestrator ================
 function renderAll() {

@@ -27,7 +27,7 @@ const WEBAPP_URL = process.env.RELATORIOS_WEBAPP_URL || "";
 const TOKEN = process.env.RELATORIOS_TOKEN || "";
 
 const PREFIXO = "assets/docs/relatorios/";
-const CACHE_TTL_MS = 60 * 1000; // 1 min
+const CACHE_TTL_MS = 30 * 1000; // 30s
 
 export const config = { maxDuration: 30 };
 
@@ -40,9 +40,14 @@ export default async function handler(req, res) {
     return res.status(503).json({ ok: false, error: "Relatórios ao vivo não configurados." });
   }
 
+  // ?fresh=1 força reprocessar do Drive, ignorando o cache (usado pelo botão
+  // "Atualizar" do painel).
+  const q = req.query || {};
+  const fresh = q.fresh === "1" || q.fresh === "true" || /[?&]fresh=(1|true)\b/.test(req.url || "");
+
   try {
     const agora = Date.now();
-    if (_cache.data && agora - _cache.at < CACHE_TTL_MS) {
+    if (!fresh && _cache.data && agora - _cache.at < CACHE_TTL_MS) {
       res.setHeader("X-Eventos-Cache", "hit");
       return res.status(200).json(_cache.data);
     }
