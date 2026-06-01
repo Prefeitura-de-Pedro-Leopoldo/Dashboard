@@ -48,6 +48,7 @@ import {
   renderComparativeTable
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
+import { initPalestrantes, renderCadastro as renderPalestrantesCadastro, renderLista as renderPalestrantesLista } from "./palestrantes.js"
 
 // ================ Modal (substitui alert/confirm nativos) ================
 // API: showAlert({title, message, type, confirmLabel}) -> Promise<void>
@@ -384,6 +385,16 @@ const SIDEBAR_GROUPS = [
       { view: "participantes", label: "Participantes",       icon: "fa-users" }
     ]
   },
+  { id: "palestrantes",
+    label: "Palestrantes",
+    title: "Palestrantes",
+    subtitle: "Cadastro de palestrantes: eixo temático, curso ministrado, mini bio e foto.",
+    defaultView: "palestrantes-cadastro",
+    tabs: [
+      { view: "palestrantes-cadastro", label: "Cadastrar", icon: "fa-user-plus" },
+      { view: "palestrantes-lista",    label: "Galeria",   icon: "fa-users-rectangle" }
+    ]
+  },
   { id: "docs",
     label: "Relatórios",
     title: "Relatórios",
@@ -421,6 +432,12 @@ const VIEW_TO_GROUP = (() => {
   setupUserChrome()
   setupThemeToggle()
   setupNavigation()
+  initPalestrantes({
+    showAlert,
+    showConfirm,
+    getEventos: () => (state.data && state.data.eventos) || [],
+    navigate
+  })
   preloadTemplate()
   await reloadData()
 })()
@@ -681,6 +698,8 @@ function renderAll() {
   else if (state.view === "certificados") renderViewCertificados()
   else if (state.view === "qrcode") renderViewQrCode()
   else if (state.view === "autoreport") renderViewAutoReport()
+  else if (state.view === "palestrantes-cadastro") renderPalestrantesCadastro()
+  else if (state.view === "palestrantes-lista") renderPalestrantesLista()
 }
 
 // ================ DASHBOARD ================

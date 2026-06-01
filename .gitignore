@@ -1,3 +1,8 @@
 .vercel
 .env*
 node_modules/
+
+# Relatorios .xlsx vivem no Drive e sao baixados no build (pull-relatorios.mjs).
+# eventos-meta.json e manifest.json NAO sao ignorados (config/gerados).
+assets/docs/relatorios/**/*.xlsx
+assets/docs/relatorios/**/*.xls

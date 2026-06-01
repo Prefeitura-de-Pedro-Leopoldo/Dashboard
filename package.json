@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/normalize-planilhas.mjs && node scripts/build-data.mjs",
+    "build": "node scripts/pull-relatorios.mjs && node scripts/normalize-planilhas.mjs && node scripts/build-data.mjs",
     "build:data": "node scripts/build-data.mjs",
-    "build:normalize": "node scripts/normalize-planilhas.mjs"
+    "build:normalize": "node scripts/normalize-planilhas.mjs",
+    "build:pull": "node scripts/pull-relatorios.mjs"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
