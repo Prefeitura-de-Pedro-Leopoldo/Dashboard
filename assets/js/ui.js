@@ -321,6 +321,7 @@ export function renderEventDetail(ev) {
           <h2 class="event-detail__title" title="${escapeHtml(ev.title)}">${escapeHtml(ev.title)}</h2>
           <div class="event-detail__meta">
             <span title="${dateLine}"><i class="fas fa-calendar"></i> ${dateLine}</span>
+            ${ev.cargaHoraria != null ? `<span title="Carga horária total"><i class="fas fa-clock"></i> ${ev.cargaHoraria}h de carga horária</span>` : ""}
             ${localLine ? `<span title="${localLine}"><i class="fas fa-location-dot"></i> ${localLine}</span>` : ""}
           </div>
         </div>
@@ -691,6 +692,34 @@ export function renderSecretariasTable(ranking) {
     <div class="table-scroll">
       <table class="data">
         <thead><tr><th>#</th><th>Secretaria</th><th>Inscrições</th><th>Participação</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+export function renderFaltasSecretariasTable(ranking) {
+  if (!ranking.length) {
+    return `<div class="empty-state"><i class="fas fa-user-slash"></i><h3>Sem faltas registradas</h3></div>`;
+  }
+  const total = ranking.reduce((s, r) => s + r.qtd, 0);
+  const rows = ranking.map((r, i) => {
+    const share = total ? ((r.qtd / total) * 100).toFixed(1) : "0.0";
+    return `
+      <tr>
+        <td class="cell-num">${i + 1}</td>
+        <td class="cell-name">${escapeHtml(r.nome)}</td>
+        <td class="cell-num">${fmt(r.qtd)}</td>
+        <td class="cell-num">${fmt(r.inscritos)}</td>
+        <td class="cell-num">${(r.taxaEvasao ?? 0).toFixed(1)}%</td>
+        <td class="cell-num">${share}%</td>
+      </tr>
+    `;
+  }).join("");
+  return `
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>#</th><th>Secretaria</th><th>Faltas</th><th>Inscrições</th><th>Taxa de evasão</th><th>Participação</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>

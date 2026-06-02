@@ -459,6 +459,7 @@ export function buildEvento(arquivo, meta, participantes) {
   return {
     id: meta.id,
     title: meta.title,
+    cargaHoraria: meta.cargaHoraria ?? null,
     date: meta.date || null,
     dateRaw: meta.dateRaw || meta.date || null,
     time: meta.time || "",

@@ -2,13 +2,14 @@
  * views/secretarias.js - view "Secretarias" (ranking + gráfico global).
  */
 import { state } from "../core/state.js"
-import { rankingSecretarias } from "../metrics.js"
-import { escapeHtml, fmt, renderSecretariasTable } from "../ui.js"
+import { rankingSecretarias, rankingEvasaoSecretarias } from "../metrics.js"
+import { escapeHtml, fmt, renderSecretariasTable, renderFaltasSecretariasTable } from "../ui.js"
 import { barSecretarias } from "../charts.js"
 
 export function renderViewSecretarias() {
   const { data } = state
   const ranking = rankingSecretarias(data.eventos)
+  const rankingFaltas = rankingEvasaoSecretarias(data.eventos)
 
   const view = document.getElementById("view-secretarias")
   view.innerHTML = `
@@ -52,17 +53,39 @@ export function renderViewSecretarias() {
         ${renderSecretariasTable(ranking)}
       </div>
     </div>
+
+    <div class="grid-2 secretarias-grid">
+      <div class="card">
+        <div class="card__header"><div><h3>Distribuição global</h3><p>Faltas por secretaria (todos os eventos).</p></div></div>
+        <div class="chart-wrap" id="secFaltasChartWrap"><canvas id="secFaltasChart"></canvas></div>
+      </div>
+      <div class="table-wrap" id="secFaltasRankingWrap" style="margin-bottom:0;">
+        <div class="table-wrap__head">
+          <h3><i class="fas fa-user-slash"></i> Ranking detalhado</h3>
+          <span class="card__header-meta">${rankingFaltas.length} secretaria(s)</span>
+        </div>
+        ${renderFaltasSecretariasTable(rankingFaltas)}
+      </div>
+    </div>
   `
   // Tabela com altura natural; o CSS Grid (.secretarias-grid) iguala os
   // dois cards automaticamente via align-items: stretch. O gráfico usa
   // o card pai como referência de altura (100%).
-  const tableWrap = document.getElementById("secRankingWrap")
-  if (tableWrap) {
-    const scroll = tableWrap.querySelector(".table-scroll")
+  for (const wrapId of ["secRankingWrap", "secFaltasRankingWrap"]) {
+    const wrap = document.getElementById(wrapId)
+    const scroll = wrap && wrap.querySelector(".table-scroll")
     if (scroll) {
       scroll.style.maxHeight = "none"
       scroll.style.overflow = "visible"
     }
   }
   barSecretarias("secChart", ranking, { limit: 15 })
+  barSecretarias("secFaltasChart", rankingFaltas, {
+    limit: 15,
+    datasetLabel: "Faltas",
+    unitLabel: "falta(s)",
+    emptyLabel: "Sem faltas registradas.",
+    tooltipExtra: (entry) =>
+      entry ? [`Inscritos: ${entry.inscritos}`, `Presentes: ${entry.presentes}`, `Evasão: ${entry.taxaEvasao}%`] : [],
+  })
 }

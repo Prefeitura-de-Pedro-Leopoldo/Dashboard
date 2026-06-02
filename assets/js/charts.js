@@ -371,7 +371,7 @@ function shorten(s, n) {
 
 // Abreviador inteligente para nomes de órgãos públicos.
 // Aplica regras conhecidas (SMU. X, CGM, etc.) e trunca o restante.
-function shortenOrg(s, n = 28) {
+export function shortenOrg(s, n = 28) {
   if (!s) return "";
   const original = String(s).trim();
   // Aplica SEMPRE os padrões de abreviação (não pula para nomes curtos -

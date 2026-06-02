@@ -105,7 +105,12 @@
       "Bash(curl -s -o /dev/null -w \"/ [HTTP %{http_code}]\\\\n\" -L http://localhost:3000/)",
       "Bash(curl -s -o /dev/null -w \"/dashboard [HTTP %{http_code}]\\\\n\" -L http://localhost:3000/dashboard)",
       "Bash(curl -s -o /dev/null -w \"app.js [HTTP %{http_code}]\\\\n\" http://localhost:3000/assets/js/app.js)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(git commit -q -m 'fix\\(painel\\): ocupacao por presenca, cards completos, loader centralizado e unificacao de servidores' -m '- Ocupacao = Presentes/\\(Presentes+Ausentes\\) em metrics, build, cards, detalhe e relatorio automatico; Vagas vira informativa *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

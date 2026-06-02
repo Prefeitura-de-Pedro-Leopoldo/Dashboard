@@ -1,12 +1,7 @@
 {
-  "geradoEm": "2026-06-02T15:40:57.517Z",
+  "geradoEm": "2026-06-02T17:10:49.082Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "planilhas": [
-    {
-      "id": "ciclo-de-debates-pl-por-elas",
-      "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx",
-      "titulo": "Ciclo de Debates PL por Elas"
-    },
     {
       "id": "workshop-sei-usar",
       "arquivo": "workshop-sei-2026-04/participantes.xlsx",
@@ -21,6 +16,11 @@
       "id": "fundamentos-da-gestao-publica",
       "arquivo": "fundamentos-gestao-publica-2026-05/turma 1/participantes.xlsx",
       "titulo": "Fundamentos da Gestão Pública"
+    },
+    {
+      "id": "ciclo-de-debates-pl-por-elas",
+      "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx",
+      "titulo": "Ciclo de Debates PL por Elas"
     },
     {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",

@@ -72,6 +72,7 @@ export const consolidarPorGrupo = (eventos) => {
         local: ev.local,
         city: ev.city,
         status: ev.status,
+        cargaHoraria: 0,
         totalInscritos: 0,
         totalAprovados: 0,
         totalPresentes: 0,
@@ -97,6 +98,8 @@ export const consolidarPorGrupo = (eventos) => {
     g.totalPresentes += ev.totalPresentes || 0;
     g.totalAusentes += ev.totalAusentes || 0;
     g.vagas += ev.vagas || 0;
+    // Carga horária do curso é a mesma entre turmas → usa o máximo (não soma).
+    g.cargaHoraria = Math.max(g.cargaHoraria || 0, ev.cargaHoraria || 0);
     // Pega a data mais antiga e horário/local do primeiro
     if (ev.date && (!g.date || ev.date < g.date)) g.date = ev.date;
     // Soma secretarias

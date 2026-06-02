@@ -65,6 +65,9 @@
 
 /* Medalhas pódio */
 .rank-list__item--gold { background: linear-gradient(135deg, #FFF6D0 0%, #FFE9A0 100%); border-color: #E5C24A; }
+.rank-list__item--gold:hover { background: linear-gradient(135deg, #FFF0B8 0%, #FFE08A 100%); }
+.rank-list__item--silver:hover { background: linear-gradient(135deg, #ECEFF4 0%, #CFD7E1 100%); }
+.rank-list__item--bronze:hover { background: linear-gradient(135deg, #F4D7B5 0%, #E0AC78 100%); }
 .rank-list__item--gold .rank-list__pos { color: #8A5A00; }
 .rank-list__item--gold .rank-list__pos i { color: #D4A017; font-size: 1.4rem; }
 .rank-list__item--gold .rank-list__badge { background: linear-gradient(135deg, #D4A017, #8A5A00); }
@@ -78,28 +81,86 @@
 .rank-list__item--bronze .rank-list__badge { background: linear-gradient(135deg, #B8722E, #7A4A1F); }
 .rank-list__pos { display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .rank-list__pos small { font-size: 0.7rem; font-weight: 700; opacity: 0.75; }
+
+/* Contraste no tema escuro: os cards de medalha têm fundo claro, então o nome
+   (que é um .servidor-link com cor azul própria) e a meta precisam de cor
+   escura forçada — senão herdam as cores claras do tema e ficam ilegíveis. */
+.rank-list__item--gold .rank-list__name,
+.rank-list__item--gold .rank-list__name .servidor-link { color: #5C3D00 !important; }
+.rank-list__item--gold .rank-list__meta { color: #8A6A1F !important; }
+
+.rank-list__item--silver .rank-list__name,
+.rank-list__item--silver .rank-list__name .servidor-link { color: #2E3B52 !important; }
+.rank-list__item--silver .rank-list__meta { color: #56657F !important; }
+
+.rank-list__item--bronze .rank-list__name,
+.rank-list__item--bronze .rank-list__name .servidor-link { color: #5A2F12 !important; }
+.rank-list__item--bronze .rank-list__meta { color: #855433 !important; }
+
+/* Hover/foco do nome dentro dos cards de medalha: só sublinha (mantém legível
+   em vez de assumir a cor clara de hover do link). */
+.rank-list__item--gold .servidor-link:hover,
+.rank-list__item--gold .servidor-link:focus,
+.rank-list__item--silver .servidor-link:hover,
+.rank-list__item--silver .servidor-link:focus,
+.rank-list__item--bronze .servidor-link:hover,
+.rank-list__item--bronze .servidor-link:focus { text-decoration: underline; }
 .servidores-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 960px) { .servidores-layout { grid-template-columns: 1fr; } }
 .servidores-podio { position: sticky; top: var(--space-3); }
 .participantes-split { gap: var(--space-4); }
 @media (max-width: 1100px) { .participantes-split { grid-template-columns: 1fr; } }
 
-/* Linhas de medalha em Servidores destaque (sequencial 1-2-3) */
+/* Linhas de medalha em Servidores destaque (sequencial 1-2-3).
+   O fundo é claro (ouro/prata/bronze), então TODO o conteúdo precisa de cor
+   escura — inclusive o link do nome e os números em <b> — senão herdam as
+   cores do tema (claras) e ficam ilegíveis no tema escuro. */
+
+/* Medalha + número lado a lado: a célula do ranking não pode quebrar linha.
+   As tabelas têm `overflow-wrap: anywhere`, que separava o ícone do número. */
+.row-medal-gold td:first-child,
+.row-medal-silver td:first-child,
+.row-medal-bronze td:first-child {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.row-medal-gold td i.fa-medal,
+.row-medal-silver td i.fa-medal,
+.row-medal-bronze td i.fa-medal { vertical-align: middle; }
+
 .row-medal-gold {
   background: linear-gradient(90deg, #FFF6D0 0%, #FFE9A0 80%) !important;
 }
-.row-medal-gold td { color: #8A5A00; font-weight: 600; }
+.row-medal-gold td,
+.row-medal-gold td .servidor-link,
+.row-medal-gold td b { color: #8A5A00 !important; font-weight: 600; }
 .row-medal-gold td i.fa-medal { color: #D4A017; font-size: 1.05rem; }
+
 .row-medal-silver {
   background: linear-gradient(90deg, #F4F6F9 0%, #DDE3EA 80%) !important;
 }
-.row-medal-silver td { color: #4B5C7A; font-weight: 600; }
+.row-medal-silver td,
+.row-medal-silver td .servidor-link,
+.row-medal-silver td b { color: #3A4A66 !important; font-weight: 600; }
 .row-medal-silver td i.fa-medal { color: #8A99B0; font-size: 1.0rem; }
+
 .row-medal-bronze {
   background: linear-gradient(90deg, #F8E2C8 0%, #E9B989 80%) !important;
 }
-.row-medal-bronze td { color: #7A4A1F; font-weight: 600; }
+.row-medal-bronze td,
+.row-medal-bronze td .servidor-link,
+.row-medal-bronze td b { color: #6B3E18 !important; font-weight: 600; }
 .row-medal-bronze td i.fa-medal { color: #B8722E; font-size: 0.95rem; }
+
+/* Hover/foco do nome dentro das linhas de medalha: mantém legível e indica
+   que é clicável (sublinhado) sem mudar para a cor clara do tema. */
+.row-medal-gold td .servidor-link:hover,
+.row-medal-gold td .servidor-link:focus,
+.row-medal-silver td .servidor-link:hover,
+.row-medal-silver td .servidor-link:focus,
+.row-medal-bronze td .servidor-link:hover,
+.row-medal-bronze td .servidor-link:focus { text-decoration: underline; }
 
 /* Top servidores no Insights: altura fixa para nao "dancar" entre paginas */
 #insTopHost { min-height: 380px; }

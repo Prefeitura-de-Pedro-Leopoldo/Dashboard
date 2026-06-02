@@ -7,14 +7,23 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-5);
-  padding: var(--space-12) var(--space-4);
-  min-height: 240px;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
+  min-height: 0;
+}
+/* O bloco interno (capelo + texto) também centraliza seu próprio conteúdo,
+   mantendo o texto logo abaixo do capelo, sem vão. */
+.egov-loader__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 /* Variante que cobre um container (com position:relative) durante o load.
-   O fundo cobre todo o container; o conteúdo (capelo + texto) fica fixo e
-   centralizado na área visível do viewport, mesmo com a página rolada. */
+   O fundo cobre todo o container; o conteúdo (capelo + texto) usa `sticky`
+   para ficar centralizado na fatia VISÍVEL do container, mesmo que ele seja
+   bem mais alto que a tela e a página esteja rolada. */
 .egov-loader--cover {
   position: absolute;
   inset: 0;
@@ -27,10 +36,17 @@
   transition: opacity 320ms ease;
 }
 .egov-loader--cover .egov-loader__inner {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  /* Ocupa uma tela inteira de altura, limitada à altura do container, para que
+     o conteúdo (capelo + texto) fique no centro do que está visível. */
+  min-height: 100vh;
+  max-height: 100%;
   margin: 0;
 }
 .egov-loader--cover.is-hiding { opacity: 0; pointer-events: none; }

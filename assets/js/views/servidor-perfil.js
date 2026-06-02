@@ -14,7 +14,8 @@ import {
   iniciaisDoNome,
   frequenciaMensal,
   badgesDoServidor,
-  estimarHorasServidor
+  estimarHorasServidor,
+  horasSaoReais
 } from "../servidores.js"
 
 // Busca um servidor pela chave (e:email ou n:nome) atravessando os eventos
@@ -38,6 +39,7 @@ export function openServidorPerfil(chave) {
   const faltas    = eventosOrd.filter(e => !e.presente)
   const taxa = s.totalEventos ? ((s.totalPresentes / s.totalEventos) * 100).toFixed(0) + "%" : "-"
   const horas = estimarHorasServidor(s)
+  const horasReais = horasSaoReais(s)
   const freq = frequenciaMensal(s.eventos)
   const maxFreq = freq.reduce((m, x) => Math.max(m, x.qtd), 0)
   const badges = badgesDoServidor(s)
@@ -67,7 +69,7 @@ export function openServidorPerfil(chave) {
         <div class="srv-kpi srv-kpi--good"><span class="srv-kpi__num">${s.totalPresentes}</span><span class="srv-kpi__lbl">Presenças</span></div>
         <div class="srv-kpi srv-kpi--bad"><span class="srv-kpi__num">${s.totalEventos - s.totalPresentes}</span><span class="srv-kpi__lbl">Faltas</span></div>
         <div class="srv-kpi"><span class="srv-kpi__num">${taxa}</span><span class="srv-kpi__lbl">Taxa</span></div>
-        <div class="srv-kpi"><span class="srv-kpi__num">${horas}h</span><span class="srv-kpi__lbl">Carga estimada</span></div>
+        <div class="srv-kpi"><span class="srv-kpi__num">${horas}h</span><span class="srv-kpi__lbl">${horasReais ? "Carga horária" : "Carga estimada"}</span></div>
       </div>
 
       ${badges.length ? `
@@ -136,7 +138,7 @@ export function openServidorPerfil(chave) {
       </section>` : ""}
 
       <footer class="servidor-perfil__footer">
-        <small>Carga estimada em 8h por presença - reflita ajuste caso o evento tenha duração diferente.</small>
+        <small>${horasReais ? "Carga horária somada a partir da duração informada de cada evento." : "Carga estimada em 8h por presença quando a duração do evento não está informada."}</small>
       </footer>
     </div>
   `

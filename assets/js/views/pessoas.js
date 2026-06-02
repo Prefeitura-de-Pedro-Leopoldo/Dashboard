@@ -4,7 +4,7 @@
  */
 import { state } from "../core/state.js"
 import { escapeHtml } from "../ui.js"
-import { agregarServidores, agregarCargos } from "../servidores.js"
+import { agregarServidores, agregarVinculosServidores } from "../servidores.js"
 import { pieCategorias } from "../charts.js"
 
 // ================ SERVIDORES (sub-aba de Participantes) ================
@@ -117,7 +117,7 @@ function renderDemaisServidores(containerId, lista, scopeId, pageSize = 10) {
         <table class="data">
           <thead>
             <tr>
-              <th style="width:54px;">#</th>
+              <th style="width:70px;">#</th>
               <th>Servidor</th>
               <th>Secretaria</th>
               <th>Inscrições</th>
@@ -154,37 +154,40 @@ function renderDemaisServidores(containerId, lista, scopeId, pageSize = 10) {
 export function renderViewCargos() {
   const view = document.getElementById("view-cargos")
   const eventos = state.data.eventos
-  const cargos = agregarCargos(eventos)
+  // Conta por SERVIDOR ÚNICO (não por inscrição) — a soma fecha com o total
+  // de servidores. Classificação estimada pelo cargo; sem cargo = "Não informado".
+  const servidores = agregarServidores(eventos).filter(s => s.totalEventos >= 1)
+  const vinculos = agregarVinculosServidores(servidores)
 
   view.innerHTML = `
     <div class="grid-2 secretarias-grid">
       <div class="card">
-        <div class="card__header"><div><h3><i class="fas fa-chart-pie"></i> Distribuição por cargo</h3><p>Top 10 cargos, sem agrupamento em "outros".</p></div></div>
+        <div class="card__header"><div><h3><i class="fas fa-chart-pie"></i> Distribuição por vínculo</h3><p>Servidores únicos por tipo de vínculo. Classificação <b>estimada pelo cargo</b>; sem cargo informado entra como "Não informado".</p></div></div>
         <div class="chart-wrap lg"><canvas id="chartCargos"></canvas></div>
       </div>
       <div class="table-wrap" style="margin-bottom:0;">
         <div class="table-wrap__head">
           <h3><i class="fas fa-list-ol"></i> Ranking detalhado</h3>
-          <span class="card__header-meta">${cargos.length} cargo(s)</span>
+          <span class="card__header-meta">${vinculos.length} vínculo(s)</span>
         </div>
         <div id="cargosRankHost"></div>
       </div>
     </div>
   `
 
-  // Ranking paginado 10 em 10
-  const totalCargos = cargos.reduce((s, x) => s + x.value, 0)
-  renderCargosPaginated("cargosRankHost", cargos, totalCargos, "cargos-rank", 10)
+  // Ranking por vínculo (sem paginação relevante - poucas linhas).
+  const totalVinculos = vinculos.reduce((s, x) => s + x.value, 0)
+  renderCargosPaginated("cargosRankHost", vinculos, totalVinculos, "cargos-rank", 10)
 
-  // Donut top 10 no mesmo estilo de pieTurmas (Distribuição por turma)
-  pieCategorias("chartCargos", cargos.slice(0, 10), "Nenhum participante tem cargo registrado nas planilhas.")
+  // Donut por vínculo, mesmo estilo de pieTurmas.
+  pieCategorias("chartCargos", vinculos, "Nenhum servidor com cargo registrado nas planilhas.")
 }
 
 function renderCargosPaginated(containerId, cargos, totalGlobal, scopeId, pageSize = 10) {
   const container = document.getElementById(containerId)
   if (!container) return
   if (!cargos.length) {
-    container.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr><th>#</th><th>Cargo</th><th>Inscrições</th><th>Participação</th></tr></thead><tbody><tr><td colspan="4" class="empty-cell">Sem cargos informados.</td></tr></tbody></table></div>`
+    container.innerHTML = `<div class="table-scroll"><table class="data"><thead><tr><th>#</th><th>Vínculo</th><th>Servidores</th><th>Participação</th></tr></thead><tbody><tr><td colspan="4" class="empty-cell">Sem cargos informados.</td></tr></tbody></table></div>`
     return
   }
   const totalPages = Math.max(1, Math.ceil(cargos.length / pageSize))
@@ -200,7 +203,7 @@ function renderCargosPaginated(containerId, cargos, totalGlobal, scopeId, pageSi
     container.innerHTML = `
       <div class="table-scroll">
         <table class="data">
-          <thead><tr><th>#</th><th>Cargo</th><th>Inscrições</th><th>Participação</th></tr></thead>
+          <thead><tr><th>#</th><th>Vínculo</th><th>Servidores</th><th>Participação</th></tr></thead>
           <tbody>
             ${slice.map((c, i) => {
               const pos = (page - 1) * pageSize + i + 1

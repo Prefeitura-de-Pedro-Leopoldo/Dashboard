@@ -3,6 +3,7 @@
   "eventos": {
     "workshop-sei-2026-04/participantes.xlsx": {
       "id": "workshop-sei-usar",
+      "cargaHoraria": 3,
       "title": "Workshop SEI! Usar na prática",
       "tituloCurto": "Workshop SEI! Usar na prática",
       "date": "2026-04-24",
@@ -15,6 +16,7 @@
     },
     "comissao-recursal-2026-05/turma 1/participantes.xlsx": {
       "id": "comissao-recursal-1-turma-2026-05",
+      "cargaHoraria": 3,
       "title": "Formação para Membros da Comissão Recursal - 1ª Turma",
       "tituloCurto": "Formação para Membros da Comissão Recursal - 1ª turma",
       "date": "2026-05-07",
@@ -27,6 +29,7 @@
     },
     "fundamentos-gestao-publica-2026-05/turma 1/participantes.xlsx": {
       "id": "fundamentos-da-gestao-publica",
+      "cargaHoraria": 3,
       "title": "Fundamentos da Gestão Pública",
       "tituloCurto": "Fundamentos da Gestão Pública",
       "date": "2026-05-14",
@@ -43,6 +46,7 @@
     },
     "mapa-gerenciamento-risco-2026-05/turma 1/participantes.xlsx": {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",
+      "cargaHoraria": 1,
       "title": "Elaboração do Mapa de Gerenciamento de Risco 1ª TURMA",
       "tituloCurto": "Elaboração do Mapa de Gerenciamento de Risco - 1ª turma",
       "date": "2026-05-20",
@@ -60,6 +64,7 @@
     },
     "mapa-gerenciamento-risco-2026-05/turma 2/participantes.xlsx": {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-2-turma",
+      "cargaHoraria": 1,
       "title": "Elaboração do Mapa de Gerenciamento de Risco 2ª TURMA",
       "tituloCurto": "Elaboração do Mapa de Gerenciamento de Risco - 2ª turma",
       "date": "2026-05-20",
@@ -77,6 +82,7 @@
     },
     "comunicacao-que-aproxima-2026-05/participantes.xlsx": {
       "id": "comunicacao-que-aproxima",
+      "cargaHoraria": 3,
       "title": "Comunicação que aproxima",
       "tituloCurto": "Comunicação que aproxima: O papel do servidor na construção da confiança pública",
       "date": "2026-05-21",
@@ -89,10 +95,11 @@
     },
     "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx": {
       "id": "ciclo-de-debates-pl-por-elas",
+      "cargaHoraria": 15,
       "title": "Ciclo de Debates PL por Elas",
       "tituloCurto": "Ciclo de Debates PL por Elas",
-      "date": "2026-04-13",
-      "dateRaw": "Data: 13/04/2026 14h - 17h30",
+      "date": "2026-05-17",
+      "dateRaw": "Data: a partir de 17/05/2026 - 5 dias, 3h/dia (15h)",
       "time": "14h",
       "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
       "city": "Pedro Leopoldo",
@@ -101,6 +108,7 @@
     },
     "gestao-para-resultados-2026-05/turma 1/participantes.xlsx": {
       "id": "gestao-para-resultados",
+      "cargaHoraria": 3,
       "title": "Gestão Pública para Resultados",
       "tituloCurto": "Gestão Pública para Resultados",
       "date": "2026-05-28",

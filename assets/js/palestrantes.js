@@ -399,6 +399,255 @@ function wireCadastro(p) {
   })
 }
 
+// ================ Modal: CADASTRAR / EDITAR (etapas) ================
+let _palModalEl = null
+function _palEsc(e) { if (e.key === "Escape") fecharCadastroModal() }
+function fecharCadastroModal() {
+  if (!_palModalEl) return
+  document.removeEventListener("keydown", _palEsc)
+  _palModalEl.remove()
+  _palModalEl = null
+}
+
+export async function openCadastroModal(id = null) {
+  _editId = id || null
+  _fotoPendente = null
+  _removerFoto = false
+  if (_editId && !_cache) { try { await carregarLista() } catch (_) {} }
+  const atual = _editId ? (_cache || []).find((p) => p.id === _editId) : null
+  if (_editId && !atual) _editId = null
+  const editando = !!_editId
+  const p = atual || {}
+
+  const eventos = (deps.getEventos() || []).filter((e) => e && e.title)
+  const cursoOptions = eventos
+    .map((e) => `<option value="${escapeHtml(e.id)}" ${String(p.cursoId || "") === String(e.id) ? "selected" : ""}>${escapeHtml(e.title)}</option>`)
+    .join("")
+  const eixosSel = Array.isArray(p.eixos)
+    ? p.eixos
+    : (p.eixo ? String(p.eixo).split(/;\s*/).map((x) => x.trim()).filter(Boolean) : [])
+  const eixosTodos = EIXOS_TEMATICOS.concat(eixosSel.filter((x) => !EIXOS_TEMATICOS.includes(x)))
+  const eixosChecks = eixosTodos
+    .map((x) => {
+      const ck = eixosSel.includes(x) ? "checked" : ""
+      return `<label class="${ck ? "pal-eixo-opt is-checked" : "pal-eixo-opt"}"><input type="checkbox" name="palEixo" value="${escapeHtml(x)}" ${ck} /><span>${escapeHtml(x)}</span></label>`
+    })
+    .join("")
+  const bioLen = (p.miniBio || "").length
+
+  fecharCadastroModal()
+  const overlay = document.createElement("div")
+  overlay.className = "pal-modal__overlay"
+  overlay.innerHTML = `
+    <div class="pal-modal" role="dialog" aria-modal="true" aria-label="${editando ? "Editar palestrante" : "Novo palestrante"}">
+      <div class="pal-modal__head">
+        <h3><i class="fas fa-microphone-lines"></i> ${editando ? "Editar palestrante" : "Novo palestrante"}</h3>
+        <button type="button" class="pal-modal__close" id="palModalClose" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="pal-modal__steps" id="palSteps">
+        <button type="button" data-step="0" class="is-active">1. Identificação</button>
+        <button type="button" data-step="1">2. Eixos temáticos</button>
+        <button type="button" data-step="2">3. Mini bio</button>
+      </div>
+      <form id="palForm" class="pal-modal__body pal-form-card" novalidate>
+        <section class="pal-step" data-panel="0">
+          <div class="pal-top">
+            <div class="pal-photo">
+              <label class="field__label-block">Foto</label>
+              <div class="pal-photo-box" id="palPhotoBox">${avatarHtml(p, "xl")}</div>
+              <div class="pal-photo-actions">
+                <label class="btn btn--sm pal-upload-btn">
+                  <i class="fas fa-image"></i> <span>${p.fotoUrl || _fotoPendente ? "Trocar foto" : "Escolher foto"}</span>
+                  <input type="file" id="palFoto" accept="image/png,image/jpeg" hidden />
+                </label>
+                <button type="button" class="btn btn--sm pal-photo-remove" id="palFotoRemove" ${(_fotoPendente || (p.fotoUrl && !_removerFoto)) ? "" : "hidden"}>
+                  <i class="fas fa-trash-can"></i> Remover
+                </button>
+              </div>
+              <p class="pal-hint pal-hint--center">JPG ou PNG. Redimensionada automaticamente.</p>
+            </div>
+            <div class="pal-top-fields">
+              <div class="field">
+                <label for="palNome">Nome completo *</label>
+                <input type="text" id="palNome" required minlength="3" maxlength="120" placeholder="Use o nome completo ou profissional" value="${escapeHtml(p.nome || "")}" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="palCurso">Curso ministrado *</label>
+                <select id="palCurso" required ${eventos.length ? "" : "disabled"}>
+                  <option value="" ${p.cursoId ? "" : "selected"} disabled>${eventos.length ? "Selecione o curso/evento" : "Nenhum evento disponível"}</option>
+                  ${cursoOptions}
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="pal-step" data-panel="1" hidden>
+          <div class="field">
+            <label>Eixo temático * <span class="pal-label-aux">(selecione um ou mais)</span></label>
+            <div class="pal-eixos" id="palEixos">${eixosChecks}</div>
+          </div>
+        </section>
+        <section class="pal-step" data-panel="2" hidden>
+          <div class="field">
+            <div class="pal-bio-head">
+              <label for="palBio">Mini bio</label>
+              <div class="pal-bio-tools">
+                <button type="button" class="pal-link-btn" id="palBioTemplate" title="Inserir estrutura padrão"><i class="fas fa-wand-magic-sparkles"></i> Inserir estrutura</button>
+                <span class="pal-bio-count" id="palBioCount">${bioLen}/${MINIBIO_MAX}</span>
+              </div>
+            </div>
+            <textarea id="palBio" rows="6" maxlength="${MINIBIO_MAX}" placeholder="Quem é, cargo/especialidade, formação/experiência e foco/propósito.">${escapeHtml(p.miniBio || "")}</textarea>
+            <p class="pal-hint"><b>Estrutura recomendada:</b> Nome, Cargo e Especialidade, Formação ou Experiência, Foco/Propósito.</p>
+          </div>
+        </section>
+      </form>
+      <div class="pal-modal__foot">
+        <div class="err" id="palErr" role="alert"></div>
+        <div class="pal-modal__nav">
+          <button type="button" class="btn btn--sm" id="palPrev" hidden><i class="fas fa-arrow-left"></i> Voltar</button>
+          <button type="button" class="btn btn--primary btn--sm" id="palNext">Próximo <i class="fas fa-arrow-right"></i></button>
+          <button type="submit" form="palForm" class="btn btn--primary btn--sm" id="palSubmit" hidden><i class="fas fa-floppy-disk"></i> <span>${editando ? "Salvar alterações" : "Cadastrar"}</span></button>
+        </div>
+      </div>
+    </div>
+  `
+  document.body.appendChild(overlay)
+  _palModalEl = overlay
+  document.addEventListener("keydown", _palEsc)
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) fecharCadastroModal() })
+  overlay.querySelector("#palModalClose").addEventListener("click", fecharCadastroModal)
+
+  wirePalModal(p)
+}
+
+function wirePalModal(p) {
+  const ov = _palModalEl
+  const q = (sel) => ov.querySelector(sel)
+  const form = q("#palForm")
+  const bio = q("#palBio")
+  const count = q("#palBioCount")
+  const errBox = q("#palErr")
+  const photoBox = q("#palPhotoBox")
+  const removeBtn = q("#palFotoRemove")
+  const prevBtn = q("#palPrev"), nextBtn = q("#palNext"), submitBtn = q("#palSubmit")
+  const stepsBtns = [...ov.querySelectorAll("#palSteps button")]
+  const panels = [...ov.querySelectorAll(".pal-step")]
+  let step = 0
+
+  const showErr = (msg) => { errBox.innerHTML = msg ? `<i class="fas fa-circle-exclamation"></i> ${escapeHtml(msg)}` : "" }
+  const autoGrow = () => { bio.style.height = "auto"; bio.style.height = Math.max(bio.scrollHeight, 120) + "px" }
+  const updateCount = () => {
+    const len = bio.value.length
+    count.textContent = `${len}/${MINIBIO_MAX}`
+    count.classList.toggle("is-warn", len >= MINIBIO_MAX * 0.85 && len < MINIBIO_MAX)
+    count.classList.toggle("is-full", len >= MINIBIO_MAX)
+  }
+  const showStep = (i) => {
+    step = i
+    panels.forEach((pl, idx) => { pl.hidden = idx !== i })
+    stepsBtns.forEach((b, idx) => { b.classList.toggle("is-active", idx === i); b.classList.toggle("is-done", idx < i) })
+    prevBtn.hidden = i === 0
+    nextBtn.hidden = i === panels.length - 1
+    submitBtn.hidden = i !== panels.length - 1
+    if (i === 2) requestAnimationFrame(autoGrow)
+  }
+  const validateStep = (i) => {
+    if (i === 0) {
+      if (q("#palNome").value.trim().length < 3) { showErr("Informe o nome completo (mínimo 3 caracteres)."); return false }
+      if (!q("#palCurso").value) { showErr("Selecione o curso ministrado."); return false }
+    }
+    if (i === 1 && !ov.querySelectorAll('#palEixos input:checked').length) { showErr("Selecione ao menos um eixo temático."); return false }
+    showErr("")
+    return true
+  }
+
+  nextBtn.addEventListener("click", () => { if (validateStep(step)) showStep(Math.min(step + 1, panels.length - 1)) })
+  prevBtn.addEventListener("click", () => { showErr(""); showStep(Math.max(step - 1, 0)) })
+  stepsBtns.forEach((b) => b.addEventListener("click", () => {
+    const target = +b.dataset.step
+    if (target > step) { for (let k = step; k < target; k++) { if (!validateStep(k)) { showStep(k); return } } }
+    showErr(""); showStep(target)
+  }))
+
+  bio.addEventListener("input", () => { updateCount(); autoGrow() })
+  updateCount()
+  q("#palBioTemplate").addEventListener("click", () => {
+    if (!bio.value.trim()) { bio.value = BIO_TEMPLATE; updateCount(); autoGrow() }
+    bio.focus()
+  })
+
+  ov.querySelectorAll("#palEixos .pal-eixo-opt").forEach((opt) => {
+    const cb = opt.querySelector("input")
+    cb.addEventListener("change", () => opt.classList.toggle("is-checked", cb.checked))
+  })
+
+  const refreshPhoto = () => {
+    photoBox.innerHTML = avatarHtml(p, "xl")
+    removeBtn.hidden = !(_fotoPendente || (p.fotoUrl && !_removerFoto))
+  }
+  q("#palFoto").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    try { _fotoPendente = await comprimirImagem(file); _removerFoto = false; refreshPhoto(); showErr("") }
+    catch (err) { showErr(err.message) }
+    finally { e.target.value = "" }
+  })
+  removeBtn.addEventListener("click", () => { _fotoPendente = null; _removerFoto = true; refreshPhoto() })
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    showErr("")
+    const nome = q("#palNome").value.trim()
+    const eixos = [...ov.querySelectorAll('#palEixos input[name="palEixo"]:checked')].map((c) => c.value)
+    const cursoSel = q("#palCurso")
+    const cursoId = cursoSel.value
+    const cursoTitulo = cursoSel.selectedOptions[0]?.value ? cursoSel.selectedOptions[0].textContent.trim() : ""
+    const miniBio = bio.value.trim()
+
+    if (nome.length < 3) { showStep(0); return showErr("Informe o nome completo (mínimo 3 caracteres).") }
+    if (!cursoId || !cursoTitulo) { showStep(0); return showErr("Selecione o curso ministrado.") }
+    if (!eixos.length) { showStep(1); return showErr("Selecione ao menos um eixo temático.") }
+    if (!miniBio) { showStep(2); return showErr("Escreva a mini bio.") }
+    if (miniBio.length > MINIBIO_MAX) { showStep(2); return showErr(`A mini bio excede ${MINIBIO_MAX} caracteres.`) }
+
+    submitBtn.disabled = true
+    submitBtn.classList.add("is-loading")
+    const labelSpan = submitBtn.querySelector("span")
+    const labelPrev = labelSpan ? labelSpan.textContent : ""
+    if (labelSpan) labelSpan.textContent = "Salvando..."
+
+    const payload = { nome, eixos, cursoId, cursoTitulo, miniBio }
+    if (_fotoPendente) { payload.fotoBase64 = _fotoPendente.dataUrl; payload.fotoMime = _fotoPendente.mime }
+    else if (_editId && _removerFoto) { payload.removerFoto = true }
+
+    try {
+      if (_editId) {
+        const data = await api("update", { id: _editId, ...payload })
+        if (_cache) { const idx = _cache.findIndex((x) => x.id === _editId); if (idx >= 0 && data.palestrante) _cache[idx] = data.palestrante }
+      } else {
+        const data = await api("create", payload)
+        if (_cache && data.palestrante) _cache.unshift(data.palestrante)
+      }
+      const eraEdicao = !!_editId
+      resetForm()
+      fecharCadastroModal()
+      await deps.showAlert({
+        type: "success",
+        title: eraEdicao ? "Palestrante atualizado" : "Palestrante cadastrado",
+        message: eraEdicao ? "As alterações foram salvas." : "O palestrante foi adicionado com sucesso.",
+      })
+      renderLista()
+    } catch (err) {
+      submitBtn.disabled = false
+      submitBtn.classList.remove("is-loading")
+      if (labelSpan) labelSpan.textContent = labelPrev
+      showErr(err.message || "Não foi possível salvar. Tente novamente.")
+    }
+  })
+
+  showStep(0)
+}
+
 // ================ View: GALERIA / LISTA ================
 export async function renderLista() {
   const view = document.getElementById("view-palestrantes-lista")
@@ -494,8 +743,7 @@ export async function renderLista() {
   draw(lista)
 
   document.getElementById("palNovo")?.addEventListener("click", () => {
-    resetForm()
-    deps.navigate("palestrantes-cadastro")
+    openCadastroModal()
   })
   document.getElementById("palReload")?.addEventListener("click", async () => {
     _cache = null
@@ -560,10 +808,7 @@ function cardHtml(p) {
 }
 
 function abrirEdicao(id) {
-  _editId = id
-  _fotoPendente = null
-  _removerFoto = false
-  deps.navigate("palestrantes-cadastro")
+  openCadastroModal(id)
 }
 
 async function excluir(id) {

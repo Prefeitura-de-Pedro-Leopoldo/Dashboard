@@ -89,6 +89,7 @@ export function agregarServidores(eventos) {
       id: ev.id,
       title: ev.title,
       date: ev.date,
+      cargaHoraria: ev.cargaHoraria ?? null,
       presente: !!p.presente,
       turma: p.turma || "",
       dataCheckin: p.dataCheckin || null,
@@ -143,11 +144,17 @@ export function badgesDoServidor(s) {
   return out
 }
 
-// Estima carga horária total. Como eventos-data.json não traz cargaHoraria
-// explícita, faz uma estimativa conservadora de 8h por presença confirmada.
-// Se a fonte trouxer ev.cargaHoraria no futuro, é só consumir aqui.
+// Soma a carga horária dos eventos em que o servidor esteve presente.
+// Usa a carga real (ev.cargaHoraria, vinda do eventos-meta.json); se algum
+// evento não tiver carga informada, cai para 8h como estimativa só naquele.
 export function estimarHorasServidor(s) {
-  return s.eventos.reduce((acc, ev) => acc + (ev.presente ? 8 : 0), 0)
+  return s.eventos.reduce((acc, ev) => acc + (ev.presente ? (ev.cargaHoraria ?? 8) : 0), 0)
+}
+
+// Indica se TODOS os eventos presentes têm carga horária informada (real).
+export function horasSaoReais(s) {
+  const presentes = s.eventos.filter((ev) => ev.presente)
+  return presentes.length > 0 && presentes.every((ev) => ev.cargaHoraria != null)
 }
 
 // Normaliza um cargo para Title Case + remove caracteres redundantes.
@@ -177,6 +184,65 @@ export function agregarCargos(eventos) {
   })
   return [...cont.entries()]
     .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+}
+
+// Classifica um cargo bruto como "Comissionado" ou "Efetivo".
+// Heurística baseada nos dados reais das planilhas:
+//  - Qualquer marcação DCA (DCA 1, DCA-3, DCA1, Dca_1, "...dca 3...") → comissionado;
+//  - Cargos de direção/chefia/assessoria/gerência/coordenação/supervisão e o
+//    literal "Comissionado"/"Estagiário" → comissionado;
+//  - Os demais (Assistente/Analista/Auxiliar/Agente Administrativo, técnicos,
+//    enfermeiros, etc.) → efetivo.
+// Cargo vazio/sem informação retorna null (não entra na contagem).
+export function classificarVinculo(raw) {
+  if (!raw) return null
+  const s = String(raw).toLowerCase()
+  if (!s.trim()) return null
+  // DCA aparece como "dca 1", "dca-3", "dca1", "dca_1" e embutido em frases.
+  if (/\bdca[\s\-_]?\d+/i.test(s) || /\bdca\b/.test(s)) return "Comissionado"
+  const COMISSIONADO = [
+    "comissionad", "diretor", "diretora", "gerente", "gerência", "gerencia",
+    "coordenador", "coordenadora", "coordenação", "coordenacao",
+    "supervisor", "supervisora", "supervisão", "supervisao",
+    "assessor", "assessora", "assessoria", "chefe", "secretário", "secretario",
+    "secretária", "secretaria adjunt", "adjunto", "ouvidor", "ouvidora",
+    "controlador", "controladora", "estagi", "social mídia", "social midia"
+  ]
+  if (COMISSIONADO.some(t => s.includes(t))) return "Comissionado"
+  return "Efetivo"
+}
+
+// Agrega inscrições por vínculo (Efetivo / Comissionado), a partir de todos
+// os participantes. Retorna [{ label, value }] ordenado por value desc.
+export function agregarVinculos(eventos) {
+  const cont = new Map([["Efetivo", 0], ["Comissionado", 0]])
+  eventos.forEach(ev => {
+    (ev.participantes || []).forEach(p => {
+      const v = classificarVinculo(p.cargo)
+      if (!v) return
+      cont.set(v, (cont.get(v) || 0) + 1)
+    })
+  })
+  return [...cont.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+}
+
+// Agrega vínculo (Comissionado / Efetivo / Não informado) por SERVIDOR ÚNICO,
+// não por inscrição. Cada servidor é contado uma vez, classificado pelo seu
+// cargo representativo. Garante que a soma feche com o total de servidores
+// únicos (diferente de agregarVinculos, que conta inscrições). Cargos sem
+// informação entram como "Não informado" para não sumir da contagem.
+export function agregarVinculosServidores(servidores) {
+  const cont = new Map([["Comissionado", 0], ["Efetivo", 0], ["Não informado", 0]])
+  servidores.forEach(s => {
+    const v = classificarVinculo(s.cargo) || "Não informado"
+    cont.set(v, (cont.get(v) || 0) + 1)
+  })
+  return [...cont.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .filter(x => x.value > 0)
     .sort((a, b) => b.value - a.value)
 }
 
