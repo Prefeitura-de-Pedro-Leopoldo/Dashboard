@@ -8,7 +8,6 @@ import {
   resumoGlobal,
   rankingSecretarias,
   rankingEvasaoSecretarias,
-  comparativoEventos,
   taxaPresenca,
   participacaoPorSecretaria,
   evasaoPorSecretariaEvento,
@@ -25,12 +24,8 @@ import {
   barCategorias,
   lineTimeline,
   lineEvolucaoEventos,
-  radarComparativo,
-  barGrupoComparativo,
-  barGroupedByCategory,
   barModulosPresenca,
-  destroyAll,
-  PALETTE
+  destroyAll
 } from "./charts.js"
 import {
   fmt,
@@ -44,8 +39,7 @@ import {
   renderInsights,
   renderParticipantsTable,
   renderEventsTable,
-  renderSecretariasTable,
-  renderComparativeTable
+  renderSecretariasTable
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
 import { initPalestrantes, renderCadastro as renderPalestrantesCadastro, renderLista as renderPalestrantesLista } from "./palestrantes.js"
@@ -53,6 +47,7 @@ import { showCover } from "./loader.js"
 import { triggerDownload } from "./util.js"
 import { renderViewQrCode } from "./views/qrcode.js"
 import { renderViewSecretarias } from "./views/secretarias.js"
+import { renderViewComparar } from "./views/comparar.js"
 import { state } from "./core/state.js"
 import { showAlert, showConfirm } from "./core/modal.js"
 import { renderPaginatedTable, renderTabsNav, wireTabs, getActiveTab } from "./core/ui-kit.js"
@@ -846,7 +841,7 @@ function renderEventBlock(ev) {
       <div class="grid-2 participantes-grid">
         <div class="table-wrap">
           <div class="table-wrap__head">
-            <h3><i class="fas fa-circle-check" style="color: var(--green-600)"></i> Presentes</h3>
+            <h3><i class="fas fa-circle-check" style="color: var(--ind-good)"></i> Presentes</h3>
             <span class="card__header-meta">${(ev.participantes || []).filter(p => p.presente).length} pessoa(s)</span>
           </div>
           <div id="evPresentesTable"></div>
@@ -890,116 +885,6 @@ function renderEventBlock(ev) {
   }
 }
 
-// ================ COMPARAR ================
-function renderViewComparar() {
-  const { data } = state
-  const compareItems = data.eventos
-    .map(e => {
-      const checked = state.compareIds.has(e.id)
-      return `
-        <label class="checkbox ${checked ? "is-checked" : ""}">
-          <input type="checkbox" value="${e.id}" ${checked ? "checked" : ""} />
-          <span class="checkbox__label">${escapeHtml(e.title)}</span>
-        </label>
-      `
-    })
-    .join("")
-
-  const view = document.getElementById("view-comparar")
-  view.innerHTML = `
-    <div class="compare-bar">
-      <span class="compare-bar__label"><i class="fas fa-scale-balanced"></i> Eventos:</span>
-      ${compareItems}
-      <button class="btn btn--sm" id="compareClear"><i class="fas fa-rotate-left"></i> Limpar</button>
-    </div>
-    <div id="compareContent"></div>
-  `
-
-  view.querySelectorAll(".checkbox input").forEach(input =>
-    input.addEventListener("change", () => {
-      if (input.checked) state.compareIds.add(input.value)
-      else state.compareIds.delete(input.value)
-      renderViewComparar()
-    })
-  )
-  document.getElementById("compareClear").addEventListener("click", () => {
-    state.compareIds.clear()
-    renderViewComparar()
-  })
-  renderCompareContent()
-}
-
-function renderCompareContent() {
-  const ids = [...state.compareIds]
-  const selected = state.data.eventos.filter(e => ids.includes(e.id))
-  const target = document.getElementById("compareContent")
-
-  if (selected.length < 2) {
-    target.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-scale-balanced"></i>
-        <h3>Selecione 2 ou mais eventos</h3>
-        <p>A comparação ficará disponível ao marcar pelo menos dois eventos acima.</p>
-      </div>`
-    return
-  }
-
-  const comparativos = comparativoEventos(selected)
-  const allSecs = new Set()
-  selected.forEach(e => Object.keys(e.secretarias || {}).forEach(s => allSecs.add(s)))
-  const secLabels = [...allSecs]
-  const allTurmas = new Set()
-  selected.forEach(e => Object.keys(e.turmas || {}).forEach(t => allTurmas.add(t)))
-  const turmaLabels = [...allTurmas]
-
-  const manyEvents = selected.length >= 4
-  const topGridCls = manyEvents ? "stack" : "grid-2"
-  const chartWrapCls = manyEvents ? "chart-wrap xl" : "chart-wrap lg"
-
-  target.innerHTML = `
-    <div class="${topGridCls}">
-      <div class="card">
-        <div class="card__header"><div><h3>Volume comparado</h3><p>Inscritos, presentes e ausentes.</p></div></div>
-        <div class="${chartWrapCls}"><canvas id="cmpBar"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card__header"><div><h3>Perfil comparativo</h3><p><b>Quanto maior a área, melhor o evento.</b> Cada ponta mostra um critério (Inscritos, Presentes, Taxa de presença, Secretarias). O evento com o melhor valor em cada critério toca a borda (100%); os demais aparecem proporcionalmente menores.</p></div></div>
-        <div class="${chartWrapCls}"><canvas id="cmpRadar"></canvas></div>
-      </div>
-    </div>
-
-    ${
-      secLabels.length
-        ? `
-      <div class="card">
-        <div class="card__header"><div><h3>Por secretaria</h3><p>Inscrições por secretaria em cada evento.</p></div></div>
-        <div class="${chartWrapCls}"><canvas id="cmpSec"></canvas></div>
-      </div>`
-        : ""
-    }
-
-    <div class="table-wrap">
-      <div class="table-wrap__head">
-        <h3><i class="fas fa-table"></i> Quadro comparativo</h3>
-        <span class="card__header-meta">${selected.length} eventos</span>
-      </div>
-      ${renderComparativeTable(comparativos)}
-    </div>
-  `
-
-  barGrupoComparativo("cmpBar", comparativos)
-  radarComparativo("cmpRadar", comparativos)
-
-  if (secLabels.length) {
-    const datasets = selected.map((e, i) => ({
-      label: e.title.length > 22 ? e.title.slice(0, 20) + "..." : e.title,
-      data: secLabels.map(s => (e.secretarias || {})[s] || 0),
-      backgroundColor: PALETTE.series[i % PALETTE.series.length],
-      maxBarThickness: 22
-    }))
-    barGroupedByCategory("cmpSec", secLabels, datasets, { indexAxis: "y" })
-  }
-}
 
 // ================ PARTICIPANTES ================
 function renderViewParticipantes() {
@@ -1463,7 +1348,7 @@ function openServidorPerfil(chave) {
 
       ${presentes.length ? `
       <section class="servidor-perfil__section">
-        <h3 class="servidor-perfil__h3"><i class="fas fa-check-circle" style="color:#4DAD33"></i> Eventos com presença (${presentes.length})</h3>
+        <h3 class="servidor-perfil__h3"><i class="fas fa-check-circle" style="color:var(--ind-good,#3063ad)"></i> Eventos com presença (${presentes.length})</h3>
         <ul class="srv-events">
           ${presentes.map(ev => `
             <li class="srv-event srv-event--ok">
@@ -1619,7 +1504,7 @@ function renderInsightsTab() {
             ${[
               { label: "Vagas oferecidas", value: tCap, base: tCap, color: "var(--blue-700,#1B2A4E)" },
               { label: "Inscritos",        value: tIns, base: tCap, color: "var(--blue-500,#3B5BA5)" },
-              { label: "Presentes",        value: tPres, base: tCap, color: "var(--green-500,#4DAD33)" }
+              { label: "Presentes",        value: tPres, base: tCap, color: "var(--ind-good-light,#6E9BD6)" }
             ].map(f => {
               const pct = f.base ? Math.min(100, (f.value / f.base) * 100) : 0
               return `
@@ -2004,7 +1889,7 @@ function renderViewRelatorios() {
     <div class="grid-2 participantes-split">
       <div class="card">
         <div class="card__header">
-          <div><h3><i class="fas fa-check-circle" style="color:var(--green-500,#4DAD33);"></i> Presentes</h3><p>Quem fez check-in.</p></div>
+          <div><h3><i class="fas fa-check-circle" style="color:var(--ind-good,#3063ad);"></i> Presentes</h3><p>Quem fez check-in.</p></div>
           <span class="card__header-meta" id="rPresCount">0</span>
         </div>
         <div id="rPresHost"></div>
@@ -5608,7 +5493,7 @@ function render3DPie(containerId, labels, valores, opts = {}) {
   }
   const PALETA = opts.cores || [
     "#1B2A4E", "#3B5BA5", "#5B9BD5", "#9DC3E6",
-    "#4DAD33", "#82C56F", "#D69A1F", "#C0392B",
+    "#2F86C9", "#57C7E0", "#D69A1F", "#C0392B",
     "#7E57C2", "#F0A35E"
   ]
   const isDonut = (opts.tipo || "pie") === "donut"
@@ -5682,7 +5567,7 @@ function render3DPie(containerId, labels, valores, opts = {}) {
 function render3DDonutPresenca(containerId, presentes, ausentes) {
   return render3DPie(containerId, ["Presentes", "Ausentes"], [presentes, ausentes], {
     tipo: "donut",
-    cores: ["#4DAD33", "#C0392B"],
+    cores: ["#5AA9E6", "#C0392B"],
     height: 340,
     legendPosition: "bottom",
     emptyMessage: "Sem dados de presença consolidada."
