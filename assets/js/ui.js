@@ -2,7 +2,7 @@
  * ui.js - funcoes de renderizacao (componentes HTML).
  */
 
-import { taxaPresenca, taxaOcupacao, totalVagasOuIngressos } from "./metrics.js";
+import { taxaPresenca, taxaOcupacao, totalVagasOuIngressos, totalAusentes } from "./metrics.js";
 
 export const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 export const pct = (n) => (n === null || n === undefined ? "N/A" : n.toFixed(1) + "%");
@@ -33,6 +33,9 @@ const progressClass = (v) => {
 
 const OCUP_MOTIVO =
   "Capacidade não informada para este evento. Adicione no docs/eventos/manual.json para habilitar.";
+// Ocupação só fica indisponível quando não há presença nem ausência registradas.
+const OCUP_SEM_DADOS =
+  "Sem presença/ausência registrada ainda para este evento.";
 
 // Helper: renderiza valor de vagas (ou N/A com tooltip)
 const renderVagas = (ev, inline = false) => {
@@ -44,8 +47,8 @@ const renderVagas = (ev, inline = false) => {
 const renderOcup = (ev, inline = false) => {
   const t = taxaOcupacao(ev);
   const cls = t != null ? (t >= 90 ? "green" : t >= 50 ? "" : "red") : "na";
-  if (inline) return t != null ? `<span class="${cls}">${pct(t)}</span>` : `<span class="na">${naTooltip(OCUP_MOTIVO)}</span>`;
-  return t != null ? `<div class="stat__value ${cls}">${pct(t)}</div>` : `<div class="stat__value na">${naTooltip(OCUP_MOTIVO)}</div>`;
+  if (inline) return t != null ? `<span class="${cls}">${pct(t)}</span>` : `<span class="na">${naTooltip(OCUP_SEM_DADOS)}</span>`;
+  return t != null ? `<div class="stat__value ${cls}">${pct(t)}</div>` : `<div class="stat__value na">${naTooltip(OCUP_SEM_DADOS)}</div>`;
 };
 
 // ================ KPIs ================
@@ -141,7 +144,7 @@ export function renderKPIs(resumo, eventos = []) {
       <div class="kpi__icon"><i class="fas fa-chart-pie"></i></div>
       <div class="kpi__label">Ocupação</div>
       <div class="kpi__value">${ocupTxt}</div>
-      <div class="kpi__delta">Inscritos vs vagas</div>
+      <div class="kpi__delta">Presentes vs ausentes</div>
     </div>
   `;
 }
@@ -159,6 +162,7 @@ export function renderEventCard(ev) {
   const dateLine = `${formatDateBR(ev.date)}${ev.time ? " · " + escapeHtml(ev.time) : ""}`;
   const localLine = ev.local ? escapeHtml(shortLocal(ev.local)) : "";
   const txClass = progressClass(tx);
+  const nTurmas = Object.keys(ev.turmas || {}).length;
 
   return `
     <article class="event-card" data-event="${ev.id}" data-tone="${tone}">
@@ -190,6 +194,10 @@ export function renderEventCard(ev) {
           <dd class="green">${fmt(ev.totalPresentes)}</dd>
         </div>
         <div class="metric">
+          <dt>Ausentes</dt>
+          <dd class="red">${fmt(ev.totalAusentes ?? totalAusentes(ev))}</dd>
+        </div>
+        <div class="metric">
           <dt>Vagas</dt>
           <dd>${renderVagas(ev, true)}</dd>
         </div>
@@ -197,6 +205,10 @@ export function renderEventCard(ev) {
           <dt>Ocupação</dt>
           <dd>${renderOcup(ev, true)}</dd>
         </div>
+        ${nTurmas > 0 ? `<div class="metric">
+          <dt>Turmas</dt>
+          <dd>${nTurmas}</dd>
+        </div>` : ""}
       </dl>
 
       <footer class="event-card__action">
@@ -227,12 +239,13 @@ export function renderCourseCard(group) {
   const aus = evs.reduce((s, e) => s + (e.totalAusentes || 0), 0);
   const vagas = evs.reduce((s, e) => s + (e.vagas || 0), 0);
   const tx = insc ? Math.round((pres / insc) * 1000) / 10 : null;
-  const ocup = vagas ? Math.round((insc / vagas) * 1000) / 10 : null;
+  // Ocupação = Presentes / (Presentes + Ausentes).
+  const ocup = (pres + aus) > 0 ? Math.round((pres / (pres + aus)) * 1000) / 10 : null;
   const realizados = evs.filter((e) => e.status === "realizado").length;
 
   const rows = evs.map((e) => {
     const etx = taxaPresenca(e);
-    const eocup = e.vagas ? Math.round(((e.totalInscritos || 0) / e.vagas) * 1000) / 10 : null;
+    const eocup = taxaOcupacao(e);
     const vagasInfo = e.vagas ? ` &middot; ${fmt(e.vagas)} vagas${eocup != null ? ` (${pct(eocup)} ocup.)` : ""}` : "";
     return `
       <button type="button" class="course-card__turma" data-event="${e.id}">
@@ -294,7 +307,7 @@ export function renderEventDetail(ev) {
   const vagasVal = totalVagasOuIngressos(ev);
 
   const ocupCls = ocup == null ? "na" : ocup >= 90 ? "green" : ocup >= 50 ? "" : "red";
-  const ocupTxt = ocup == null ? naTooltip(OCUP_MOTIVO) : pct(ocup);
+  const ocupTxt = ocup == null ? naTooltip(OCUP_SEM_DADOS) : pct(ocup);
   const vagasTxt = vagasVal == null ? naTooltip(OCUP_MOTIVO) : fmt(vagasVal);
 
   // Curso multi-módulo: troca KPI "Vagas" pelo KPI "Aptos ao certificado"
@@ -354,7 +367,7 @@ export function renderEventDetail(ev) {
           <div class="kpi__icon"><i class="fas fa-chart-pie"></i></div>
           <div class="kpi__label">Taxa de ocupação</div>
           <div class="kpi__value ${ocupCls}">${ocupTxt}</div>
-          <div class="kpi__delta">Inscritos vs vagas</div>
+          <div class="kpi__delta">Presentes vs ausentes</div>
         </div>`}
       </div>
 

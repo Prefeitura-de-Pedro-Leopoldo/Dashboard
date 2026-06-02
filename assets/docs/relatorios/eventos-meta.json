@@ -34,7 +34,7 @@
       "time": "09h",
       "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
       "city": "Pedro Leopoldo",
-      "vagas": 80,
+      "vagas": 40,
       "modulos": [
         { "id": "m1", "label": "Módulo 1", "date": "2026-05-14" },
         { "id": "m2", "label": "Módulo 2", "date": "2026-05-26" }

@@ -451,7 +451,10 @@ export function buildEvento(arquivo, meta, participantes) {
   const timelineCheckins = Object.entries(tlChk).sort((a, b) => a[0].localeCompare(b[0]));
 
   const vagas = meta.vagas ?? totalInscritos;
-  const taxaOcupacao = vagas ? Math.round((totalInscritos / vagas) * 1000) / 10 : 0;
+  // Ocupação = Presentes / (Presentes + Ausentes) — efetividade de comparecimento.
+  const taxaOcupacao = (totalPresentes + totalAusentes) > 0
+    ? Math.round((totalPresentes / (totalPresentes + totalAusentes)) * 1000) / 10
+    : 0;
 
   return {
     id: meta.id,
@@ -493,8 +496,8 @@ export function buildResumo(eventos) {
   const totalVagas = eventos.reduce((s, e) => s + (e.vagas || 0), 0);
   const taxaPresencaGlobal = totalInscritos
     ? Math.round((totalPresentes / totalInscritos) * 1000) / 10 : 0;
-  const taxaOcupacaoGlobal = totalVagas
-    ? Math.round((totalInscritos / totalVagas) * 1000) / 10 : 0;
+  const taxaOcupacaoGlobal = (totalPresentes + totalAusentes) > 0
+    ? Math.round((totalPresentes / (totalPresentes + totalAusentes)) * 1000) / 10 : 0;
 
   const ranking = {};
   for (const e of eventos) {

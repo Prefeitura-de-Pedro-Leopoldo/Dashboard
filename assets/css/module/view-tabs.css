@@ -107,12 +107,12 @@
 
 /* Cores extras para status amber (faltas) */
 .cell-status.amber {
-  background: rgba(214, 154, 31, 0.14);
-  color: var(--amber, #b07d10);
+  background: var(--ind-warn-soft);
+  color: var(--ind-warn-text);
 }
 .cell-status.red {
-  background: rgba(192, 57, 43, 0.14);
-  color: var(--red, #c0392b);
+  background: var(--ind-bad-soft);
+  color: var(--ind-bad);
 }
 
 /* Auto-Relatório */
@@ -252,12 +252,12 @@
   font-size: 0.78rem;
   color: var(--text-muted);
 }
-.ar-hero--good .ar-hero__value { color: var(--green-700); }
-.ar-hero--good .ar-hero__bar span { background: var(--green-600); }
-.ar-hero--warn .ar-hero__value { color: var(--amber); }
-.ar-hero--warn .ar-hero__bar span { background: var(--amber); }
-.ar-hero--bad  .ar-hero__value { color: var(--red); }
-.ar-hero--bad  .ar-hero__bar span { background: var(--red); }
+.ar-hero--good .ar-hero__value { color: var(--ind-good-text); }
+.ar-hero--good .ar-hero__bar span { background: var(--ind-good-gradient-h); }
+.ar-hero--warn .ar-hero__value { color: var(--ind-warn-text); }
+.ar-hero--warn .ar-hero__bar span { background: var(--ind-warn); }
+.ar-hero--bad  .ar-hero__value { color: var(--ind-bad); }
+.ar-hero--bad  .ar-hero__bar span { background: var(--ind-bad); }
 .ar-hero--muted .ar-hero__value { color: var(--text-muted); }
 
 /* KPIs */
@@ -288,10 +288,10 @@
   color: var(--text-muted);
   font-weight: 600;
 }
-.ar-kpi--good { background: var(--green-50); border-color: var(--green-200); }
-.ar-kpi--good .ar-kpi__value { color: var(--green-700); }
-.ar-kpi--bad  { background: rgba(192, 57, 43, 0.08); border-color: rgba(192, 57, 43, 0.28); }
-.ar-kpi--bad  .ar-kpi__value { color: var(--red); }
+.ar-kpi--good { background: var(--ind-good-soft); border-color: var(--blue-200); }
+.ar-kpi--good .ar-kpi__value { color: var(--ind-good-text); }
+.ar-kpi--bad  { background: var(--ind-bad-soft); border-color: rgba(192, 57, 43, 0.28); }
+.ar-kpi--bad  .ar-kpi__value { color: var(--ind-bad); }
 
 /* Rating list */
 .ar-rating-list {
@@ -355,8 +355,8 @@
   border: 1px solid var(--border-subtle);
 }
 .ar-chip i { font-size: 0.85rem; }
-.ar-chip--good { background: var(--green-50); color: var(--green-700); border-color: var(--green-200); }
-.ar-chip--warn { background: rgba(214, 154, 31, 0.12); color: var(--amber); border-color: rgba(214, 154, 31, 0.35); }
+.ar-chip--good { background: var(--ind-good-soft); color: var(--ind-good-text); border-color: var(--blue-200); }
+.ar-chip--warn { background: var(--ind-warn-soft); color: var(--ind-warn-text); border-color: rgba(224, 116, 31, 0.35); }
 .ar-chip--info { background: var(--brand-soft-bg); color: var(--brand-primary); border-color: var(--border-brand); }
 .ar-chip--muted { color: var(--text-muted); font-style: italic; }
 .auto-report-actions {
@@ -378,7 +378,7 @@
   font-weight: 600;
 }
 .auto-report-status.is-success {
-  color: var(--green-700);
+  color: var(--ind-good-text);
   font-weight: 600;
 }
 
@@ -486,8 +486,8 @@
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
-.ar-event-card__metrics b.green { color: var(--green-600); }
-.ar-event-card__metrics b.red { color: var(--red); }
+.ar-event-card__metrics b.green { color: var(--ind-good-text); }
+.ar-event-card__metrics b.red { color: var(--ind-bad); }
 .auto-report-form textarea {
   width: 100%;
   min-height: 90px;

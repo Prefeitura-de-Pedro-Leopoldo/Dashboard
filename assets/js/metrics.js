@@ -2,9 +2,10 @@
  * metrics.js - funcoes puras de calculo de metricas.
  *
  * Capacidade ("vagas") vem do enriquecimento manual em
- * docs/eventos/manual.json (campo `vagas` por evento). Quando disponivel,
- * a taxa de ocupacao = inscritos / vagas * 100 e calculavel.
- * Quando ausente, ambos retornam null (UI mostra "N/A").
+ * assets/docs/relatorios/eventos-meta.json (campo `vagas` por evento) e é
+ * exibida como informação, mas NÃO entra na ocupação.
+ * Ocupação = Presentes / (Presentes + Ausentes): mede a efetividade de
+ * comparecimento. Sem presença/ausência registrada, retorna null (UI "N/A").
  */
 
 export const totalInscricoes = (ev) => ev.totalInscritos ?? 0;
@@ -22,11 +23,15 @@ export const taxaPresenca = (ev) => {
   return Math.round(((ev.totalPresentes ?? 0) / t) * 1000) / 10;
 };
 
+// Ocupação = Presentes / (Presentes + Ausentes). Mede quanto da audiência
+// efetiva (quem confirmou presença ou faltou) de fato compareceu — NÃO usa
+// vagas/inscritos. Sem presença nem ausência registradas, retorna null.
 export const taxaOcupacao = (ev) => {
-  const v = ev.vagas;
-  const i = ev.totalInscritos ?? 0;
-  if (!v || v <= 0) return null;
-  return Math.round((i / v) * 1000) / 10;
+  const pres = ev.totalPresentes ?? 0;
+  const aus = ev.totalAusentes ?? Math.max(0, (ev.totalInscritos ?? 0) - pres);
+  const base = pres + aus;
+  if (base <= 0) return null;
+  return Math.round((pres / base) * 1000) / 10;
 };
 
 export const inscricoesPorEvento = (eventos) =>
@@ -140,8 +145,8 @@ export const consolidarPorGrupo = (eventos) => {
       g.taxaPresenca = g.totalInscritos
         ? Math.round((g.totalPresentes / g.totalInscritos) * 1000) / 10
         : null;
-      g.taxaOcupacao = g.vagas
-        ? Math.round((g.totalInscritos / g.vagas) * 1000) / 10
+      g.taxaOcupacao = (g.totalPresentes + g.totalAusentes) > 0
+        ? Math.round((g.totalPresentes / (g.totalPresentes + g.totalAusentes)) * 1000) / 10
         : null;
     }
   }
@@ -254,6 +259,10 @@ export const resumoGlobal = (eventos) => {
   const totInsc = realizados.reduce((s, e) => s + totalInscricoes(e), 0);
   const totPres = realizados.reduce((s, e) => s + totalPresentes(e), 0);
   const totVagas = eventos.reduce((s, e) => s + (e.vagas || 0), 0);
+  const totAus = realizados.reduce(
+    (s, e) => s + (e.totalAusentes ?? Math.max(0, totalInscricoes(e) - totalPresentes(e))),
+    0
+  );
   return {
     totalEventos: eventos.length,
     eventosRealizados: realizados.length,
@@ -263,6 +272,8 @@ export const resumoGlobal = (eventos) => {
     totalAusentes: totInsc - totPres,
     totalVagas: totVagas || null,
     taxaPresencaGlobal: totInsc ? Math.round((totPres / totInsc) * 1000) / 10 : null,
-    taxaOcupacaoGlobal: totVagas ? Math.round((totInsc / totVagas) * 1000) / 10 : null,
+    taxaOcupacaoGlobal: (totPres + totAus) > 0
+      ? Math.round((totPres / (totPres + totAus)) * 1000) / 10
+      : null,
   };
 };

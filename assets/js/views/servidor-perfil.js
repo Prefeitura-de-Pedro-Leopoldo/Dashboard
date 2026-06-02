@@ -22,7 +22,9 @@ import {
 function buscarServidorPorChave(chave) {
   if (!chave) return null
   const lista = agregarServidores(state.data?.eventos || [])
-  return lista.find(s => s.chave === chave) || null
+  // O servidor unificado pode ter várias chaves (e-mails/nomes mesclados);
+  // casa por qualquer uma delas.
+  return lista.find(s => s.chave === chave || (s.chaves && s.chaves.includes(chave))) || null
 }
 
 // Abre o modal de perfil do servidor.

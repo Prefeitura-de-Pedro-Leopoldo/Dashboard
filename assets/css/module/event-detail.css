@@ -9,9 +9,9 @@
   gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
-.event-detail[data-tone="high"] { --tone-color: var(--green-500); --tone-soft: var(--brand-soft-accent); }
-.event-detail[data-tone="mid"] { --tone-color: var(--amber); --tone-soft: rgba(214, 154, 31, 0.14); }
-.event-detail[data-tone="low"] { --tone-color: var(--red); --tone-soft: rgba(192, 57, 43, 0.12); }
+.event-detail[data-tone="high"] { --tone-color: var(--ind-good); --tone-soft: var(--ind-good-soft); }
+.event-detail[data-tone="mid"] { --tone-color: var(--ind-warn); --tone-soft: var(--ind-warn-soft); }
+.event-detail[data-tone="low"] { --tone-color: var(--ind-bad); --tone-soft: var(--ind-bad-soft); }
 .event-detail[data-tone="muted"] { --tone-color: var(--gray-400); --tone-soft: var(--surface-subtle); }
 
 .event-detail__head {
@@ -84,8 +84,8 @@
 @media (max-width: 600px) {
   .event-detail__kpis { grid-template-columns: 1fr; }
 }
-.event-detail__kpis .kpi__value.green { color: var(--green-600); }
-.event-detail__kpis .kpi__value.red { color: var(--red); }
+.event-detail__kpis .kpi__value.green { color: var(--ind-good-text); }
+.event-detail__kpis .kpi__value.red { color: var(--ind-bad); }
 .event-detail__kpis .kpi__value.na {
   font-family: var(--font-sans);
   font-size: var(--fs-md);
@@ -203,11 +203,11 @@
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
-.turma-metric b.green { color: var(--green-600); }
-.turma-metric b.red { color: var(--red); }
-.turma-metric b.high { color: var(--green-600); }
-.turma-metric b.mid { color: var(--amber); }
-.turma-metric b.low { color: var(--red); }
+.turma-metric b.green { color: var(--ind-good-text); }
+.turma-metric b.red { color: var(--ind-bad); }
+.turma-metric b.high { color: var(--ind-good-text); }
+.turma-metric b.mid { color: var(--ind-warn-text); }
+.turma-metric b.low { color: var(--ind-bad); }
 .turma-metric b.na { color: var(--text-faint); }
 .turma-row .progress { height: 6px; }
 
@@ -249,8 +249,8 @@
   flex-wrap: wrap;
 }
 .event-detail__modulos-sub i { color: var(--brand-primary); }
-.event-detail__modulos-sub .green { color: var(--green-600); }
-.event-detail__modulos-sub .red { color: var(--red); }
+.event-detail__modulos-sub .green { color: var(--ind-good-text); }
+.event-detail__modulos-sub .red { color: var(--ind-bad); }
 .event-detail__modulos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -277,9 +277,9 @@
   background: var(--brand-primary);
   opacity: 0.85;
 }
-.modulo-card[data-tone="high"]::before { background: var(--green-600); }
-.modulo-card[data-tone="mid"]::before { background: var(--amber); }
-.modulo-card[data-tone="low"]::before { background: var(--red); }
+.modulo-card[data-tone="high"]::before { background: var(--ind-good-gradient-h); }
+.modulo-card[data-tone="mid"]::before { background: var(--ind-warn); }
+.modulo-card[data-tone="low"]::before { background: var(--ind-bad); }
 .modulo-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 22px -14px rgba(22, 31, 54, 0.35);
@@ -357,9 +357,9 @@
   color: var(--text-muted);
   margin-top: 2px;
 }
-.modulo-card__taxa.high b { color: var(--green-600); }
-.modulo-card__taxa.mid b { color: var(--amber); }
-.modulo-card__taxa.low b { color: var(--red); }
+.modulo-card__taxa.high b { color: var(--ind-good-text); }
+.modulo-card__taxa.mid b { color: var(--ind-warn-text); }
+.modulo-card__taxa.low b { color: var(--ind-bad); }
 
 .modulo-card__bar {
   display: flex;
@@ -374,7 +374,7 @@
   transition: width 0.4s ease;
 }
 .modulo-card__bar-seg--pres {
-  background: linear-gradient(90deg, var(--green-600), #6bc155);
+  background: var(--ind-good-gradient-h);
 }
 .modulo-card__bar-seg--aus {
   background: linear-gradient(90deg, #d65a4d, var(--red));
@@ -415,8 +415,8 @@
   color: var(--text-muted);
   line-height: 1.2;
 }
-.modulo-stat--pres i { color: var(--green-600); }
-.modulo-stat--aus i { color: var(--red); }
+.modulo-stat--pres i { color: var(--ind-good); }
+.modulo-stat--aus i { color: var(--ind-bad); }
 .modulo-stat--insc i { color: var(--brand-primary); }
 @media (max-width: 520px) {
   .modulo-card__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }

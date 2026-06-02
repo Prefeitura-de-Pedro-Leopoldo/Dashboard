@@ -5,60 +5,102 @@
  * pelo perfil do servidor.
  */
 
-// Chave estável para identificar um servidor entre eventos. Preferência:
-// e-mail (lowercased). Fallback: nome normalizado (sem acentos, lower).
-export function chaveServidor(p) {
-  const email = String(p.email || "").trim().toLowerCase()
-  if (email && !/^user-anonymous/i.test(email)) return "e:" + email
+// Sinais de identidade de um participante, normalizados:
+//   email: lowercased (ignora user-anonymous) · nome: sem acentos, minúsculo.
+function sinaisServidor(p) {
+  const emailRaw = String(p.email || "").trim().toLowerCase()
+  const email = emailRaw && !/^user-anonymous/i.test(emailRaw) ? emailRaw : ""
   const nome = String(p.nome || "").trim().toLowerCase()
     .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ")
+  return { email, nome }
+}
+
+// Chave estável de um participante (e:email preferido, senão n:nome).
+// Continua usada para gerar data-servidor-chave por participante; a busca
+// do perfil resolve qualquer uma das chaves do servidor unificado.
+export function chaveServidor(p) {
+  const { email, nome } = sinaisServidor(p)
+  if (email) return "e:" + email
   if (nome) return "n:" + nome
   return null
 }
 
 // Agrega presenças únicas de cada servidor através de todos os eventos.
-// Retorna [{ chave, nome, email, secretaria, cargo, eventos: [{id,title,date,presente}], totalEventos, totalPresentes }, ...]
+// Une participações que compartilham E-MAIL **ou** NOME normalizado (union-find):
+// trata tanto e-mails diferentes para o mesmo nome (ex.: Polyana com 2 e-mails)
+// quanto o mesmo e-mail com o nome digitado diferente.
+// Retorna [{ chave, chaves:[...], nome, email, secretaria, cargo,
+//            eventos:[{id,title,date,presente,...}], totalEventos, totalPresentes }, ...]
 export function agregarServidores(eventos) {
-  const mapa = new Map()
+  // ---- Union-find sobre as chaves de sinal (e:email / n:nome) ----
+  const parent = new Map()
+  const ensure = (x) => { if (!parent.has(x)) parent.set(x, x) }
+  const find = (x) => {
+    let r = x
+    while (parent.get(r) !== r) r = parent.get(r)
+    while (parent.get(x) !== r) { const n = parent.get(x); parent.set(x, r); x = n }
+    return r
+  }
+  const union = (a, b) => { ensure(a); ensure(b); parent.set(find(a), find(b)) }
+
+  // 1ª passada: registra participações e une seus sinais.
+  const partes = []
   eventos.forEach(ev => {
     (ev.participantes || []).forEach(p => {
-      const k = chaveServidor(p)
-      if (!k) return
-      let entry = mapa.get(k)
-      if (!entry) {
-        entry = {
-          chave: k,
-          nome: p.nome || "",
-          email: p.email || "",
-          secretaria: p.secretaria || "",
-          cargo: p.cargo || "",
-          eventos: [],
-          totalEventos: 0,
-          totalPresentes: 0
-        }
-        mapa.set(k, entry)
-      }
-      // Usa o nome mais bonito (mais longo) quando há variações
-      if ((p.nome || "").length > entry.nome.length) entry.nome = p.nome
-      if (!entry.email && p.email) entry.email = p.email
-      if (!entry.secretaria && p.secretaria) entry.secretaria = p.secretaria
-      if (!entry.cargo && p.cargo) entry.cargo = p.cargo
-      entry.eventos.push({
-        id: ev.id,
-        title: ev.title,
-        date: ev.date,
-        presente: !!p.presente,
-        turma: p.turma || "",
-        dataCheckin: p.dataCheckin || null,
-        dataInscricao: p.dataInscricao || null,
-        local: ev.local || "",
-        time: ev.time || ""
-      })
-      entry.totalEventos += 1
-      if (p.presente) entry.totalPresentes += 1
+      const { email, nome } = sinaisServidor(p)
+      const eKey = email ? "e:" + email : null
+      const nKey = nome ? "n:" + nome : null
+      const anchor = eKey || nKey
+      if (!anchor) return
+      ensure(anchor)
+      if (eKey && nKey) union(eKey, nKey)
+      partes.push({ ev, p, eKey, nKey, anchor })
     })
   })
-  return [...mapa.values()]
+
+  // 2ª passada: agrega por componente (raiz do union-find).
+  const mapa = new Map()
+  partes.forEach(({ ev, p, eKey, nKey, anchor }) => {
+    const root = find(anchor)
+    let entry = mapa.get(root)
+    if (!entry) {
+      entry = {
+        chave: root,
+        chaves: new Set(),
+        nome: p.nome || "",
+        email: "",
+        secretaria: p.secretaria || "",
+        cargo: p.cargo || "",
+        eventos: [],
+        totalEventos: 0,
+        totalPresentes: 0
+      }
+      mapa.set(root, entry)
+    }
+    if (eKey) entry.chaves.add(eKey)
+    if (nKey) entry.chaves.add(nKey)
+    // Usa o nome mais bonito (mais longo) quando há variações
+    if ((p.nome || "").length > entry.nome.length) entry.nome = p.nome
+    const emailLimpo = sinaisServidor(p).email
+    if (!entry.email && emailLimpo) entry.email = p.email
+    if (!entry.secretaria && p.secretaria) entry.secretaria = p.secretaria
+    if (!entry.cargo && p.cargo) entry.cargo = p.cargo
+    entry.eventos.push({
+      id: ev.id,
+      title: ev.title,
+      date: ev.date,
+      presente: !!p.presente,
+      turma: p.turma || "",
+      dataCheckin: p.dataCheckin || null,
+      dataInscricao: p.dataInscricao || null,
+      local: ev.local || "",
+      time: ev.time || ""
+    })
+    entry.totalEventos += 1
+    if (p.presente) entry.totalPresentes += 1
+  })
+  // chaves vira array (serializável e fácil de usar com includes)
+  return [...mapa.values()].map(e => ({ ...e, chaves: [...e.chaves] }))
 }
 
 // Iniciais para o avatar.

@@ -44,9 +44,9 @@
   border-color: var(--border-strong);
 }
 .kpi:hover::before { opacity: 0.7; }
-.kpi--accent::before { background: var(--brand-accent); }
-.kpi--warn::before { background: var(--amber); }
-.kpi--danger::before { background: var(--red); }
+.kpi--accent::before { background: var(--ind-good-gradient-h); }
+.kpi--warn::before { background: var(--ind-warn); }
+.kpi--danger::before { background: var(--ind-bad); }
 .kpi__icon {
   position: absolute;
   top: 12px;
@@ -58,9 +58,9 @@
   display: grid; place-items: center;
   font-size: 0.8125rem;
 }
-.kpi--accent .kpi__icon { background: var(--brand-soft-accent); color: var(--brand-accent); }
-.kpi--warn .kpi__icon { background: rgba(214, 154, 31, 0.14); color: var(--amber); }
-.kpi--danger .kpi__icon { background: rgba(192, 57, 43, 0.12); color: var(--red); }
+.kpi--accent .kpi__icon { background: var(--ind-good-soft); color: var(--ind-good); }
+.kpi--warn .kpi__icon { background: var(--ind-warn-soft); color: var(--ind-warn-text); }
+.kpi--danger .kpi__icon { background: var(--ind-bad-soft); color: var(--ind-bad); }
 .kpi__label {
   font-size: 0.625rem;
   font-weight: var(--fw-bold);
@@ -104,7 +104,7 @@
   gap: var(--space-5);
   padding: 16px 20px;
   background:
-    radial-gradient(circle at 100% 0%, var(--brand-soft-accent) 0%, transparent 55%),
+    radial-gradient(circle at 100% 0%, var(--ind-good-soft) 0%, transparent 55%),
     var(--surface-card);
 }
 .kpi--hero .kpi__gauge {
@@ -120,9 +120,9 @@
   stroke-linecap: round;
   transition: stroke-dashoffset var(--duration-slower) var(--ease-out);
 }
-.kpi--hero .kpi__gauge-fill.high { stroke: var(--green-500); }
-.kpi--hero .kpi__gauge-fill.mid { stroke: var(--amber); }
-.kpi--hero .kpi__gauge-fill.low { stroke: var(--red); }
+.kpi--hero .kpi__gauge-fill.high { stroke: var(--ind-good); }
+.kpi--hero .kpi__gauge-fill.mid { stroke: var(--ind-warn); }
+.kpi--hero .kpi__gauge-fill.low { stroke: var(--ind-bad); }
 .kpi--hero .kpi__gauge-fill.none { stroke: var(--gray-400); }
 .kpi--hero .kpi__gauge-center {
   position: absolute;
@@ -191,9 +191,9 @@
               box-shadow var(--duration-fast) var(--ease-out);
   cursor: pointer;
 }
-.kpi__spark-bar.high { background: var(--green-400); }
-.kpi__spark-bar.mid { background: var(--amber); }
-.kpi__spark-bar.low { background: var(--red); }
+.kpi__spark-bar.high { background: var(--ind-good-gradient); }
+.kpi__spark-bar.mid { background: var(--ind-warn); }
+.kpi__spark-bar.low { background: var(--ind-bad); }
 .kpi__spark-bar:hover,
 .kpi__spark-bar:focus-visible {
   transform: translateY(-2px) scaleY(1.05);

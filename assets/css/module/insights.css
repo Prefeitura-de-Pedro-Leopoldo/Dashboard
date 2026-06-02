@@ -40,9 +40,9 @@
   transform: translateY(-2px);
   border-color: var(--border-strong);
 }
-.insight.positive { --insight-color: var(--brand-accent); --insight-soft: var(--brand-soft-accent); }
-.insight.warn { --insight-color: var(--amber); --insight-soft: rgba(214, 154, 31, 0.14); }
-.insight.danger { --insight-color: var(--red); --insight-soft: rgba(192, 57, 43, 0.12); }
+.insight.positive { --insight-color: var(--ind-good); --insight-soft: var(--ind-good-soft); }
+.insight.warn { --insight-color: var(--ind-warn); --insight-soft: var(--ind-warn-soft); }
+.insight.danger { --insight-color: var(--ind-bad); --insight-soft: var(--ind-bad-soft); }
 .insight.neutral { --insight-color: var(--gray-400); --insight-soft: var(--surface-subtle); }
 .insight__icon {
   width: 28px; height: 28px;

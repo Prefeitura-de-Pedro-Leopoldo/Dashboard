@@ -42,6 +42,29 @@
   --purple: #6b4d9e;
   --red: #c0392b;
   --amber: #d69a1f;
+  --orange: #e0741f;
+
+  /* ==============================================================
+     INDICADORES DE DESEMPENHO · escala bom → ruim
+     Bom = azul (degradê) · Atenção = laranja · Ruim = vermelho
+     (semântica usada em KPIs, gráficos, cards e tabelas)
+     ============================================================== */
+  --ind-good: #3063ad;          /* azul institucional */
+  --ind-good-strong: #24417a;   /* azul forte (texto sobre branco) */
+  --ind-good-text: #24417a;     /* legível sobre superfícies claras */
+  --ind-good-light: #6e9bd6;    /* azul claro */
+  --ind-good-soft: #e6edf8;     /* fundo suave */
+  --ind-good-soft-bg: rgba(48, 99, 173, 0.12);
+  --ind-good-gradient: linear-gradient(180deg, #6e9bd6 0%, #3063ad 100%);
+  --ind-good-gradient-h: linear-gradient(90deg, #3063ad 0%, #6e9bd6 100%);
+
+  --ind-warn: #e0741f;          /* laranja */
+  --ind-warn-text: #b85a12;
+  --ind-warn-soft: rgba(224, 116, 31, 0.14);
+
+  --ind-bad: #c0392b;           /* vermelho */
+  --ind-bad-text: #c0392b;
+  --ind-bad-soft: rgba(192, 57, 43, 0.12);
 
   /* Neutros - warm grays com tom azulado sutil (institucional) */
   --white: #ffffff;
@@ -241,6 +264,24 @@
   /* Selection (mais visivel sobre fundo escuro) */
   --selection-bg: rgba(107, 193, 85, 0.32);
   --selection-fg: #ffffff;
+
+  /* Indicadores de desempenho (ajustados para fundo escuro) */
+  --ind-good: #6e9bd6;
+  --ind-good-strong: #9cb8e2;
+  --ind-good-text: #9cb8e2;
+  --ind-good-light: #9cb8e2;
+  --ind-good-soft: rgba(110, 155, 214, 0.16);
+  --ind-good-soft-bg: rgba(110, 155, 214, 0.18);
+  --ind-good-gradient: linear-gradient(180deg, #9cb8e2 0%, #6e9bd6 100%);
+  --ind-good-gradient-h: linear-gradient(90deg, #6e9bd6 0%, #9cb8e2 100%);
+
+  --ind-warn: #e8923f;
+  --ind-warn-text: #f0a861;
+  --ind-warn-soft: rgba(232, 146, 63, 0.18);
+
+  --ind-bad: #e06557;
+  --ind-bad-text: #f08577;
+  --ind-bad-soft: rgba(224, 101, 87, 0.18);
 
   /* Scrollbar */
   --scrollbar-track: transparent;

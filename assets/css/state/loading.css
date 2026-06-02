@@ -12,16 +12,26 @@
   min-height: 240px;
 }
 
-/* Variante que cobre um container (com position:relative) durante o load. */
+/* Variante que cobre um container (com position:relative) durante o load.
+   O fundo cobre todo o container; o conteúdo (capelo + texto) fica fixo e
+   centralizado na área visível do viewport, mesmo com a página rolada. */
 .egov-loader--cover {
   position: absolute;
   inset: 0;
   z-index: 5;
+  display: block;
   background: color-mix(in srgb, var(--surface-bg) 86%, transparent);
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   padding: 0;
   transition: opacity 320ms ease;
+}
+.egov-loader--cover .egov-loader__inner {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 .egov-loader--cover.is-hiding { opacity: 0; pointer-events: none; }
 

@@ -7,18 +7,22 @@ export const PALETTE = {
   blue: "#3063ad",
   blueLight: "#6e9bd6",
   blueDark: "#161f36",
-  green: "#4dad33",
-  greenLight: "#8cd179",
-  greenDeep: "#3b9426",
+  // "Bom" / positivo agora em azul (antes verde). Tom sky distinto do azul
+  // institucional para continuar legível em gráficos pareados (Inscritos x Presentes).
+  green: "#5aa9e6",
+  greenLight: "#8fc5f0",
+  greenDeep: "#2f86c9",
+  good: "#3063ad",
   amber: "#d69a1f",
+  orange: "#e0741f",
   red: "#c0392b",
   purple: "#6b4d9e",
   muted: "#6b7180",
   grid: "rgba(22, 31, 54, 0.04)",
   axis: "#9aa3b2",
   series: [
-    "#3063ad", "#4dad33", "#d69a1f", "#6b4d9e",
-    "#c0392b", "#24417a", "#6bc155", "#9cb8e2", "#8cd179",
+    "#3063ad", "#5aa9e6", "#e0741f", "#6b4d9e",
+    "#c0392b", "#24417a", "#8fc5f0", "#9cb8e2", "#1e2a47",
   ],
 };
 
@@ -568,7 +572,7 @@ export function barInscritosVsPresentes(id, eventos) {
 export function barTaxaPresenca(id, eventos) {
   const filtered = eventos.filter((e) => e.taxaPresenca !== null && e.taxaPresenca !== undefined);
   const isEmpty = filtered.length === 0;
-  const cor = (v) => (v >= 80 ? PALETTE.green : v >= 60 ? PALETTE.amber : PALETTE.red);
+  const cor = (v) => (v >= 80 ? PALETTE.good : v >= 60 ? PALETTE.orange : PALETTE.red);
   return _mount(id, {
     type: "bar",
     data: {

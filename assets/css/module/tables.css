@@ -77,8 +77,8 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   text-transform: uppercase;
   white-space: nowrap;
 }
-.cell-status.green { background: var(--brand-soft-accent); color: var(--green-700); }
-.cell-status.red { background: rgba(192, 57, 43, 0.12); color: var(--red); }
+.cell-status.green { background: var(--ind-good-soft); color: var(--ind-good-text); }
+.cell-status.red { background: var(--ind-bad-soft); color: var(--ind-bad); }
 .cell-status.muted { background: var(--surface-subtle); color: var(--text-muted); }
 
 /* Célula de turma - sempre em uma linha, trunca com ellipsis (tooltip via title) */
