@@ -110,7 +110,9 @@
       "Bash(git push *)",
       "Bash(git fetch *)",
       "Bash(git rev-list *)",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Bash(git commit -m '@ *)",
+      "Bash(git commit --amend -m 'feat\\(painel\\): relatorios ABNT por evento+geral, carga horaria e palestrante em modal' -m '- Exportacoes CSV/PDF/Excel/PPTX em padrao ABNT \\(capa, sumario, introducao, numeracao, figuras com fonte e data de extracao\\); conteudo por evento e consolidado conforme filtro de evento/secretaria; sem listas nominais; sem travessao. *)"
     ]
   }
 }

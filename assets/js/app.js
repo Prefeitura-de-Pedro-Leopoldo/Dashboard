@@ -47,7 +47,7 @@ import {
   classificarVinculo,
   taxaRetencao
 } from "./servidores.js"
-import { initPalestrantes, renderCadastro as renderPalestrantesCadastro, renderLista as renderPalestrantesLista } from "./palestrantes.js"
+import { initPalestrantes, renderLista as renderPalestrantesLista } from "./palestrantes.js"
 import { showCover } from "./loader.js"
 import { triggerDownload } from "./util.js"
 import { renderViewQrCode } from "./views/qrcode.js"
@@ -564,7 +564,6 @@ function renderAll() {
   else if (state.view === "certificados") renderViewCertificados()
   else if (state.view === "qrcode") renderViewQrCode()
   else if (state.view === "autoreport") renderViewAutoReport()
-  else if (state.view === "palestrantes-cadastro") renderPalestrantesCadastro()
   else if (state.view === "palestrantes-lista") renderPalestrantesLista()
 }
 
