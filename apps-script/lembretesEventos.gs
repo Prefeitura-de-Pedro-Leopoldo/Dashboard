@@ -146,8 +146,7 @@ function _enviarLembrete(inscritos, cfg, encontro) {
   const titulo = cfg.titulo || cfg.eventoKey;
   const nomeEncontro = encontro.titulo || 'próximo encontro';
   const quando = _dataBR(encontro.data) +
-    (encontro.horaInicio ? ' às ' + encontro.horaInicio : '') +
-    (encontro.horaFim ? ' - ' + encontro.horaFim : '');
+    (encontro.horaInicio ? ' às ' + encontro.horaInicio : '');
   const assunto = 'Lembrete: ' + nomeEncontro + ' é amanhã - ' + titulo;
   const ctx = { curso: titulo, encontro: nomeEncontro, quando: quando };
 
@@ -365,7 +364,7 @@ function _json(obj) {
 // exemplo e conferir o layout (envia de verdade, mesmo com DRY_RUN ligado).
 const TEST_EMAIL = 'lucelho.silva@pedroleopoldo.mg.gov.br';
 function enviarLembreteTeste() {
-  const ctx = { curso: 'Ciclo de Debates PL por Elas', encontro: 'Encontro 1', quando: '20/05/2026 às 14:00 - 17:00' };
+  const ctx = { curso: 'Ciclo de Debates PL por Elas', encontro: 'Encontro 1', quando: '20/05/2026 às 14:00' };
   const opts = { name: PROJECT_NAME, htmlBody: _corpoHtmlLembrete('Teste da Silva', ctx) };
   if (SENDER_EMAIL) opts.from = SENDER_EMAIL;
   if (REPLY_TO) opts.replyTo = REPLY_TO;

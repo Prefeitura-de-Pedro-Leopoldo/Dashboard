@@ -102,7 +102,7 @@
 }
 .lemb-enc__fields {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 150px 110px 110px;
+  grid-template-columns: minmax(0, 2fr) 150px 110px;
   gap: var(--space-3);
 }
 .lemb-enc__fields .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }

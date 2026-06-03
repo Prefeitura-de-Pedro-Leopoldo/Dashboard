@@ -26,7 +26,7 @@ function store(ev) {
   if (!_store[ev.id]) {
     // Semeia 1 encontro usando a data do evento, se existir.
     const encontros = ev.date
-      ? [{ id: uid(), titulo: "Encontro 1", data: ev.date, horaInicio: "19:00", horaFim: "22:00", ativo: true }]
+      ? [{ id: uid(), titulo: "Encontro 1", data: ev.date, horaInicio: "19:00", ativo: true }]
       : []
 
     _store[ev.id] = {
@@ -325,10 +325,6 @@ function encListHtml(st) {
             <label>Início</label>
             <input type="time" data-f="horaInicio" value="${escapeHtml(e.horaInicio || "")}" />
           </div>
-          <div class="field field--time">
-            <label>Fim</label>
-            <input type="time" data-f="horaFim" value="${escapeHtml(e.horaFim || "")}" />
-          </div>
         </div>
         <div class="lemb-enc__side">
           <label class="lemb-switch lemb-switch--sm" title="Lembrete deste encontro">
@@ -378,7 +374,7 @@ function wireEncontros(host, containerId, ev, st) {
 
   q("#lembAddEnc")?.addEventListener("click", () => {
     const n = st.encontros.length + 1
-    st.encontros.push({ id: uid(), titulo: `Encontro ${n}`, data: "", horaInicio: "19:00", horaFim: "22:00", ativo: true })
+    st.encontros.push({ id: uid(), titulo: `Encontro ${n}`, data: "", horaInicio: "19:00", ativo: true })
     renderEncontros(containerId, ev)
   })
 
