@@ -353,8 +353,10 @@ function _descartarArquivo(fileId) {
 
 /**
  * Marca a coluna "Foto" como um Smart Chip clicavel apontando para o arquivo
- * da foto no Drive (com preview). Se o servico avancado "Google Sheets API"
- * nao estiver habilitado, cai num HYPERLINK clicavel "Ver foto".
+ * da foto no Drive (com preview), igual a coluna "Arquivo PDF" do
+ * enviarCertificados.gs. Se o servico avancado "Google Sheets API" nao estiver
+ * habilitado, cai num link clicavel "Ver foto" (texto com hyperlink via
+ * RichText -- NAO usa formula =HYPERLINK, que quebra em planilha pt-BR).
  * A coluna FotoFileId continua guardando o ID puro (o sistema le de la).
  */
 function _marcarFoto(sheet, linha, fileId) {
@@ -396,9 +398,15 @@ function _marcarFoto(sheet, linha, fileId) {
       }],
     }, ss.getId());
   } catch (err) {
-    // Fallback universal (sem servico avancado): link clicavel.
-    cel.setFormula('=HYPERLINK("' + url + '","Ver foto")');
-    Logger.log('Smart chip da foto falhou, usei HYPERLINK. Detalhe: ' + (err && err.message));
+    // Fallback universal (sem servico avancado): link clicavel via RichText.
+    // Evita a formula =HYPERLINK, que da erro de parse em locale pt-BR (que usa
+    // ";" como separador) e aparece quebrada na celula.
+    const link = SpreadsheetApp.newRichTextValue()
+      .setText('Ver foto')
+      .setLinkUrl(url)
+      .build();
+    cel.setRichTextValue(link);
+    Logger.log('Smart chip da foto falhou, usei link RichText. Detalhe: ' + (err && err.message));
   }
 }
 
