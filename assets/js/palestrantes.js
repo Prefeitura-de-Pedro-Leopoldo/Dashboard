@@ -151,9 +151,19 @@ export async function openCadastroModal(id = null) {
   const p = atual || {}
 
   const eventos = (deps.getEventos() || []).filter((e) => e && e.title)
+  // Curso salvo que não corresponde a um evento da lista atual. Dois casos:
+  //  - evento removido/arquivado (tem cursoId que não existe mais);
+  //  - cadastro via convite, onde o curso é texto livre (sem cursoId).
+  // Em ambos preservamos a opção na edição p/ não travar a navegação nem perder o dado.
+  const cursoSalvoExiste = !!p.cursoId && eventos.some((e) => String(e.id) === String(p.cursoId))
+  const cursoSalvoValor = p.cursoId || p.cursoTitulo || ""
+  const cursoFallback = editando && cursoSalvoValor && !cursoSalvoExiste
+    ? `<option value="${escapeHtml(cursoSalvoValor)}" selected>${escapeHtml(p.cursoTitulo || "Curso atual")}</option>`
+    : ""
   const cursoOptions = eventos
     .map((e) => `<option value="${escapeHtml(e.id)}" ${String(p.cursoId || "") === String(e.id) ? "selected" : ""}>${escapeHtml(e.title)}</option>`)
     .join("")
+  const cursoSelDisabled = eventos.length || cursoFallback ? "" : "disabled"
   const eixosSel = Array.isArray(p.eixos)
     ? p.eixos
     : (p.eixo ? String(p.eixo).split(/;\s*/).map((x) => x.trim()).filter(Boolean) : [])
@@ -204,8 +214,9 @@ export async function openCadastroModal(id = null) {
               </div>
               <div class="field">
                 <label for="palCurso">Curso ministrado *</label>
-                <select id="palCurso" required ${eventos.length ? "" : "disabled"}>
+                <select id="palCurso" required ${cursoSelDisabled}>
                   <option value="" ${p.cursoId ? "" : "selected"} disabled>${eventos.length ? "Selecione o curso/evento" : "Nenhum evento disponível"}</option>
+                  ${cursoFallback}
                   ${cursoOptions}
                 </select>
               </div>
