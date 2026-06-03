@@ -156,6 +156,153 @@ export const consolidarPorGrupo = (eventos) => {
   return out;
 };
 
+// ================ Agrupamento pela PASTA (convenção do Drive) ================
+// Quando o evento não tem `grupo` vindo do eventos-meta.json, inferimos a partir
+// do caminho do arquivo (ev.fonte): a pasta-topo é o grupo (curso) e a subpasta
+// é a turma/módulo. Só agrupa se a pasta-topo tem 2+ subpastas (turmas) — assim
+// eventos com uma subpasta só continuam como card único (preserva módulos etc.).
+const _SMALL_WORDS = new Set(["de", "da", "do", "das", "dos", "e", "por", "para", "com", "em", "a", "o", "as", "os"]);
+const _ACRONIMOS = { pl: "PL", sei: "SEI", egov: "EGov", ti: "TI", rh: "RH" };
+
+function _humanizeGrupo(seg) {
+  return String(seg)
+    .replace(/[-_]?\d{4}-\d{2}$/, "")        // remove sufixo de data "-2026-05"
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w, i) => {
+      const lw = w.toLowerCase();
+      if (_ACRONIMOS[lw]) return _ACRONIMOS[lw];
+      if (i > 0 && _SMALL_WORDS.has(lw)) return lw;
+      return lw.charAt(0).toUpperCase() + lw.slice(1);
+    })
+    .join(" ");
+}
+
+function _slugGrupo(seg) {
+  return String(seg).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function _parseTurmaModulo(sub) {
+  const s = String(sub).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  let m = s.match(/m(?:o?dulo)?\s*(.+)/);
+  if (m && /mo?dulo|^m\s*\d/.test(s)) return { turma: null, modulo: m[1].trim() };
+  m = s.match(/turma\s*(.+)/);
+  if (m) return { turma: m[1].trim(), modulo: null };
+  return { turma: sub, modulo: null };
+}
+
+const _pastaDe = (fonte) => String(fonte || "").replace(/\/[^/]*$/, "");
+
+export function inferirGruposPorPasta(eventos) {
+  const lista = eventos || [];
+  // Conta subpastas (turmas) por pasta-topo, ignorando quem já tem grupo.
+  const subsPorTopo = new Map();
+  for (const ev of lista) {
+    if (ev.grupo && ev.grupo.id) continue;
+    const segs = _pastaDe(ev.fonte).split("/").filter(Boolean);
+    if (segs.length < 2) continue;
+    const top = segs[0];
+    if (!subsPorTopo.has(top)) subsPorTopo.set(top, new Set());
+    subsPorTopo.get(top).add(segs.slice(1).join("/"));
+  }
+  return lista.map((ev) => {
+    if (ev.grupo && ev.grupo.id) return ev;
+    const segs = _pastaDe(ev.fonte).split("/").filter(Boolean);
+    if (segs.length < 2) return ev;
+    const top = segs[0];
+    if ((subsPorTopo.get(top)?.size || 0) < 2) return ev; // só agrupa com 2+ turmas
+    const sub = segs.slice(1).join("/");
+    const { turma, modulo } = _parseTurmaModulo(sub);
+    return { ...ev, grupo: { id: _slugGrupo(top), titulo: _humanizeGrupo(top), turma, modulo, agrupadoPorPasta: true } };
+  });
+}
+
+// ================ Divisão por COLUNA de turma ================
+// Eventos cujo arquivo único traz várias turmas numa coluna (ex.: Ciclo
+// "Turma 1 - (Segunda)" / "Turma 2 - (Terça)"; Workshop SEI "Manhã/Tarde")
+// são divididos em "turmas virtuais" filtrando os participantes pela coluna.
+// Não divide eventos com módulos (M1/M2) nem turmas com inscrição aberta.
+const _rotuloTurma = (val) => String(val).split(/\s+-\s+/)[0].trim() || String(val).trim();
+
+function _talo(arr, key) {
+  return arr.reduce((o, p) => { const k = p[key]; if (k) o[k] = (o[k] || 0) + 1; return o; }, {});
+}
+
+export function dividirPorTurma(ev) {
+  if (!ev || ev.modulos || ev.inscricaoAberta) return null;
+  const parts = ev.participantes || [];
+  const vals = [...new Set(parts.map((p) => String(p.turma || "").trim()).filter(Boolean))];
+  if (vals.length < 2) return null;
+  const baseTitulo = (ev.grupo && ev.grupo.titulo) ? ev.grupo.titulo : ev.title;
+  return vals.map((val) => {
+    const ps = parts.filter((p) => String(p.turma || "").trim() === val);
+    const pres = ps.filter((p) => p.presente);
+    const totalInscritos = ps.length;
+    const totalPresentes = pres.length;
+    const rotulo = _rotuloTurma(val);
+    const tlInsc = {};
+    for (const p of ps) { if (p.dataInscricao) { const d = String(p.dataInscricao).slice(0, 10); tlInsc[d] = (tlInsc[d] || 0) + 1; } }
+    const slug = rotulo.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return {
+      ...ev,
+      id: `${ev.id}__${slug}`,
+      _turmaLabel: rotulo,
+      _turmaCol: val,
+      title: `${baseTitulo} · ${rotulo}`,
+      participantes: ps,
+      totalInscritos, totalAprovados: totalInscritos, totalPresentes,
+      totalAusentes: totalInscritos - totalPresentes, totalAptos: totalPresentes,
+      taxaPresenca: totalInscritos ? Math.round((totalPresentes / totalInscritos) * 1000) / 10 : null,
+      taxaOcupacao: (totalPresentes + (totalInscritos - totalPresentes)) > 0
+        ? Math.round((totalPresentes / totalInscritos) * 1000) / 10 : null,
+      modulos: null,
+      turmas: { [val]: totalInscritos },
+      turmasPresentes: { [val]: totalPresentes },
+      secretarias: _talo(ps, "secretaria"),
+      secretariasPresentes: _talo(pres, "secretaria"),
+      timelineInscricoes: Object.entries(tlInsc).sort((a, b) => a[0].localeCompare(b[0])),
+      timelineCheckins: [],
+      vagas: null,
+    };
+  });
+}
+
+// Remove eventos duplicados (ex.: pasta antiga "turma 1" + "turma 1 e 2" com os
+// mesmos dados) que aparecem em estáticos desatualizados. Dois eventos com a
+// mesma pasta-topo, mesmos totais e mesmas turmas são considerados o mesmo.
+export function dedupEventos(eventos) {
+  const seen = new Set();
+  const out = [];
+  for (const ev of eventos || []) {
+    if (ev.inscricaoAberta) { out.push(ev); continue; } // nunca dedupe turma aberta
+    const folder = String(ev.fonte || "").replace(/\/[^/]*$/, "");
+    const top = folder.split("/")[0] || folder;
+    const turmasKey = Object.keys(ev.turmas || {}).sort().join("|");
+    const key = `${top}|${ev.totalInscritos || 0}|${ev.totalPresentes || 0}|${turmasKey}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(ev);
+  }
+  return out;
+}
+
+// Lista de turmas de um evento de topo (grupo ou standalone), já considerando:
+//  - membros de grupo por pasta (Mapa: turma 1, turma 2);
+//  - divisão por coluna (Ciclo combinado, Workshop SEI);
+//  - turmas com inscrição aberta (mantidas como estão).
+export function turmasExpandidas(topEv) {
+  const membros = (topEv._turmas && topEv._turmas.length) ? topEv._turmas : [topEv];
+  const out = [];
+  for (const m of membros) {
+    if (m.inscricaoAberta) { out.push(m); continue; }
+    const div = dividirPorTurma(m);
+    if (div) out.push(...div); else out.push(m);
+  }
+  return out;
+}
+
 /**
  * Evasão por secretaria de um único evento.
  * Conta inscritos que não compareceram. Só retorna entradas com evasão > 0.

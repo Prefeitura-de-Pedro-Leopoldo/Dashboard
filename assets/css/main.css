@@ -33,6 +33,7 @@
 @import url('module/insights-board.css');
 @import url('module/perfil-servidor.css');
 @import url('module/palestrantes.css');
+@import url('module/lembretes.css');
 @import url('state/skeleton.css');
 @import url('state/loader.css');
 @import url('state/loading.css');

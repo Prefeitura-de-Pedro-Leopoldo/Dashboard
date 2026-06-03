@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-06-02T18:56:10.733Z",
+  "geradoEm": "2026-06-03T17:03:37.609Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "planilhas": [
     {
@@ -19,7 +19,7 @@
     },
     {
       "id": "ciclo-de-debates-pl-por-elas",
-      "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx",
+      "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1 e 2/participantes.xlsx",
       "titulo": "Ciclo de Debates PL por Elas"
     },
     {
@@ -41,6 +41,11 @@
       "id": "gestao-para-resultados",
       "arquivo": "gestao-para-resultados-2026-05/turma 1/participantes.xlsx",
       "titulo": "Gestão Pública para Resultados"
+    },
+    {
+      "id": "ciclo-de-debates-pl-por-elas-2026-05-turma-1-participantes",
+      "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx",
+      "titulo": "ciclo-de-debates-pl-por-elas-2026-05 · turma 1 · participantes"
     }
   ]
 }

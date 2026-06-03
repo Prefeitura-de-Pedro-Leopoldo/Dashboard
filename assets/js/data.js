@@ -36,6 +36,16 @@ export async function loadData(onLiveUpdate, opts = {}) {
     throw new Error("Não foi possível atualizar os dados.");
   }
 
+  // preferLive: espera o AO VIVO antes de resolver (evita "piscar" o estático
+  // desatualizado na primeira carga). Cai no estático só se o ao vivo falhar.
+  if (opts.preferLive) {
+    const live = await fetchNorm(LIVE_URL);
+    if (live) { _cache = live; return _cache; }
+    const est = await fetchNorm(STATIC_URL);
+    if (est) { _cache = est; return _cache; }
+    throw new Error("Não foi possível carregar os dados.");
+  }
+
   const livePromise = fetchNorm(LIVE_URL); // pode resolver null
 
   // Estático primeiro (rápido) para a primeira renderização.

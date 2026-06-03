@@ -2,7 +2,7 @@
  * ui.js - funcoes de renderizacao (componentes HTML).
  */
 
-import { taxaPresenca, taxaOcupacao, totalVagasOuIngressos, totalAusentes } from "./metrics.js";
+import { taxaPresenca, taxaOcupacao, totalVagasOuIngressos, totalAusentes, turmasExpandidas } from "./metrics.js";
 
 export const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 export const pct = (n) => (n === null || n === undefined ? "N/A" : n.toFixed(1) + "%");
@@ -162,7 +162,11 @@ export function renderEventCard(ev) {
   const dateLine = `${formatDateBR(ev.date)}${ev.time ? " · " + escapeHtml(ev.time) : ""}`;
   const localLine = ev.local ? escapeHtml(shortLocal(ev.local)) : "";
   const txClass = progressClass(tx);
-  const nTurmas = Object.keys(ev.turmas || {}).length;
+  const temModulosCard = !!(ev.modulos && ev.modulos.M1);
+  const nTurmas = temModulosCard
+    ? Object.keys(ev.modulos).length
+    : Object.keys(ev.turmas || {}).length;
+  const labelTurmas = temModulosCard ? "Módulos" : "Turmas";
 
   return `
     <article class="event-card" data-event="${ev.id}" data-tone="${tone}">
@@ -206,7 +210,7 @@ export function renderEventCard(ev) {
           <dd>${renderOcup(ev, true)}</dd>
         </div>
         ${nTurmas > 0 ? `<div class="metric">
-          <dt>Turmas</dt>
+          <dt>${labelTurmas}</dt>
           <dd>${nTurmas}</dd>
         </div>` : ""}
       </dl>
@@ -225,19 +229,25 @@ export function renderEventCard(ev) {
 
 // ================ Course card (curso com turmas/módulos) ================
 
-const turmaLabel = (ev) => {
+export const turmaLabel = (ev) => {
   const g = ev.grupo || {};
-  if (g.modulo != null) return `Módulo ${g.modulo}`;
-  if (g.turma != null) return `Turma ${g.turma}`;
-  return ev.title;
+  let base;
+  if (ev._turmaLabel) base = ev._turmaLabel;
+  else if (g.modulo != null) base = `Módulo ${g.modulo}`;
+  else if (g.turma != null) base = `Turma ${g.turma}`;
+  else base = ev.title;
+  return ev.inscricaoAberta ? `${base} - Inscrições abertas` : base;
 };
 
 export function renderCourseCard(group) {
   const evs = group.eventos;
-  const insc = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0);
-  const pres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0);
-  const aus = evs.reduce((s, e) => s + (e.totalAusentes || 0), 0);
-  const vagas = evs.reduce((s, e) => s + (e.vagas || 0), 0);
+  // Métricas agregadas: usa o evento-base (totais consolidados, com vagas) se
+  // veio; senão soma as turmas. As LINHAS sempre vêm de `evs` (as turmas).
+  const base = group.base;
+  const insc = base ? (base.totalInscritos || 0) : evs.reduce((s, e) => s + (e.totalInscritos || 0), 0);
+  const pres = base ? (base.totalPresentes || 0) : evs.reduce((s, e) => s + (e.totalPresentes || 0), 0);
+  const aus = base ? (base.totalAusentes || 0) : evs.reduce((s, e) => s + (e.totalAusentes || 0), 0);
+  const vagas = base ? (base.vagas || 0) : evs.reduce((s, e) => s + (e.vagas || 0), 0);
   const tx = insc ? Math.round((pres / insc) * 1000) / 10 : null;
   // Ocupação = Presentes / (Presentes + Ausentes).
   const ocup = (pres + aus) > 0 ? Math.round((pres / (pres + aus)) * 1000) / 10 : null;
@@ -247,26 +257,36 @@ export function renderCourseCard(group) {
     const etx = taxaPresenca(e);
     const eocup = taxaOcupacao(e);
     const vagasInfo = e.vagas ? ` &middot; ${fmt(e.vagas)} vagas${eocup != null ? ` (${pct(eocup)} ocup.)` : ""}` : "";
+    const meta = e.inscricaoAberta
+      ? `<span class="course-card__turma-tag"><i class="fas fa-user-plus"></i> Inscrições abertas</span>`
+      : `${fmt(e.totalInscritos)} inscr.${e.totalPresentes ? " &middot; " + fmt(e.totalPresentes) + " pres." : ""}${etx != null ? " &middot; " + pct(etx) : ""}${vagasInfo}`;
     return `
-      <button type="button" class="course-card__turma" data-event="${e.id}">
+      <button type="button" class="course-card__turma${e.inscricaoAberta ? " is-open" : ""}" data-event="${e.id}" data-group="${escapeHtml(group.grupo.id)}">
         <span class="course-card__turma-name">
           <i class="fas fa-chevron-right"></i> ${escapeHtml(turmaLabel(e))}
         </span>
-        <span class="course-card__turma-meta">
-          ${fmt(e.totalInscritos)} inscr.${e.totalPresentes ? " &middot; " + fmt(e.totalPresentes) + " pres." : ""}${etx != null ? " &middot; " + pct(etx) : ""}${vagasInfo}
-        </span>
+        <span class="course-card__turma-meta">${meta}</span>
       </button>
     `;
   }).join("");
 
+  // Rótulo turma vs módulo conforme os membros do grupo.
+  const ehModulo = evs.length > 0 && evs.every((e) => e.grupo && e.grupo.modulo != null);
+  const unidade = ehModulo ? "módulo(s)" : "turma(s)";
+  const unidadeCap = ehModulo ? "Módulos" : "Turmas";
+  const abertas = evs.filter((e) => e.inscricaoAberta).length;
+  // Botão Certificados aponta para uma turma realizada (tem arquivo de presença).
+  const turmaCert = evs.find((e) => e.fonte && e.status === "realizado") || evs.find((e) => e.fonte && !e.inscricaoAberta);
+
   const txClass = progressClass(tx);
   return `
-    <article class="event-card course-card" data-tone="${tx == null ? "muted" : toneFromTaxa(tx)}">
+    <article class="event-card course-card" data-event="${escapeHtml(group.grupo.id)}" data-tone="${tx == null ? "muted" : toneFromTaxa(tx)}">
       <header class="event-card__head">
         <h3 class="event-card__title" title="${escapeHtml(group.grupo.titulo)}">${escapeHtml(group.grupo.titulo)}</h3>
         <div class="event-card__meta">
-          <span><i class="fas fa-layer-group"></i> ${evs.length} turma(s)/módulo(s)</span>
+          <span><i class="fas fa-layer-group"></i> ${evs.length} ${unidade}</span>
           <span><i class="fas fa-circle-check"></i> ${realizados} realizado(s)</span>
+          ${abertas ? `<span><i class="fas fa-user-plus"></i> ${abertas} com inscrição aberta</span>` : ""}
         </div>
       </header>
 
@@ -286,10 +306,19 @@ export function renderCourseCard(group) {
         <div class="metric"><dt>Ausentes</dt><dd class="red">${fmt(aus)}</dd></div>
         <div class="metric"><dt>Vagas</dt><dd>${vagas ? fmt(vagas) : "-"}</dd></div>
         <div class="metric"><dt>Ocupação</dt><dd${ocup != null && ocup >= 90 ? ' class="green"' : ocup != null && ocup < 50 ? ' class="red"' : ""}>${ocup != null ? pct(ocup) : "-"}</dd></div>
-        <div class="metric"><dt>Turmas</dt><dd>${evs.length}</dd></div>
+        <div class="metric"><dt>${unidadeCap}</dt><dd>${evs.length}</dd></div>
       </dl>
 
       <div class="course-card__turmas">${rows}</div>
+
+      <footer class="event-card__action">
+        <button class="btn btn--sm" data-action="detalhe" data-event="${group.grupo.id}">
+          <i class="fas fa-magnifying-glass-chart"></i> Analisar
+        </button>
+        ${turmaCert ? `<button class="btn btn--sm btn--primary" data-action="certificados" data-event="${turmaCert.id}" data-fonte="${escapeHtml(turmaCert.fonte || "")}">
+          <i class="fas fa-award"></i> Certificados
+        </button>` : ""}
+      </footer>
     </article>
   `;
 }
@@ -481,15 +510,24 @@ function renderModulosBreakdown(ev) {
   `;
 }
 
-// Detalhamento por turma quando o evento é consolidado (vem de um grupo com 2+ turmas)
+// Detalhamento por turma quando o evento tem 2+ turmas (subpastas, divisão por
+// coluna ou turma com inscrição aberta).
 function renderTurmasBreakdown(ev) {
-  const turmas = ev._turmas;
+  const turmas = turmasExpandidas(ev);
   if (!Array.isArray(turmas) || turmas.length < 2) return "";
 
   const rows = turmas.map((t) => {
-    const tNum = t.grupo && (t.grupo.turma ?? null);
-    const mNum = t.grupo && (t.grupo.modulo ?? null);
-    const label = tNum != null ? `Turma ${tNum}` : mNum != null ? `Módulo ${mNum}` : t.title;
+    const label = turmaLabel(t);
+    // Turma com inscrição aberta: linha enxuta, sem métricas de presença.
+    if (t.inscricaoAberta) {
+      return `
+        <div class="turma-row turma-row--open">
+          <div class="turma-row__head">
+            <span class="turma-row__label"><i class="fas fa-users-rectangle"></i> ${escapeHtml(label)}</span>
+          </div>
+        </div>
+      `;
+    }
     const tx = taxaPresenca(t);
     const txClass = progressClass(tx);
     const ocup = taxaOcupacao(t);

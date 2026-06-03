@@ -12,7 +12,10 @@ import {
   participacaoPorSecretaria,
   evasaoPorSecretariaEvento,
   distribuicaoPorTurma,
-  consolidarPorGrupo
+  consolidarPorGrupo,
+  inferirGruposPorPasta,
+  turmasExpandidas,
+  dedupEventos
 } from "./metrics.js"
 import {
   barInscritosVsPresentes,
@@ -38,7 +41,8 @@ import {
   renderInsights,
   renderParticipantsTable,
   renderEventsTable,
-  renderSecretariasTable
+  renderSecretariasTable,
+  turmaLabel
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
 import {
@@ -48,6 +52,7 @@ import {
   taxaRetencao
 } from "./servidores.js"
 import { initPalestrantes, renderLista as renderPalestrantesLista } from "./palestrantes.js"
+import { renderInscricoes, renderEncontros, eventosComInscricaoAberta } from "./lembretes.js"
 import { showCover } from "./loader.js"
 import { triggerDownload } from "./util.js"
 import { renderViewQrCode } from "./views/qrcode.js"
@@ -369,16 +374,19 @@ async function reloadData(opts = {}) {
     opts.force ? "Atualizando informações…" : "Carregando informações…",
     opts.force ? 0 : 200)
   const applyData = (raw) => {
-    // Consolida eventos com mesmo grupo (turmas/módulos) em um único evento agregado.
     state.dataRaw = raw
-    state.data = { ...raw, eventos: consolidarPorGrupo(raw.eventos || []) }
+    // Junta inscrições abertas (sintéticos), remove duplicatas de estático antigo,
+    // infere grupo pela pasta (turmas/módulos) e consolida em cards de curso.
+    const base = dedupEventos((raw.eventos || []).concat(state.inscricoesAbertas || []))
+    state.data = { ...raw, eventos: consolidarPorGrupo(inferirGruposPorPasta(base)) }
     renderAll()
   }
   try {
-    // Renderiza já com o estático; a atualização ao vivo re-renderiza se mudou.
     const raw = await loadData((live) => applyData(live), opts)
     applyData(raw)
     hideLoader()
+    // Turmas com inscrição aberta entram em 2º plano (não travam a tela).
+    augmentInscricoesAbertas()
   } catch (err) {
     hideLoader()
     document.getElementById("mainContent").innerHTML = `
@@ -394,6 +402,29 @@ async function reloadData(opts = {}) {
       </div>
     `
   }
+}
+
+// Recalcula state.data com as turmas de inscrição aberta e re-renderiza.
+function _reaplicarComInscricoes() {
+  if (!state.dataRaw) return
+  const base = dedupEventos((state.dataRaw.eventos || []).concat(state.inscricoesAbertas || []))
+  state.data = { ...state.dataRaw, eventos: consolidarPorGrupo(inferirGruposPorPasta(base)) }
+  renderAll()
+}
+
+// Busca (em 2º plano) as turmas com inscrição aberta e re-renderiza incluindo-as.
+// Usa cache de sessão pra aparecerem na hora em recargas. Falha silenciosa.
+async function augmentInscricoesAbertas() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem("egov_insc_abertas") || "null")
+    if (Array.isArray(cached) && cached.length) { state.inscricoesAbertas = cached; _reaplicarComInscricoes() }
+  } catch (_) {}
+  try {
+    const novos = await eventosComInscricaoAberta((state.dataRaw && state.dataRaw.eventos) || [])
+    state.inscricoesAbertas = novos || []
+    try { sessionStorage.setItem("egov_insc_abertas", JSON.stringify(novos || [])) } catch (_) {}
+    _reaplicarComInscricoes()
+  } catch (_) {}
 }
 
 function showDashboardSkeleton() {
@@ -677,14 +708,16 @@ function renderDashboard() {
   const wireEventCards = () => {
     document.querySelectorAll(".event-card").forEach(card =>
       card.addEventListener("click", e => {
-        if (e.target.closest("[data-action]")) return
+        if (e.target.closest("[data-action]") || e.target.closest(".course-card__turma")) return
         state.selectedEventId = card.dataset.event
+        state.selectedTurmaId = null // card → consolidado
         navigate("eventos")
       })
     )
     document.querySelectorAll(".course-card__turma").forEach(b =>
       b.addEventListener("click", () => {
-        state.selectedEventId = b.dataset.event
+        state.selectedEventId = b.dataset.group || b.dataset.event
+        state.selectedTurmaId = b.dataset.group ? b.dataset.event : null
         navigate("eventos")
       })
     )
@@ -692,14 +725,15 @@ function renderDashboard() {
       b.addEventListener("click", e => {
         e.stopPropagation()
         state.selectedEventId = b.dataset.event
+        state.selectedTurmaId = null
         navigate("eventos")
       })
     )
     document.querySelectorAll('[data-action="certificados"]').forEach(b =>
       b.addEventListener("click", e => {
         e.stopPropagation()
-        const ev = getEvento(state.data, b.dataset.event)
-        state.certPendingArquivo = ev ? ev.fonte : null
+        const ev = resolverEvento(b.dataset.event)
+        state.certPendingArquivo = b.dataset.fonte || (ev ? ev.fonte : null)
         state.certSource = "evento"
         navigate("certificados")
       })
@@ -712,15 +746,17 @@ function renderDashboard() {
       .slice(0, shown)
       .map(g => {
         const ev = g.eventos[0]
-        const turmas = ev._turmas || []
-        // Se o evento foi consolidado a partir de 2+ turmas, exibe o course card
+        // Turmas reais: membros de grupo (subpastas) + divisão por coluna de
+        // turma (arquivo único com várias turmas) + turmas com inscrição aberta.
+        const turmas = turmasExpandidas(ev)
         if (turmas.length > 1) {
           return renderCourseCard({
-            grupo: ev.grupo,
-            eventos: turmas
+            grupo: ev.grupo || { id: ev.id, titulo: ev.title },
+            eventos: turmas,
+            base: ev
           })
         }
-        return g.eventos.length > 1 ? renderCourseCard(g) : renderEventCard(ev)
+        return renderEventCard(ev)
       })
       .join("")
     grid.innerHTML = cardsHtml
@@ -766,11 +802,61 @@ function renderDashboard() {
 }
 
 // ================ ANÁLISE POR EVENTO ================
+// Resolve um id tanto no topo (grupos/standalone) quanto nas turmas internas
+// (que ficam em _turmas, fora do nível superior de data.eventos).
+function resolverEvento(id) {
+  const evs = (state.data && state.data.eventos) || []
+  const top = evs.find(e => e.id === id)
+  if (top) return top
+  for (const g of evs) {
+    const t = (g._turmas || []).find(e => e.id === id)
+    if (t) return t
+  }
+  return null
+}
+
 function renderViewEventos() {
   const { data } = state
   const eventos = data.eventos
-  if (!state.selectedEventId && eventos.length) state.selectedEventId = eventos[0].id
-  const ev = getEvento(data, state.selectedEventId)
+  if (!eventos.length) {
+    document.getElementById("view-eventos").innerHTML = `<div class="empty-state"><h3>Nenhum evento</h3></div>`
+    return
+  }
+
+  // Normaliza a seleção: o dropdown guarda o id do EVENTO (topo). Se vier um id
+  // de turma (ex.: clique no card), descobre o evento dono e marca a turma.
+  let topEv = eventos.find(e => e.id === state.selectedEventId)
+  if (!topEv) {
+    for (const g of eventos) {
+      if ((g._turmas || []).some(t => t.id === state.selectedEventId)) {
+        state.selectedTurmaId = state.selectedEventId
+        state.selectedEventId = g.id
+        topEv = g
+        break
+      }
+    }
+  }
+  if (!topEv) { topEv = eventos[0]; state.selectedEventId = topEv.id; state.selectedTurmaId = null }
+
+  // Turmas do evento (subpastas + divisão por coluna + inscrição aberta).
+  const turmasList = turmasExpandidas(topEv)
+  const turmas = turmasList.length > 1 ? turmasList : null
+  const turmaSel = turmas ? (turmas.find(t => t.id === state.selectedTurmaId) || null) : null
+  const alvo = turmaSel || topEv
+
+  // Dropdown: UMA opção por evento.
+  const optionsHtml = eventos.map(e =>
+    `<option value="${e.id}" ${e.id === state.selectedEventId ? "selected" : ""}>${escapeHtml(e.title)}${e.date ? " (" + formatDateBR(e.date) + ")" : ""}</option>`
+  ).join("")
+
+  // Seletor de turma (só para eventos com turmas): Consolidado + cada turma.
+  const pill = (id, label, ativo, open) =>
+    `<button type="button" class="turma-pill${ativo ? " is-active" : ""}${open ? " is-open" : ""}" data-turma="${escapeHtml(id)}">${escapeHtml(label)}</button>`
+  const subSelector = turmas ? `
+    <div class="turma-switch" role="tablist" aria-label="Selecionar turma">
+      ${pill("", "Consolidado", !turmaSel, false)}
+      ${turmas.map(t => pill(t.id, turmaLabel(t), !!(turmaSel && turmaSel.id === t.id), !!t.inscricaoAberta)).join("")}
+    </div>` : ""
 
   const view = document.getElementById("view-eventos")
   view.innerHTML = `
@@ -779,39 +865,76 @@ function renderViewEventos() {
         <i class="fas fa-calendar-day"></i> Evento
       </label>
       <select id="evSelect" class="event-picker__select">
-        ${eventos.map(e => `<option value="${e.id}" ${e.id === state.selectedEventId ? "selected" : ""}>${escapeHtml(e.title)} ${e.date ? "(" + formatDateBR(e.date) + ")" : ""}</option>`).join("")}
+        ${optionsHtml}
       </select>
     </div>
+    ${subSelector}
     <div id="eventDetailBlock"></div>
   `
   document.getElementById("evSelect").addEventListener("change", e => {
     state.selectedEventId = e.target.value
+    state.selectedTurmaId = null // volta ao consolidado ao trocar de evento
     renderViewEventos()
   })
-  if (ev) renderEventBlock(ev)
+  view.querySelectorAll(".turma-pill").forEach(b => b.addEventListener("click", () => {
+    state.selectedTurmaId = b.dataset.turma || null
+    renderViewEventos()
+  }))
+  if (alvo) renderEventBlock(alvo)
 }
 
 function renderEventBlock(ev) {
   const block = document.getElementById("eventDetailBlock")
   const tabsKey = "eventos"
-  const active = getActiveTab(tabsKey, "resumo")
+
+  // Abas conforme o tipo de evento:
+  //  - turma ABERTA para inscrição → só Inscrições + Encontros & Lembretes;
+  //  - qualquer evento ENCERRADO/realizado (turma, consolidado ou standalone)
+  //    → só as análises (Resumo, Distribuições, Participantes).
+  const aberta = !!ev.inscricaoAberta
+  const tabIds = aberta
+    ? ["inscricoes", "encontros"]
+    : ["resumo", "distribuicoes", "participantes"]
+  let active = getActiveTab(tabsKey, tabIds[0])
+  if (!tabIds.includes(active)) active = tabIds[0]
+
+  const tabDefs = {
+    resumo: { id: "resumo", label: "Resumo & Insights", icon: "fa-circle-info" },
+    distribuicoes: { id: "distribuicoes", label: "Distribuições", icon: "fa-chart-pie" },
+    participantes: { id: "participantes", label: "Participantes", icon: "fa-users", badge: (ev.participantes || []).length },
+    inscricoes: { id: "inscricoes", label: "Inscrições", icon: "fa-user-plus" },
+    encontros: { id: "encontros", label: "Encontros & Lembretes", icon: "fa-bell" },
+  }
+
+  // Cabeçalho: turma aberta tem um banner próprio (sem KPIs de presença).
+  const turmaTxt = ev.grupo && ev.grupo.turma != null ? `Turma ${ev.grupo.turma}`
+    : ev.grupo && ev.grupo.modulo != null ? `Módulo ${ev.grupo.modulo}` : ""
+  const headerHtml = aberta
+    ? `<section class="event-detail event-detail--aberta" data-tone="scheduled">
+        <header class="event-detail__head">
+          <div class="event-detail__title-wrap">
+            <h2 class="event-detail__title">${escapeHtml((ev.grupo && ev.grupo.titulo) || ev.title)}${turmaTxt ? " · " + escapeHtml(turmaTxt) : ""}</h2>
+            <div class="event-detail__meta">
+              <span class="lemb-tag-aberta"><i class="fas fa-user-plus"></i> Inscrições abertas</span>
+              ${ev.pastaInscricao ? `<span title="${escapeHtml(ev.pastaInscricao)}"><i class="fas fa-folder-open"></i> ${escapeHtml(ev.pastaInscricao)}</span>` : ""}
+            </div>
+          </div>
+        </header>
+      </section>`
+    : renderEventDetail(ev)
 
   block.innerHTML = `
-    ${renderEventDetail(ev)}
-    ${renderTabsNav(tabsKey, [
-      { id: "resumo", label: "Resumo & Insights", icon: "fa-circle-info" },
-      { id: "distribuicoes", label: "Distribuições", icon: "fa-chart-pie" },
-      { id: "participantes", label: "Participantes", icon: "fa-users", badge: ev.participantes.length }
-    ])}
+    ${headerHtml}
+    ${renderTabsNav(tabsKey, tabIds.map(id => tabDefs[id]))}
 
-    <div class="view-tabs__panel" data-tab-panel="resumo" ${active === "resumo" ? "" : "hidden"}>
+    ${tabIds.includes("resumo") ? `<div class="view-tabs__panel" data-tab-panel="resumo" ${active === "resumo" ? "" : "hidden"}>
       <div class="card">
         <div class="card__header"><div><h3>Observações automáticas</h3><p>Insights deste evento.</p></div></div>
         <div class="insights-grid" style="grid-template-columns:1fr;" id="evInsights"></div>
       </div>
-    </div>
+    </div>` : ""}
 
-    <div class="view-tabs__panel" data-tab-panel="distribuicoes" ${active === "distribuicoes" ? "" : "hidden"}>
+    ${tabIds.includes("distribuicoes") ? `<div class="view-tabs__panel" data-tab-panel="distribuicoes" ${active === "distribuicoes" ? "" : "hidden"}>
       <!-- Linha 1: Top Participação + Top Evasão deste evento -->
       <div class="grid-2">
         <div class="card">
@@ -841,9 +964,9 @@ function renderEventBlock(ev) {
         <div class="card__header"><div><h3>Curva de inscrições</h3><p>Inscrições por dia até o evento.</p></div></div>
         <div class="chart-wrap lg"><canvas id="chartEvTimeline"></canvas></div>
       </div>
-    </div>
+    </div>` : ""}
 
-    <div class="view-tabs__panel" data-tab-panel="participantes" ${active === "participantes" ? "" : "hidden"}>
+    ${tabIds.includes("participantes") ? `<div class="view-tabs__panel" data-tab-panel="participantes" ${active === "participantes" ? "" : "hidden"}>
       <div class="grid-2 participantes-grid">
         <div class="table-wrap">
           <div class="table-wrap__head">
@@ -861,7 +984,15 @@ function renderEventBlock(ev) {
           <div id="evFaltouTable"></div>
         </div>
       </div>
-    </div>
+    </div>` : ""}
+
+    ${tabIds.includes("inscricoes") ? `<div class="view-tabs__panel" data-tab-panel="inscricoes" ${active === "inscricoes" ? "" : "hidden"}>
+      <div id="lembInscPanel"></div>
+    </div>` : ""}
+
+    ${tabIds.includes("encontros") ? `<div class="view-tabs__panel" data-tab-panel="encontros" ${active === "encontros" ? "" : "hidden"}>
+      <div id="lembEncPanel"></div>
+    </div>` : ""}
   `
 
   wireTabs(tabsKey, () => renderEventBlock(ev))
@@ -871,6 +1002,10 @@ function renderEventBlock(ev) {
     const faltou = (ev.participantes || []).filter(p => !p.presente)
     renderPaginatedTable("evPresentesTable", presentes, `ev-${ev.id}-presentes`)
     renderPaginatedTable("evFaltouTable", faltou, `ev-${ev.id}-faltou`)
+  } else if (active === "inscricoes") {
+    renderInscricoes("lembInscPanel", ev)
+  } else if (active === "encontros") {
+    renderEncontros("lembEncPanel", ev)
   }
 
   if (active === "resumo") {

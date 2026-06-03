@@ -1,0 +1,221 @@
+/* ================================================================
+   LEMBRETES & ENCONTROS - inscrições ao vivo + agenda de lembretes
+   ================================================================ */
+
+/* Barra de ações no cabeçalho da aba */
+.lemb-bar { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+/* Aviso de protótipo / dados de exemplo */
+.lemb-demo {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 var(--space-4);
+  padding: 9px 12px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle, rgba(48,99,173,0.05));
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.lemb-demo i { color: var(--brand-primary); }
+
+/* Bloco de configuração geral */
+.lemb-config {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  margin-bottom: var(--space-5);
+}
+.lemb-config .field { display: flex; flex-direction: column; gap: 6px; }
+.lemb-config label:not(.lemb-switch) {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+  font-weight: var(--fw-bold);
+}
+.lemb-hint { margin: 0; font-size: var(--fs-xs); color: var(--text-muted); }
+.lemb-hora-field input[type="time"] { max-width: 160px; }
+.lemb-hora-field label i { color: var(--brand-primary); margin-right: 4px; }
+.lemb-hint i { color: var(--brand-primary); margin-right: 4px; }
+
+/* Inputs (data/hora/texto/url) — coerentes com o resto do painel */
+.lemb-config input,
+.lemb-enc input[type="text"],
+.lemb-enc input[type="date"],
+.lemb-enc input[type="time"] {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+  background: var(--surface-card);
+  transition: var(--transition-fast);
+  min-width: 0;
+}
+.lemb-config input:focus,
+.lemb-enc input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 4px rgba(48, 99, 173, 0.14);
+}
+
+/* Cabeçalho da lista de encontros */
+.lemb-enc-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3); margin-bottom: var(--space-3);
+}
+.lemb-enc-head h4 {
+  margin: 0; font-size: var(--fs-md); color: var(--text-primary);
+  display: flex; align-items: center; gap: 8px;
+}
+.lemb-count {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px;
+  padding: 0 7px; border-radius: 999px;
+  background: var(--brand-primary); color: #fff;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+}
+
+/* Lista de encontros */
+.lemb-enc-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.lemb-enc {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+.lemb-enc__ord {
+  align-self: center;
+  display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--brand-soft-bg, rgba(48,99,173,0.10));
+  color: var(--brand-primary);
+  font-weight: var(--fw-bold); font-size: var(--fs-sm);
+}
+.lemb-enc__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) 150px 110px 110px;
+  gap: var(--space-3);
+}
+.lemb-enc__fields .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.lemb-enc__fields label {
+  font-size: var(--fs-2xs); text-transform: uppercase;
+  letter-spacing: var(--tracking-wider); color: var(--text-muted);
+  font-weight: var(--fw-bold);
+}
+.lemb-enc__side { display: flex; align-items: center; gap: var(--space-2); align-self: center; }
+
+/* Switch (toggle) reutilizável */
+.lemb-switch {
+  display: inline-flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none;
+}
+.lemb-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.lemb-switch__track {
+  position: relative; flex-shrink: 0;
+  width: 42px; height: 24px; border-radius: 999px;
+  background: var(--border-strong, #c2c8d2);
+  transition: background .18s ease;
+}
+.lemb-switch__thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; box-shadow: var(--shadow-sm);
+  transition: transform .18s ease;
+}
+.lemb-switch input:checked + .lemb-switch__track { background: var(--brand-primary); }
+.lemb-switch input:checked + .lemb-switch__track .lemb-switch__thumb { transform: translateX(18px); }
+.lemb-switch input:focus-visible + .lemb-switch__track { box-shadow: 0 0 0 4px rgba(48,99,173,0.18); }
+.lemb-switch__label { font-size: var(--fs-sm); color: var(--text-secondary); }
+.lemb-switch--sm .lemb-switch__track { width: 36px; height: 20px; }
+.lemb-switch--sm .lemb-switch__thumb { width: 14px; height: 14px; }
+.lemb-switch--sm input:checked + .lemb-switch__track .lemb-switch__thumb { transform: translateX(16px); }
+
+/* Painel de status do próximo lembrete */
+.lemb-status {
+  display: flex; align-items: center; gap: 10px;
+  margin: var(--space-4) 0 0;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  background: var(--surface-subtle, rgba(0,0,0,0.03));
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+}
+.lemb-status i { font-size: 1rem; }
+.lemb-status--on {
+  background: var(--ind-good-soft, rgba(48,99,173,0.08));
+  color: var(--ind-good-text, var(--brand-primary));
+  border-color: transparent;
+}
+.lemb-status--on i { color: var(--brand-primary); }
+.lemb-status--off { opacity: 0.85; }
+.lemb-status--off i { color: var(--text-muted); }
+
+/* Rodapé com o botão salvar */
+.lemb-foot { display: flex; justify-content: flex-end; margin-top: var(--space-5); }
+
+/* ---- Turma com inscrição aberta (no card de curso e no cabeçalho) ---- */
+.course-card__turma.is-open {
+  border-left: 3px solid var(--brand-primary);
+  background: var(--brand-soft-bg, rgba(48,99,173,0.06));
+}
+.course-card__turma-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--brand-primary); font-weight: var(--fw-semibold);
+}
+.course-card__turma-tag i { font-size: 0.8em; }
+
+.event-detail--aberta { --tone-accent: var(--brand-primary); }
+.lemb-tag-aberta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--brand-primary); color: #fff;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+}
+.lemb-tag-aberta i { font-size: 0.85em; }
+
+/* ---- Seletor de turma (Consolidado / Turma 1 / Turma 2 / ...) ---- */
+.turma-switch {
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-4);
+}
+.turma-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 999px;
+  border: 1.5px solid var(--border-default);
+  background: var(--surface-card); color: var(--text-secondary);
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  cursor: pointer; transition: var(--transition-fast);
+}
+.turma-pill:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.turma-pill.is-active {
+  background: var(--brand-primary); border-color: var(--brand-primary); color: #fff;
+}
+.turma-pill.is-open:not(.is-active) {
+  border-color: var(--brand-primary); color: var(--brand-primary);
+  background: var(--brand-soft-bg, rgba(48,99,173,0.06));
+}
+.turma-pill.is-open::before { content: "\f234"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.8em; }
+
+/* ---- Responsivo ---- */
+@media (max-width: 860px) {
+  .lemb-enc { grid-template-columns: 32px minmax(0, 1fr); }
+  .lemb-enc__fields { grid-template-columns: 1fr 1fr; }
+  .lemb-enc__titulo { grid-column: 1 / -1; }
+  .lemb-enc__side {
+    grid-column: 1 / -1; justify-content: space-between;
+    padding-top: var(--space-2); border-top: 1px dashed var(--border-default);
+  }
+}
+@media (max-width: 480px) {
+  .lemb-enc__fields { grid-template-columns: 1fr; }
+}
