@@ -32,7 +32,7 @@ const BCC_EMAIL    = 'fabiana.silva@pedroleopoldo.mg.gov.br';
 const PROJECT_NAME = 'Escola de Governo · Prefeitura de Pedro Leopoldo';
 
 // true = não envia; apenas registra no log (use para semear os já existentes).
-const DRY_RUN = true;
+const DRY_RUN = false;
 
 const CONFIRM_SHEET = 'ConfirmacoesLog';
 const CONFIRM_HEADER = ['SheetId', 'Email', 'Nome', 'EventoKey', 'EnviadoEm', 'Status'];
@@ -171,36 +171,32 @@ function escapeHtml_(s) {
 
 // ============ DESCOBERTA E LEITURA ============
 
-// Lista as planilhas "Inscrição" (busca indexada) com o caminho da pasta.
+// Lista as planilhas "Inscrição" varrendo a árvore de pastas a partir da raiz.
+// (Não usa DriveApp.searchFiles: o operador `contains` faz prefixo de PALAVRA,
+//  então "nscri" não casa com "Inscrição" e a busca indexada também pode não
+//  enxergar planilhas acessíveis só por herança da pasta compartilhada.)
 function _planilhasInscricao() {
-  const rootId = DriveApp.getFolderById(ROOT_FOLDER_ID).getId();
+  const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
   const out = [];
-  const it = DriveApp.searchFiles(
-    'mimeType = "application/vnd.google-apps.spreadsheet" and title contains "nscri" and trashed = false'
-  );
-  while (it.hasNext()) {
-    const f = it.next();
-    if (_norm(f.getName()).indexOf('inscri') !== 0) continue;
-    const folder = _caminhoRelativo(f, rootId);
-    if (folder == null) continue;
-    out.push({ id: f.getId(), folder: folder });
-  }
+  _varrerPasta(root, '', out, 0);
   return out;
 }
 
-function _caminhoRelativo(file, rootId) {
-  const parents = file.getParents();
-  if (!parents.hasNext()) return null;
-  let folder = parents.next();
-  const segs = [];
-  let guard = 0;
-  while (folder && guard++ < 25) {
-    if (folder.getId() === rootId) return segs.reverse().join('/');
-    segs.push(folder.getName());
-    const ps = folder.getParents();
-    folder = ps.hasNext() ? ps.next() : null;
+function _varrerPasta(folder, prefixo, out, depth) {
+  if (depth > 25) return;
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    if (f.getMimeType() === MimeType.GOOGLE_SHEETS && _norm(f.getName()).indexOf('inscri') === 0) {
+      out.push({ id: f.getId(), folder: prefixo });
+    }
   }
-  return null;
+  const subs = folder.getFolders();
+  while (subs.hasNext()) {
+    const sub = subs.next();
+    const novo = prefixo ? prefixo + '/' + sub.getName() : sub.getName();
+    _varrerPasta(sub, novo, out, depth + 1);
+  }
 }
 
 // Lê os inscritos (nome + email) de uma planilha de respostas por ID.
@@ -289,6 +285,44 @@ function enviarConfirmacaoTeste() {
   if (SENDER_EMAIL) opts.from = SENDER_EMAIL;
   if (REPLY_TO) opts.replyTo = REPLY_TO;
   GmailApp.sendEmail(TEST_EMAIL, '[TESTE] Inscrição confirmada', _corpoTextoConfirmacao('Teste da Silva', ctx), opts);
+}
+
+// Diagnóstico: mostra quantas planilhas "Inscrição" foram achadas, quantos
+// inscritos em cada uma, e quem seria pulado/enviado. Rode e veja "Execuções"
+// (ou Ver > Registros / Ctrl+Enter) para ler o resultado.
+function diagnosticarConfirmacoes() {
+  let raiz;
+  try { raiz = DriveApp.getFolderById(ROOT_FOLDER_ID).getName(); }
+  catch (e) { Logger.log('ERRO acessando ROOT_FOLDER_ID: ' + e.message); return; }
+  Logger.log('Pasta raiz: "%s"', raiz);
+
+  const sheets = _planilhasInscricao();
+  Logger.log('Planilhas "Inscrição" encontradas: %s', sheets.length);
+  if (!sheets.length) {
+    Logger.log('>> Nenhuma planilha achada. Verifique: (a) a conta que autorizou ESTE script tem acesso às planilhas de respostas; (b) o nome começa com "Inscri"; (c) estão dentro da pasta raiz.');
+    return;
+  }
+
+  const jaEnviado = _carregarConfirmados();
+  for (let s = 0; s < sheets.length; s++) {
+    const info = sheets[s];
+    Logger.log('--- [%s] id=%s pasta="%s"', s + 1, info.id, info.folder);
+    let inscritos;
+    try { inscritos = _lerInscritos(info.id); }
+    catch (e) { Logger.log('   ERRO lendo planilha: %s', e.message); continue; }
+    Logger.log('   inscritos lidos: %s', inscritos.length);
+    for (let i = 0; i < inscritos.length; i++) {
+      const p = inscritos[i];
+      const valido = _emailValido(p.email);
+      const chave = info.id + '|' + String(p.email).toLowerCase();
+      const ja = !!jaEnviado[chave];
+      let acao = 'ENVIARIA';
+      if (!valido) acao = 'PULA (email inválido: "' + p.email + '")';
+      else if (ja) acao = 'PULA (já no log)';
+      Logger.log('   - %s <%s> => %s', p.nome || '(sem nome)', p.email, acao);
+    }
+  }
+  Logger.log('DRY_RUN = %s', DRY_RUN);
 }
 
 // Rode UMA vez para criar o gatilho que verifica novas inscrições a cada 1 min.
