@@ -5390,127 +5390,31 @@ async function generateSatisfacaoPdf() {
     `A uniformidade dos resultados indica satisfação elevada e consistente do público em todos os aspectos avaliados. O critério "${destaque.label}" obteve ${destPct}% de notas máximas, reforçando a percepção positiva da iniciativa.`
   )
 
-  // ===== PÁGINAS 3-5: análises qualitativas =====
-  const renderCategoryChart = async (titulo, cats) => {
-    if (!cats.length) return
-    const vals = cats.map(c => c.value)
-    const maxV = Math.max(...vals)
-    const img = await renderChartToImage(
-      "bar",
-      {
-        data: {
-          labels: cats.map(c => c.label),
-          datasets: [
-            {
-              label: "Nº de menções",
-              data: vals,
-              backgroundColor: modeloGradedColors(vals),
-              borderWidth: 0,
-              barPercentage: 0.72,
-              categoryPercentage: 0.78
-            }
-          ]
-        },
-        options: {
-          indexAxis: "y",
-          scales: {
-            x: {
-              beginAtZero: true,
-              suggestedMax: maxV + 1,
-              title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
-              ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
-              grid: { color: MODELO_CHART.grid, drawBorder: false }
-            },
-            y: {
-              ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text },
-              grid: { display: false, drawBorder: false }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            title: {
-              display: true,
-              text: titulo,
-              font: { size: 16, weight: "bold", family: MODELO_CHART.font },
-              color: MODELO_CHART.navy,
-              padding: { bottom: 16 }
-            },
-            datalabels: {
-              anchor: "end",
-              align: "end",
-              offset: 6,
-              font: { weight: "bold", size: 13, family: MODELO_CHART.font },
-              color: MODELO_CHART.navy,
-              formatter: v => v
-            }
-          }
-        }
-      },
-      900,
-      Math.max(320, 100 + cats.length * 48)
-    )
-    newPage()
-    ensureSpace(95)
-    const h = Math.min(150, 44 + cats.length * 14)
-    doc.addImage(img, "PNG", M, y, W, h)
-    y += h + 4
+  // ===== PÁGINAS 3-5: respostas abertas (na íntegra, sem reprocessamento) =====
+  // As respostas do formulário já vêm tratadas da etapa anterior. Aqui apenas
+  // listamos verbatim cada resposta registrada - sem agrupar, sem reescrever em
+  // rótulos e sem contabilizar "menções". Fidelidade total ao que foi escrito.
+  status.textContent = "Listando respostas abertas..."
+  const listarAbertas = (titulo, arr) => {
+    const itens = (arr || []).map(t => String(t || "").trim()).filter(Boolean)
+    if (!itens.length) return
+    ensureSpace(20)
+    sectionTitle(titulo)
+    justified(`${itens.length} ${itens.length === 1 ? "resposta registrada" : "respostas registradas"}:`)
+    itens.forEach(t => bullet(`"${t}"`, "•"))
   }
-
-  status.textContent = "Renderizando Gráficos 3-5..."
-  const cAltos = s.pesquisa.temas?.altos || []
-  const cMelhor = s.pesquisa.temas?.melhorias || []
-  const cSugest = s.pesquisa.temas?.sugestoes || []
-
-  if (cAltos.length) {
-    await renderCategoryChart("Gráfico 3 - Principais Pontos Altos", cAltos)
-    justified(
-      `A análise qualitativa das respostas evidencia que os principais pontos altos do evento foram ${cAltos
-        .slice(0, 2)
-        .map(c => `${c.label} (${c.value} ${c.value === 1 ? "menção" : "menções"})`)
-        .join(" e ")}, demonstrando a valorização desses aspectos pelo público.`
-    )
-  }
-  if (cMelhor.length) {
-    await renderCategoryChart("Gráfico 4 - O que pode ser melhorado?", cMelhor)
-    justified(
-      `A principal oportunidade de melhoria identificada é ${cMelhor[0].label.toLowerCase()} (${cMelhor[0].value} ${cMelhor[0].value === 1 ? "menção" : "menções"}).`
-    )
-    if (cMelhor.length > 1) {
-      justified("Também foram apontadas:")
-      cMelhor.slice(1).forEach(c => bullet(`${c.label} (${c.value} ${c.value === 1 ? "menção" : "menções"});`))
-    }
-  }
-  if (cSugest.length) {
-    await renderCategoryChart("Gráfico 5 - Sugestões de Temas para as Próximas Ações", cSugest)
-    justified(
-      `A análise das sugestões evidencia maior interesse em ${cSugest
-        .slice(0, 2)
-        .map(c => c.label)
-        .join(" e ")}, sinalizando prioridade nesses temas.`
-    )
-    if (cSugest.length > 2) {
-      justified("Também foram sugeridos:")
-      cSugest.slice(2).forEach(c => bullet(`${c.label};`))
-    }
-  }
+  listarAbertas("Pontos Altos da Capacitação", s.pesquisa.textos.altos)
+  listarAbertas("O que pode ser melhorado", s.pesquisa.textos.melhorias)
+  listarAbertas("Sugestões de Temas para as Próximas Ações", s.pesquisa.textos.sugestoes)
 
   // ===== COMENTÁRIOS =====
-  // Usa coluna "comentarios" se existir; senão recolhe as respostas mais
-  // expressivas (>30 chars) das outras colunas textuais como destaque.
-  let comentarios = (s.pesquisa.textos.comentarios || []).filter(t => t.length > 8)
-  if (!comentarios.length) {
-    const all = [...(s.pesquisa.textos.altos || []), ...(s.pesquisa.textos.melhorias || []), ...(s.pesquisa.textos.sugestoes || [])]
-    comentarios = all
-      .filter(t => t.length > 30)
-      .sort((a, b) => b.length - a.length)
-      .slice(0, 8)
-  } else {
-    comentarios = comentarios.slice(0, 8)
-  }
+  // Apenas a coluna de comentários/observações gerais, se existir, na íntegra.
+  // Não recolhe respostas das outras colunas (já listadas acima).
+  const comentarios = (s.pesquisa.textos.comentarios || []).map(t => String(t || "").trim()).filter(Boolean)
   if (comentarios.length) {
     ensureSpace(20)
-    sectionTitle("Comentários e Sugestões dos Participantes")
-    justified("Os comentários livres registrados no formulário refletem a percepção dos participantes. Destacam-se:")
+    sectionTitle("Comentários e Observações dos Participantes")
+    justified("Comentários livres registrados no formulário:")
     comentarios.forEach(c => bullet(`"${c}"`, "•"))
   }
 
@@ -5521,14 +5425,6 @@ async function generateSatisfacaoPdf() {
   const conclusaoAuto = `Com base na pesquisa de satisfação aplicada ao público-alvo, os dados evidenciam que o evento alcançou elevado nível de aprovação, com médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala de 1 a 5). A taxa de presença de ${taxaPresenca.replace(".", ",")}% das inscrições reforça o engajamento do público com a iniciativa.`
   justified(conclusaoAuto)
 
-  if (cSugest.length) {
-    justified(
-      `Os resultados sinalizam demanda por ações contínuas voltadas aos temas mais recorrentes nas sugestões dos participantes - em especial ${cSugest
-        .slice(0, 2)
-        .map(c => c.label)
-        .join(" e ")}. Recomenda-se considerar essas temáticas como eixo permanente nas atividades de capacitação da e-Gov PL.`
-    )
-  }
   justified(
     `Conclui-se que a iniciativa cumpriu seu objetivo de promover um espaço de valorização, troca e formação para os servidores municipais, consolidando-se como ação estratégica da ${AR_CONFIG.orgao}. A continuidade e a institucionalização desse tipo de evento são fortemente recomendadas.`
   )
@@ -5748,73 +5644,6 @@ async function generateSatisfacaoDocx() {
     Math.max(360, 90 + criterios.length * 60)
   )
 
-  status.textContent = "Renderizando Gráficos 3-5..."
-  const cAltos = s.pesquisa.temas?.altos || []
-  const cMelhor = s.pesquisa.temas?.melhorias || []
-  const cSugest = s.pesquisa.temas?.sugestoes || []
-  const renderCat = async (titulo, cats) => {
-    if (!cats.length) return null
-    const vals = cats.map(c => c.value)
-    const maxV = Math.max(...vals)
-    return renderChartToImage(
-      "bar",
-      {
-        data: {
-          labels: cats.map(c => c.label),
-          datasets: [
-            {
-              label: "Nº de menções",
-              data: vals,
-              backgroundColor: modeloGradedColors(vals),
-              borderWidth: 0,
-              barPercentage: 0.72,
-              categoryPercentage: 0.78
-            }
-          ]
-        },
-        options: {
-          indexAxis: "y",
-          scales: {
-            x: {
-              beginAtZero: true,
-              suggestedMax: maxV + 1,
-              title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
-              ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
-              grid: { color: MODELO_CHART.grid, drawBorder: false }
-            },
-            y: {
-              ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text },
-              grid: { display: false, drawBorder: false }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            title: {
-              display: true,
-              text: titulo,
-              font: { size: 16, weight: "bold", family: MODELO_CHART.font },
-              color: MODELO_CHART.navy,
-              padding: { bottom: 16 }
-            },
-            datalabels: {
-              anchor: "end",
-              align: "end",
-              offset: 6,
-              font: { weight: "bold", size: 13, family: MODELO_CHART.font },
-              color: MODELO_CHART.navy,
-              formatter: v => v
-            }
-          }
-        }
-      },
-      900,
-      Math.max(320, 100 + cats.length * 48)
-    )
-  }
-  const g3 = await renderCat("Gráfico 3 - Principais Pontos Altos", cAltos)
-  const g4 = await renderCat("Gráfico 4 - O que pode ser melhorado?", cMelhor)
-  const g5 = await renderCat("Gráfico 5 - Sugestões de Temas para as Próximas Ações", cSugest)
-
   status.textContent = "Montando documento Word..."
 
   // Helpers
@@ -5949,61 +5778,24 @@ async function generateSatisfacaoDocx() {
     )
   )
 
-  // Gráficos 3-5
-  if (g3) {
+  // Respostas abertas na íntegra (sem reprocessar/agrupar/contar menções)
+  const listarAbertasDocx = (titulo, arr) => {
+    const itens = (arr || []).map(t => String(t || "").trim()).filter(Boolean)
+    if (!itens.length) return
     children.push(new Paragraph({ children: [new PageBreak()] }))
-    const h = Math.min(420, 120 + cAltos.length * 40)
-    children.push(imgPara(g3, 540, h))
-    children.push(
-      para(
-        `A análise qualitativa das respostas evidencia que os principais pontos altos do evento foram ${cAltos
-          .slice(0, 2)
-          .map(c => `${c.label} (${c.value} menções)`)
-          .join(" e ")}, demonstrando a valorização desses aspectos pelo público.`
-      )
-    )
+    children.push(heading(titulo))
+    children.push(para(`${itens.length} ${itens.length === 1 ? "resposta registrada" : "respostas registradas"}:`))
+    itens.forEach(t => children.push(bullet(`"${t}"`, "•")))
   }
-  if (g4) {
-    children.push(new Paragraph({ children: [new PageBreak()] }))
-    const h = Math.min(420, 120 + cMelhor.length * 40)
-    children.push(imgPara(g4, 540, h))
-    children.push(para(`A principal oportunidade de melhoria identificada é ${cMelhor[0].label.toLowerCase()} (${cMelhor[0].value} menções).`))
-    if (cMelhor.length > 1) {
-      children.push(para("Também foram apontadas:"))
-      cMelhor.slice(1).forEach(c => children.push(bullet(`${c.label} (${c.value} menções);`)))
-    }
-  }
-  if (g5) {
-    children.push(new Paragraph({ children: [new PageBreak()] }))
-    const h = Math.min(420, 120 + cSugest.length * 40)
-    children.push(imgPara(g5, 540, h))
-    children.push(
-      para(
-        `A análise das sugestões evidencia maior interesse em ${cSugest
-          .slice(0, 2)
-          .map(c => c.label)
-          .join(" e ")}, sinalizando prioridade nesses temas.`
-      )
-    )
-    if (cSugest.length > 2) {
-      children.push(para("Também foram sugeridos:"))
-      cSugest.slice(2).forEach(c => children.push(bullet(`${c.label};`)))
-    }
-  }
+  listarAbertasDocx("Pontos Altos da Capacitação", s.pesquisa.textos.altos)
+  listarAbertasDocx("O que pode ser melhorado", s.pesquisa.textos.melhorias)
+  listarAbertasDocx("Sugestões de Temas para as Próximas Ações", s.pesquisa.textos.sugestoes)
 
-  // Comentários
-  let comentarios = (s.pesquisa.textos.comentarios || []).filter(t => t.length > 8)
-  if (!comentarios.length) {
-    comentarios = [...(s.pesquisa.textos.altos || []), ...(s.pesquisa.textos.melhorias || []), ...(s.pesquisa.textos.sugestoes || [])]
-      .filter(t => t.length > 30)
-      .sort((a, b) => b.length - a.length)
-      .slice(0, 8)
-  } else {
-    comentarios = comentarios.slice(0, 8)
-  }
+  // Comentários: apenas a coluna de observações gerais, se existir, na íntegra
+  const comentarios = (s.pesquisa.textos.comentarios || []).map(t => String(t || "").trim()).filter(Boolean)
   if (comentarios.length) {
-    children.push(heading("Comentários e Sugestões dos Participantes"))
-    children.push(para("Os comentários livres registrados no formulário refletem a percepção dos participantes. Destacam-se:"))
+    children.push(heading("Comentários e Observações dos Participantes"))
+    children.push(para("Comentários livres registrados no formulário:"))
     comentarios.forEach(c => children.push(bullet(`"${c}"`, "•")))
   }
 
@@ -6015,16 +5807,6 @@ async function generateSatisfacaoDocx() {
       `Com base na pesquisa de satisfação aplicada ao público-alvo, os dados evidenciam que o evento alcançou elevado nível de aprovação, com médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala de 1 a 5). A taxa de presença de ${taxaPresenca}% das inscrições reforça o engajamento do público com a iniciativa.`
     )
   )
-  if (cSugest.length) {
-    children.push(
-      para(
-        `Os resultados sinalizam demanda por ações contínuas voltadas aos temas mais recorrentes nas sugestões dos participantes - em especial ${cSugest
-          .slice(0, 2)
-          .map(c => c.label)
-          .join(" e ")}. Recomenda-se considerar essas temáticas como eixo permanente nas atividades de capacitação da e-Gov PL.`
-      )
-    )
-  }
   children.push(
     para(
       `Conclui-se que a iniciativa cumpriu seu objetivo de promover um espaço de valorização, troca e formação para os servidores municipais, consolidando-se como ação estratégica da ${AR_CONFIG.orgao}. A continuidade e a institucionalização desse tipo de evento são fortemente recomendadas.`
