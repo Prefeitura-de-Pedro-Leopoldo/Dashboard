@@ -74,22 +74,22 @@ function _processar(forcar) {
 
     const insc = _acharArquivo(folder, _ehInscricao);
     if (!insc) continue; // pasta sem Inscrição não é evento
+
+    // Eventos que JÁ têm um participantes.xlsx COM DADOS (reais) não são regerados
+    // — só geramos para os que estão sem arquivo ou com o placeholder vazio (o
+    // arquivo só-cabeçalho criado para o evento aparecer na Visão Geral).
+    const existente = _acharSaida(folder);
+    if (existente && _temDados(existente)) { pulados++; continue; }
+
     const pres = _acharArquivo(folder, _ehPresente);
     if (!pres) { Logger.log('— %s: sem planilha "Presentes" (pulado).', rel); pulados++; continue; }
 
-    // Quando o evento aconteceu (para a janela de 3h).
-    const refEvento = _dataDoEvento(meta, rel, pres);
+    // Janela de 3h: só gera depois de HORAS_APOS_EVENTO da data/hora do evento.
     if (!forcar) {
+      const refEvento = _dataDoEvento(meta, rel, pres);
       if (!refEvento) { Logger.log('— %s: sem data do evento (meta/Presentes). Pulado.', rel); pulados++; continue; }
       const liberaEm = new Date(refEvento.getTime() + HORAS_APOS_EVENTO * 3600 * 1000);
       if (agora < liberaEm) { pulados++; continue; } // ainda não passaram as 3h
-    }
-
-    // Evita regerar à toa: se já existe e está mais novo que as duas planilhas, pula.
-    const existente = _acharSaida(folder);
-    if (!forcar && existente) {
-      const maisRecenteFonte = Math.max(insc.getLastUpdated().getTime(), pres.getLastUpdated().getTime());
-      if (existente.getLastUpdated().getTime() >= maisRecenteFonte) { pulados++; continue; }
     }
 
     try {
@@ -333,6 +333,27 @@ function _acharSaida(folder) {
     if (n.indexOf('participantes') === 0 && n.slice(-5) === '.xlsx') return f;
   }
   return null;
+}
+
+// Diz se um participantes.xlsx tem DADOS (mais que o cabeçalho). Converte o .xlsx
+// numa planilha Google temporária e olha o nº de linhas. Requer o "Drive API"
+// (Serviço avançado) habilitado no projeto. Em caso de erro, age CONSERVADOR e
+// devolve true (não sobrescreve um arquivo que pode ter dados reais).
+function _temDados(xlsxFile) {
+  var tmpId = null;
+  try {
+    const blob = xlsxFile.getBlob();
+    const meta = { title: 'tmp_chk_' + Utilities.getUuid().slice(0, 8), mimeType: MimeType.GOOGLE_SHEETS };
+    const conv = Drive.Files.insert(meta, blob, { convert: true });
+    tmpId = conv.id;
+    const ss = SpreadsheetApp.openById(tmpId);
+    return ss.getSheets()[0].getLastRow() > 1;
+  } catch (e) {
+    Logger.log('  ! _temDados falhou (%s) — assumindo que tem dados.', (e && e.message) ? e.message : e);
+    return true;
+  } finally {
+    if (tmpId) { try { DriveApp.getFileById(tmpId).setTrashed(true); } catch (e2) {} }
+  }
 }
 
 function _ehInscricao(nome) { return _norm(nome).indexOf('inscri') === 0; }
