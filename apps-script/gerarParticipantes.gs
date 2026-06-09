@@ -385,8 +385,16 @@ function _temDados(xlsxFile) {
   var tmpId = null;
   try {
     const blob = xlsxFile.getBlob();
-    const meta = { title: 'tmp_chk_' + Utilities.getUuid().slice(0, 8), mimeType: MimeType.GOOGLE_SHEETS };
-    const conv = Drive.Files.insert(meta, blob, { convert: true });
+    const nome = 'tmp_chk_' + Utilities.getUuid().slice(0, 8);
+    const SHEET_MIME = 'application/vnd.google-apps.spreadsheet';
+    var conv;
+    if (Drive.Files && typeof Drive.Files.create === 'function') {
+      // Drive API v3 (padrão atual): converte enviando com mimeType de Planilha.
+      conv = Drive.Files.create({ name: nome, mimeType: SHEET_MIME }, blob);
+    } else {
+      // Compat Drive API v2.
+      conv = Drive.Files.insert({ title: nome, mimeType: SHEET_MIME }, blob, { convert: true });
+    }
     tmpId = conv.id;
     const ss = SpreadsheetApp.openById(tmpId);
     return ss.getSheets()[0].getLastRow() > 1;
