@@ -38,7 +38,7 @@ const CONFIRM_SHEET = 'ConfirmacoesLog';
 const CONFIRM_HEADER = ['SheetId', 'Email', 'Nome', 'EventoKey', 'EnviadoEm', 'Status'];
 
 // Identidade visual EGOV-PL (mesma do certificado/lembrete).
-const LOGO_URL    = 'https://dashboard-lime-chi-98.vercel.app/assets/img/logo-light.png';
+const LOGO_URL    = 'https://egov-dashboard.vercel.app/assets/img/logo-light.png';
 const BRAND_COLOR = '#3063ad';
 const SITE_URL    = 'https://intranet.pedroleopoldo.mg.gov.br/egov/';
 

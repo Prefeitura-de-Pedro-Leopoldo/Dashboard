@@ -136,7 +136,7 @@ function enviarLembretesAgendados() {
 }
 
 // Identidade visual EGOV-PL (mesma do enviarCertificados.gs).
-const LOGO_URL    = 'https://dashboard-lime-chi-98.vercel.app/assets/img/logo-light.png';
+const LOGO_URL    = 'https://egov-dashboard.vercel.app/assets/img/logo-light.png';
 const BRAND_COLOR = '#3063ad';
 const SITE_URL    = 'https://intranet.pedroleopoldo.mg.gov.br/egov/';
 

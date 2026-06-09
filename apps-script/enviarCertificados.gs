@@ -197,7 +197,7 @@ function montarCorpoEmail(nome, ctx) {
 }
 
 // Identidade visual EGOV-PL
-const LOGO_URL    = 'https://dashboard-lime-chi-98.vercel.app/assets/img/logo-light.png';
+const LOGO_URL    = 'https://egov-dashboard.vercel.app/assets/img/logo-light.png';
 const BRAND_COLOR = '#3063ad';
 const SITE_URL    = 'https://intranet.pedroleopoldo.mg.gov.br/egov/';
 
@@ -235,7 +235,7 @@ function montarCorpoHtml(nome, ctx) {
 
               // LOGO
               '<tr><td style="padding:24px 0 16px 0;text-align:center;">' +
-                '<img src="https://dashboard-lime-chi-98.vercel.app/assets/img/logo-light.png" height="160" alt="Escola de Governo · Pedro Leopoldo" title="Escola de Governo · Pedro Leopoldo" border="0" style="max-width:80%;height:160px;display:inline-block;">' +
+                '<img src="https://egov-dashboard.vercel.app/assets/img/logo-light.png" height="160" alt="Escola de Governo · Pedro Leopoldo" title="Escola de Governo · Pedro Leopoldo" border="0" style="max-width:80%;height:160px;display:inline-block;">' +
               '</td></tr>' +
 
               // CARD PRINCIPAL
@@ -265,7 +265,7 @@ function montarCorpoHtml(nome, ctx) {
                   '<tbody><tr><td>' +
                     '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="text-align:left;">' +
                       '<tbody><tr>' +
-                        '<td style="width:110px;vertical-align:middle;"><a href="https://intranet.pedroleopoldo.mg.gov.br/egov/" target="_blank" style="text-decoration:none;"><img src="https://dashboard-lime-chi-98.vercel.app/assets/img/logo-light.png" height="100" alt="EGOV-PL" style="height:100px;display:block;"></a></td>' +
+                        '<td style="width:110px;vertical-align:middle;"><a href="https://intranet.pedroleopoldo.mg.gov.br/egov/" target="_blank" style="text-decoration:none;"><img src="https://egov-dashboard.vercel.app/assets/img/logo-light.png" height="100" alt="EGOV-PL" style="height:100px;display:block;"></a></td>' +
                         '<td style="padding-left:16px;vertical-align:middle;">' +
                           '<p style="color:#494957;font-family:\'Raleway\',Arial,sans-serif;font-size:16px;font-weight:700;line-height:1.5;margin:0;padding:0;text-align:left;">Capacite-se. Cresça.<br>Transforme o serviço público.</p>' +
                           '<p style="margin:6px 0 0 0;font-family:\'Open Sans\',Arial,sans-serif;font-size:13px;color:#5d6b88;"><a href="' + SITE_URL + '" target="_blank" style="color:' + BRAND_COLOR + ';text-decoration:none;font-weight:600;">intranet.pedroleopoldo.mg.gov.br/egov</a></p>' +
