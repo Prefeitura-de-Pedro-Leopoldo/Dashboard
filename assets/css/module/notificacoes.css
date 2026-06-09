@@ -1,0 +1,156 @@
+/* ============================================================
+   NOTIFICAÇÕES - sino do topbar + painel suspenso
+   ============================================================ */
+
+.notif-wrap { position: relative; display: inline-flex; }
+
+/* Badge de contagem sobre o sino */
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--surface-topbar, var(--surface-card));
+  pointer-events: none;
+}
+
+#notifBell.has-unread i { animation: notif-bell-wiggle 1.6s ease-in-out 1; }
+@keyframes notif-bell-wiggle {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(8deg); }
+  60% { transform: rotate(-6deg); }
+}
+
+/* Painel suspenso */
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(16, 24, 40, 0.18);
+  z-index: 60;
+  animation: notif-pop 0.14s ease-out;
+}
+@keyframes notif-pop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.notif__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-default);
+  position: sticky;
+  top: 0;
+  background: var(--surface-card);
+}
+.notif__head strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.notif__head strong i { color: var(--brand-primary); }
+.notif__count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--brand-soft-bg, rgba(48, 99, 173, 0.1));
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.notif__body { padding: 6px; }
+
+.notif__empty {
+  text-align: center;
+  padding: 28px 18px;
+  color: var(--text-muted);
+}
+.notif__empty i { font-size: 1.7rem; color: var(--ind-good, #2e9e5b); margin-bottom: 8px; }
+.notif__empty p { margin: 0; font-size: 0.86rem; }
+
+/* Item de notificação */
+.notif-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+}
+.notif-item + .notif-item { border-top: 1px solid var(--border-default); }
+.notif-item:hover { background: var(--surface-hover, rgba(48, 99, 173, 0.04)); }
+
+.notif-item__icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ind-warn-soft, rgba(230, 150, 30, 0.14));
+  color: var(--ind-warn, #d9822b);
+}
+.notif-item__body { flex: 1; min-width: 0; }
+.notif-item__title {
+  margin: 0 0 3px;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+.notif-item__meta {
+  margin: 0 0 9px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.notif-item__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.notif-item__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 7px;
+  border: 1px solid var(--brand-primary);
+  background: var(--brand-primary);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.12s, background 0.12s;
+}
+.notif-item__btn:hover { filter: brightness(1.06); }
+.notif-item__btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+.notif-item__btn--ghost:hover { color: var(--brand-primary); border-color: var(--brand-primary); }
+
+@media (max-width: 520px) {
+  .notif-panel { width: calc(100vw - 24px); right: -8px; }
+}

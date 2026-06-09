@@ -51,7 +51,8 @@ import {
   classificarVinculo,
   taxaRetencao
 } from "./servidores.js"
-import { initPalestrantes, renderLista as renderPalestrantesLista } from "./palestrantes.js"
+import { initPalestrantes, renderLista as renderPalestrantesLista, listarConvites } from "./palestrantes.js"
+import { initNotificacoes, refreshNotificacoes } from "./notificacoes.js"
 import { renderInscricoes, renderEncontros, renderPresenca, eventosComInscricaoAberta } from "./lembretes.js"
 import { showCover } from "./loader.js"
 import { triggerDownload } from "./util.js"
@@ -62,7 +63,7 @@ import { renderViewServidores, renderViewCargos } from "./views/pessoas.js"
 // Efeito colateral: registra o listener de clique do perfil do servidor.
 import "./views/servidor-perfil.js"
 import { state } from "./core/state.js"
-import { showAlert, showConfirm } from "./core/modal.js"
+import { showAlert, showConfirm, showPrompt } from "./core/modal.js"
 import { renderPaginatedTable, renderTabsNav, wireTabs, getActiveTab } from "./core/ui-kit.js"
 
 // ================ Auth gate ================
@@ -358,9 +359,11 @@ const VIEW_TO_GROUP = (() => {
   initPalestrantes({
     showAlert,
     showConfirm,
+    showPrompt,
     getEventos: () => (state.data && state.data.eventos) || [],
     navigate
   })
+  initNotificacoes({ listarConvites, navigate })
   preloadTemplate()
   await reloadData()
 })()
@@ -503,7 +506,7 @@ function setupUserChrome() {
     try { localStorage.removeItem("egov_admin_session") } catch (_) {}
     window.location.replace("index.html")
   })
-  document.getElementById("refreshBtn").addEventListener("click", () => reloadData({ force: true }))
+  document.getElementById("refreshBtn").addEventListener("click", () => { reloadData({ force: true }); refreshNotificacoes() })
 }
 
 function setupThemeToggle() {

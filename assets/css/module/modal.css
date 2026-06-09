@@ -100,6 +100,33 @@
   white-space: pre-wrap;
 }
 .app-modal__message b, .app-modal__message strong { color: var(--text-primary); }
+.app-modal__field {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.app-modal__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary, #4a5468);
+}
+.app-modal__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.app-modal__input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-soft-bg, rgba(48, 99, 173, 0.12));
+}
 .app-modal__close {
   position: absolute;
   top: 14px;

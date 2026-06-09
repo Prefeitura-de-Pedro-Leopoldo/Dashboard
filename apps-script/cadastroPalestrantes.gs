@@ -23,7 +23,7 @@
  * Sem o servico, vira um HYPERLINK clicavel "Ver foto" (tambem funciona).
  *
  * Aba `Convites`:
- *   A Token | B Status | C CriadoEm | D UsadoEm | E PalestranteId
+ *   A Token | B Status | C CriadoEm | D UsadoEm | E PalestranteId | F Nome
  */
 
 // ============ CONFIGURACOES ============
@@ -69,8 +69,9 @@ const ICOL = {
   CRIADO_EM:       3,
   USADO_EM:        4,
   PALESTRANTE_ID:  5,
+  NOME:            6,
 };
-const IHEADER = ['Token', 'Status', 'CriadoEm', 'UsadoEm', 'PalestranteId'];
+const IHEADER = ['Token', 'Status', 'CriadoEm', 'UsadoEm', 'PalestranteId', 'Nome'];
 
 const STATUS_ATIVO    = 'ativo';
 const STATUS_INATIVO  = 'inativo';
@@ -109,7 +110,7 @@ function doPost(e) {
       case 'list':          return _json(_list());
       case 'update':        return _json(_update(payload));
       case 'delete':        return _json(_delete(payload));
-      case 'invite-create': return _json(_inviteCreate());
+      case 'invite-create': return _json(_inviteCreate(payload));
       case 'invite-list':   return _json(_inviteList());
       case 'invite-revoke': return _json(_inviteRevoke(payload));
       case 'invite-check':  return _json(_inviteCheck(payload));
@@ -218,16 +219,20 @@ function _inserirPalestrante(dados, payload, origem) {
 // ============ ACOES: CONVITES (uso unico) ============
 
 // Admin gera um link de convite. Retorna o token (UUID, impossivel de adivinhar).
-function _inviteCreate() {
+// payload.nome = nome do palestrante (para acompanhar quem ainda nao preencheu).
+function _inviteCreate(payload) {
   const sheet = _obterAba(INVITE_SHEET, IHEADER);
+  _garantirColunaNome(sheet);
   const token = Utilities.getUuid();
-  sheet.appendRow([token, INVITE_PENDENTE, new Date(), '', '']);
+  const nome = String((payload && payload.nome) || '').trim();
+  sheet.appendRow([token, INVITE_PENDENTE, new Date(), '', '', nome]);
   return { ok: true, token: token };
 }
 
 // Admin lista convites pendentes (para acompanhar/copiar/revogar).
 function _inviteList() {
   const sheet = _obterAba(INVITE_SHEET, IHEADER);
+  _garantirColunaNome(sheet);
   const valores = sheet.getDataRange().getValues();
   const convites = [];
   for (let i = 1; i < valores.length; i++) {
@@ -239,10 +244,19 @@ function _inviteList() {
       criadoEm: _isoData(r[ICOL.CRIADO_EM - 1]),
       usadoEm:  _isoData(r[ICOL.USADO_EM - 1]),
       palestranteId: String(r[ICOL.PALESTRANTE_ID - 1] || ''),
+      nome: String(r[ICOL.NOME - 1] || ''),
     });
   }
   convites.sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
   return { ok: true, convites: convites };
+}
+
+// Garante a coluna F "Nome" no cabecalho (planilhas criadas antes dessa coluna
+// existir ficam so com 5 colunas; isso a adiciona sem perder dados).
+function _garantirColunaNome(sheet) {
+  if (sheet.getLastColumn() < ICOL.NOME || !String(sheet.getRange(1, ICOL.NOME).getValue()).trim()) {
+    sheet.getRange(1, ICOL.NOME).setValue('Nome');
+  }
 }
 
 // Admin revoga (inutiliza) um convite ainda pendente.

@@ -36,6 +36,7 @@ const BIO_TEMPLATE =
 let deps = {
   showAlert: (o) => window.alert(typeof o === "string" ? o : o.message),
   showConfirm: async (o) => window.confirm(typeof o === "string" ? o : o.message),
+  showPrompt: async (o) => window.prompt(typeof o === "string" ? o : (o.label || o.message || "")),
   getEventos: () => [],
   navigate: () => {},
 }
@@ -572,15 +573,39 @@ async function excluir(id) {
   }
 }
 
+// Busca a lista de convites (para o sino de notificações acompanhar pendentes).
+// Retorna [] em caso de erro/serviço indisponível (não quebra o dashboard).
+export async function listarConvites() {
+  try {
+    const data = await api("invite-list")
+    return Array.isArray(data.convites) ? data.convites : []
+  } catch (_) {
+    return []
+  }
+}
+
 // ================ Convites de uso único ================
 async function gerarConvite() {
   const host = document.getElementById("palInviteHost")
   const btn = document.getElementById("palConvite")
   if (!host) return
+
+  // Pede o nome do palestrante antes de gerar (alimenta o alerta de "ainda não
+  // preencheu" após 3 dias, no sino de notificações).
+  const nome = await deps.showPrompt({
+    title: "Gerar link de convite",
+    label: "Nome do palestrante",
+    placeholder: "Ex.: Maria Souza",
+    message: "Usamos o nome só para acompanhar quem ainda não preencheu o cadastro.",
+    confirmLabel: "Gerar link",
+    maxLength: 120,
+  })
+  if (!nome) return // cancelou
+
   if (btn) btn.disabled = true
   host.innerHTML = `<div class="pal-invite pal-invite--loading"><i class="fas fa-circle-notch fa-spin"></i> Gerando link…</div>`
   try {
-    const data = await api("invite-create")
+    const data = await api("invite-create", { nome })
     const url = `${location.origin}/cadastro-palestrante?convite=${encodeURIComponent(data.token)}`
     host.innerHTML = `
       <div class="pal-invite">
@@ -593,7 +618,7 @@ async function gerarConvite() {
           <input type="text" id="palInviteUrl" readonly value="${escapeHtml(url)}" />
           <button type="button" class="btn btn--primary btn--sm" id="palInviteCopy"><i class="fas fa-copy"></i> Copiar</button>
         </div>
-        <p class="pal-invite__hint">Envie este link ao palestrante. Ele poderá preencher o cadastro <b>uma única vez</b>; após o envio o link expira automaticamente.</p>
+        <p class="pal-invite__hint">Envie este link para <b>${escapeHtml(nome)}</b>. O cadastro pode ser preenchido <b>uma única vez</b>; após o envio o link expira. Se não preencher em 3 dias, um alerta aparece no sino de notificações.</p>
       </div>`
     const input = document.getElementById("palInviteUrl")
     input.focus()
