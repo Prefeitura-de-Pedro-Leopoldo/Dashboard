@@ -132,6 +132,21 @@
       "city": "Pedro Leopoldo",
       "vagas": 40,
       "grupo": null
+    },
+    "ciclo-de-debates-pl-por-elas-2026-05/turma 3/participantes.xlsx": {
+      "id": "ciclo-de-debates-pl-por-elas-turma-3",
+      "cargaHoraria": 15,
+      "title": "Ciclo de Debates PL por Elas",
+      "tituloCurto": "Ciclo de Debates PL por Elas - Turma 3",
+      "date": "2026-06-08",
+      "dateFim": "2026-07-06",
+      "dateRaw": "Data: 08/06/2026 a 06/07/2026 - encontros 09h30 (3h/encontro)",
+      "time": "09h30",
+      "duracaoHoras": 3,
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU, Rua Dama da Noite",
+      "city": "Pedro Leopoldo",
+      "vagas": 40,
+      "grupo": null
     }
   }
 }
