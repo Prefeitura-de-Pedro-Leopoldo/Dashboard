@@ -2538,7 +2538,17 @@ function renderViewCertificados() {
       })
   }
 
-  const planilhas = (state.certManifest && state.certManifest.planilhas) || []
+  // Só lista eventos CONCLUÍDOS (com check-ins registrados). Eventos futuros /
+  // com inscrição aberta — ou gerados sem presença ainda — não entram, pois
+  // certificado só sai após a conclusão do evento.
+  const planilhasTodas = (state.certManifest && state.certManifest.planilhas) || []
+  const eventosRaw = (state.dataRaw && state.dataRaw.eventos) || []
+  const planilhas = eventosRaw.length
+    ? planilhasTodas.filter(p => {
+        const ev = eventosRaw.find(e => e.id === p.id || e.fonte === p.arquivo)
+        return ev && (ev.totalPresentes || 0) > 0
+      })
+    : planilhasTodas
   // Atalho vindo de um card de evento: resolve a planilha pelo nome do arquivo.
   if (state.certPendingArquivo && planilhas.length) {
     const hit = planilhas.find(p => p.arquivo === state.certPendingArquivo)
