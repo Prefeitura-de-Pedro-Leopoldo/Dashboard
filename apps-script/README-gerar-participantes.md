@@ -41,9 +41,12 @@ bater — cobre quem se inscreveu com e-mail diferente ou nome com erro de digit
 1. Crie um projeto em <https://script.google.com> e cole o conteúdo de
    `gerarParticipantes.gs`.
 2. Confira as constantes no topo:
-   - `ROOT_FOLDER_ID` — pasta raiz onde ficam as pastas dos eventos (a **mesma**
-     das planilhas Inscrição/Presentes; já vem com a ID `1Jfyl8j…` usada pelos
-     outros scripts).
+   - `INSCRICOES_ROOT_ID` — **entrada**: pasta com as pastas dos eventos e as
+     planilhas Inscrição/Presentes (`1Jfyl8j…`, a mesma dos outros scripts).
+   - `RELATORIOS_ROOT_ID` — **saída**: pasta que o dashboard lê os relatórios
+     (`1F6omx…`, "Relatorios EGov").
+   - `RELATORIOS_SUBPATH` — subpasta dentro da saída onde ficam as pastas de
+     evento (`assets/docs/relatorios`).
    - `META_URL` — URL do `eventos-meta.json` publicado.
    - `HORAS_APOS_EVENTO` — padrão `3`.
 3. **Habilite o Drive API**: no editor, *Serviços* (＋) → **Drive API** → adicionar
@@ -53,25 +56,23 @@ bater — cobre quem se inscreveu com e-mail diferente ou nome com erro de digit
    todos os eventos com Inscrição+Presentes (ainda respeitando "não regerar quem
    já tem dados"), ignorando só a janela de 3h.
 
-## Qual raiz do Drive usar (decisão)
+## As duas raízes do Drive (por que ler de uma e gravar na outra)
 
-O projeto tem duas raízes no Drive:
+O projeto tem duas pastas raiz **diferentes**:
 
-| Raiz | ID | Usada por | Conteúdo |
-|------|----|-----------|----------|
-| `relatorios` | `1Jfyl8j…` | `servirInscricoes.gs`, `confirmacaoInscricao.gs`, **este script** | Inscrição + Presentes + participantes.xlsx **na mesma pasta do evento** |
-| `Relatorios EGov` | `1F6omx…` | `servirRelatorios.gs` (build/`/api/eventos`) | só os `.xlsx` de relatório |
+| Raiz | ID | Papel | Estrutura |
+|------|----|-------|-----------|
+| `1Jfyl8j…` | **ENTRADA** | planilhas **Inscrição/Presentes** (`servirInscricoes.gs`) | pastas de evento direto na raiz |
+| `1F6omx…` ("Relatorios EGov") | **SAÍDA** | `.xlsx` que o **dashboard lê** (`servirRelatorios.gs`) | `assets/docs/relatorios/<evento>/` |
 
-O design (ver `README-inscricoes.md`) é **uma pasta por evento com tudo junto** →
-a raiz correta é a **`1Jfyl8j`**. Por isso o gerador lê e grava nela.
+Como são pastas distintas, o gerador **lê** as planilhas da entrada (`1Jfyl8j`) e
+**grava** o `participantes.xlsx` na saída (`1F6omx`), no caminho
+`assets/docs/relatorios/<mesma pasta do evento>/` — criando as subpastas que
+faltarem. Assim o arquivo aparece no painel sem você mover nada manualmente.
 
-> ⚠️ **Unifique as raízes:** para o `participantes.xlsx` gerado aparecer no
-> painel, o `servirRelatorios.gs` precisa ler **a mesma** pasta. Confirme se
-> `1F6omx` e `1Jfyl8j` são a mesma pasta (abra as duas URLs
-> `drive.google.com/drive/folders/<ID>`); se forem diferentes, troque o
-> `ROOT_FOLDER_ID` do `servirRelatorios.gs` para `1Jfyl8j` e republique aquele
-> Web App. Assim Inscrição, Presentes e participantes.xlsx ficam todos numa raiz
-> só — fonte única da verdade.
+> Se um dia você **unificar** tudo numa pasta só, basta apontar
+> `INSCRICOES_ROOT_ID` e `RELATORIOS_ROOT_ID` para o mesmo ID e ajustar
+> `RELATORIOS_SUBPATH` (`''` se os eventos ficarem direto na raiz).
 
 ## Resultado no dashboard
 

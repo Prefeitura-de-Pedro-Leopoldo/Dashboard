@@ -34,9 +34,18 @@
 
 // ============ CONFIGURAÇÕES ============
 
-// Pasta "relatorios" no Drive: seus filhos são as pastas dos eventos, onde ficam
-// as planilhas "Inscrição"/"Presentes" (a mesma dos outros scripts .gs).
-const ROOT_FOLDER_ID = '1Jfyl8jE70W05t8YydDvVMEzkqXZZ7QJK';
+// ENTRADA: pasta onde ficam as pastas dos eventos com as planilhas Google
+// "Inscrição"/"Presentes" (a mesma de servirInscricoes.gs / confirmacaoInscricao.gs).
+// Seus filhos diretos são as pastas dos eventos (ex.: "gestao-...-2026-06").
+const INSCRICOES_ROOT_ID = '1Jfyl8jE70W05t8YydDvVMEzkqXZZ7QJK';
+
+// SAÍDA: pasta que o dashboard LÊ os relatórios (servirRelatorios.gs, "Relatorios
+// EGov"). É aqui que o participantes.xlsx precisa ficar para aparecer no painel.
+const RELATORIOS_ROOT_ID = '1F6omxUG5yYW84m7sVK0RweAO8ge5q27p';
+
+// Subpasta, dentro da raiz de relatórios, onde ficam as pastas de evento (espelha
+// o repositório). Deixe '' se as pastas de evento ficarem direto na raiz.
+const RELATORIOS_SUBPATH = 'assets/docs/relatorios';
 
 // eventos-meta.json publicado (de onde vem a DATA/HORA de cada evento).
 const META_URL = 'https://egov-dashboard.vercel.app/assets/docs/relatorios/eventos-meta.json';
@@ -61,7 +70,7 @@ function gerarParticipantesAgora() {
 
 function _processar(forcar) {
   const meta = _carregarMeta();
-  const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
+  const root = DriveApp.getFolderById(INSCRICOES_ROOT_ID);
   const pastas = [];
   _varrerPastas(root, '', pastas, 0);
 
@@ -69,16 +78,20 @@ function _processar(forcar) {
   let gerados = 0, pulados = 0;
 
   for (let i = 0; i < pastas.length; i++) {
-    const folder = pastas[i].folder;
-    const rel = pastas[i].rel;
+    const folder = pastas[i].folder; // pasta do evento na raiz de INSCRIÇÕES
+    const rel = pastas[i].rel;        // caminho relativo (ex.: "ciclo.../turma 3")
 
     const insc = _acharArquivo(folder, _ehInscricao);
     if (!insc) continue; // pasta sem Inscrição não é evento
 
+    // Pasta de SAÍDA correspondente na raiz de RELATÓRIOS (onde o dashboard lê).
+    // Procura sem criar (para o teste de "já existe"); só cria na hora de gravar.
+    const pastaSaidaExist = _navegarSaida(rel, false);
+    const existente = pastaSaidaExist ? _acharSaida(pastaSaidaExist) : null;
+
     // Eventos que JÁ têm um participantes.xlsx COM DADOS (reais) não são regerados
     // — só geramos para os que estão sem arquivo ou com o placeholder vazio (o
     // arquivo só-cabeçalho criado para o evento aparecer na Visão Geral).
-    const existente = _acharSaida(folder);
     if (existente && _temDados(existente)) { pulados++; continue; }
 
     const pres = _acharArquivo(folder, _ehPresente);
@@ -93,14 +106,43 @@ function _processar(forcar) {
     }
 
     try {
-      _gerarUm(folder, insc, pres, existente);
-      Logger.log('✓ %s: participantes.xlsx gerado.', rel);
+      const destino = _navegarSaida(rel, true); // cria a árvore de pastas se faltar
+      _gerarUm(destino, insc, pres, _acharSaida(destino));
+      Logger.log('✓ %s: participantes.xlsx gerado em relatórios.', rel);
       gerados++;
     } catch (e) {
       Logger.log('✗ %s: %s', rel, (e && e.message) ? e.message : e);
     }
   }
   Logger.log('Concluído. Gerados: %s | Pulados: %s | Pastas: %s', gerados, pulados, pastas.length);
+}
+
+// Navega da raiz de RELATÓRIOS até a pasta de saída do evento (RELATORIOS_SUBPATH
+// + rel). Com criar=true, cria as subpastas que faltarem; com false, devolve null
+// se alguma não existir.
+function _navegarSaida(rel, criar) {
+  let folder = DriveApp.getFolderById(RELATORIOS_ROOT_ID);
+  const partes = (RELATORIOS_SUBPATH ? RELATORIOS_SUBPATH + '/' + rel : rel)
+    .split('/').map(function (s) { return s.trim(); }).filter(Boolean);
+  for (let i = 0; i < partes.length; i++) {
+    let sub = _acharSubpasta(folder, partes[i]);
+    if (!sub) {
+      if (!criar) return null;
+      sub = folder.createFolder(partes[i]);
+    }
+    folder = sub;
+  }
+  return folder;
+}
+
+function _acharSubpasta(folder, nome) {
+  const alvo = _norm(nome);
+  const it = folder.getFolders();
+  while (it.hasNext()) {
+    const f = it.next();
+    if (_norm(f.getName()) === alvo) return f;
+  }
+  return null;
 }
 
 // ============ GERAÇÃO DE UM EVENTO ============
