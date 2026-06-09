@@ -342,3 +342,60 @@
 .pal-card--v .pal-card__curso { justify-content: center; font-weight: var(--fw-semibold); }
 .pal-card--v .pal-card__bio { text-align: center; }
 .pal-card--v .pal-card__foot { width: 100%; }
+
+/* ============ Modal de convite (gerar link) ============ */
+.pal-modal--invite { width: min(540px, 100%); }
+.pal-invc-body { padding: 0; }
+.pal-invc-hero {
+  display: flex; justify-content: center; align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #eaf1fb 0%, #f4f8ff 60%, #eef6ee 100%);
+  border-bottom: 1px solid var(--border-default);
+}
+.pal-invc-logo { height: 42px; width: auto; max-width: 90%; display: block; }
+.pal-invc-pad { padding: 22px 24px; }
+.pal-invc-title { margin: 0 0 7px; font-size: 1.15rem; color: var(--text-primary); }
+.pal-invc-text { margin: 0; font-size: 0.9rem; line-height: 1.55; color: var(--text-secondary); }
+.pal-invc-field { margin-top: 16px; }
+.pal-invc-field input {
+  width: 100%; padding: 11px 13px; border-radius: 10px;
+  border: 1.5px solid var(--border-default); background: var(--surface-card);
+  color: var(--text-primary); font-size: 0.98rem; font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pal-invc-field input:focus {
+  outline: none; border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-soft-bg, rgba(48, 99, 173, 0.14));
+}
+
+.pal-invc-done { text-align: center; }
+.pal-invc-check { font-size: 2.7rem; line-height: 1; color: var(--ind-good, #2e9e5b); margin-bottom: 10px; }
+.pal-invc-check--err { color: var(--red); }
+.pal-invc-eyebrow {
+  margin: 0 0 5px; font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase; color: var(--brand-primary);
+}
+.pal-invc-name { margin: 0 0 7px; font-size: 1.35rem; line-height: 1.2; color: var(--text-primary); }
+.pal-invc-done .pal-invc-text { max-width: 380px; margin: 0 auto; }
+.pal-invc-link { display: flex; gap: 8px; margin: 20px 0 0; }
+.pal-invc-link input {
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: 9px;
+  border: 1.5px solid var(--border-default); background: var(--surface-2, rgba(0, 0, 0, 0.03));
+  color: var(--text-secondary); font-size: 0.8rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.pal-invc-hint {
+  margin: 18px 0 0; padding: 11px 13px; border-radius: 10px; text-align: left;
+  font-size: 0.8rem; line-height: 1.55; color: var(--text-secondary);
+  background: var(--ind-warn-soft, rgba(230, 150, 30, 0.1));
+}
+.pal-invc-hint i { color: var(--ind-warn, #d9822b); margin-right: 5px; }
+
+@media (max-width: 560px) {
+  .pal-invc-link { flex-direction: column; }
+  .pal-invc-link .btn { width: 100%; justify-content: center; }
+}
+
+/* Botão LinkedIn no card */
+.pal-icon-btn--in { text-decoration: none; }
+.pal-icon-btn--in:hover { color: #0a66c2; border-color: #0a66c2; }

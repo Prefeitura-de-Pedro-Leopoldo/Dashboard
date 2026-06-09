@@ -16,172 +16,1241 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <script>
       // Tema (dark/white) igual ao portal EGov.
-      (function () {
+      ;(function () {
         try {
-          var stored = localStorage.getItem("egovpl-theme");
-          var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-          document.documentElement.setAttribute("data-theme", theme);
+          var stored = localStorage.getItem("egovpl-theme")
+          var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+          document.documentElement.setAttribute("data-theme", theme)
         } catch (e) {}
-      })();
+      })()
     </script>
     <style>
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; min-height: 100%; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
       body {
         font-family: var(--font-sans);
         background:
           radial-gradient(ellipse 80% 50% at 50% -10%, rgba(48, 99, 173, 0.18), transparent 60%),
-          radial-gradient(ellipse 60% 50% at 50% 0%, rgba(77, 173, 51, 0.10), transparent 55%),
-          var(--surface-bg);
+          radial-gradient(ellipse 60% 50% at 50% 0%, rgba(77, 173, 51, 0.1), transparent 55%), var(--surface-bg);
         color: var(--text-primary);
         padding: clamp(20px, 5vw, 56px) 16px clamp(32px, 6vw, 64px);
       }
       /* Estrutura "linktree": coluna central estreita, tudo centralizado. */
-      .shell { max-width: 560px; margin: 0 auto; }
+      .shell {
+        max-width: 560px;
+        margin: 0 auto;
+      }
 
       /* Botão de tema (canto superior direito) */
       .theme-toggle {
-        position: fixed; top: 16px; right: 16px;
-        width: 42px; height: 42px; border-radius: 12px;
-        background: var(--surface-card); border: 1px solid var(--border-default);
-        color: var(--text-secondary); cursor: pointer; z-index: 20;
-        display: grid; place-items: center; box-shadow: var(--shadow-sm);
-        transition: color .18s ease, transform .18s ease;
-      }
-      .theme-toggle:hover { color: var(--brand-primary); transform: rotate(15deg); }
-      [data-theme="dark"] .icon-sun, [data-theme="light"] .icon-moon { display: none; }
-
-      .brand {
-        display: flex; flex-direction: column; align-items: center; text-align: center;
-        gap: 12px; margin-bottom: 28px;
-      }
-      .brand__logo {
-        width: 84px; height: 84px; border-radius: 24px;
-        background: linear-gradient(135deg, var(--green-500), var(--green-700));
-        display: grid; place-items: center; color: #fff;
-        font-family: var(--font-display); font-weight: 800; font-size: 2.2rem;
-        box-shadow: 0 16px 36px -12px rgba(77,173,51,0.6), inset 0 1px 0 rgba(255,255,255,0.25);
-      }
-      .brand strong { display: block; font-family: var(--font-display); font-size: 1.3rem; letter-spacing: -0.01em; }
-      .brand span { display: block; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
-
-      .card {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
         background: var(--surface-card);
         border: 1px solid var(--border-default);
-        border-radius: var(--radius-lg, 16px);
-        box-shadow: var(--shadow-md);
-        padding: clamp(20px, 4vw, 36px);
+        color: var(--text-secondary);
+        cursor: pointer;
+        z-index: 20;
+        display: grid;
+        place-items: center;
+        box-shadow: var(--shadow-sm);
+        transition:
+          color 0.18s ease,
+          transform 0.18s ease;
+      }
+      .theme-toggle:hover {
+        color: var(--brand-primary);
+        transform: rotate(15deg);
+      }
+      [data-theme="dark"] .icon-sun,
+      [data-theme="light"] .icon-moon {
+        display: none;
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+      .brand__logo {
+        width: 84px;
+        height: 84px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, var(--green-500), var(--green-700));
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 2.2rem;
+        box-shadow:
+          0 16px 36px -12px rgba(77, 173, 51, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      }
+      .brand strong {
+        display: block;
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        letter-spacing: -0.01em;
+      }
+      .brand span {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+
+      .card {
+        position: relative;
+        overflow: hidden;
+        background: var(--surface-card);
+        border: 1px solid var(--border-default);
+        border-radius: 20px;
+        box-shadow:
+          0 1px 2px rgba(16, 24, 40, 0.04),
+          0 26px 50px -30px rgba(16, 24, 40, 0.3);
+        padding: clamp(22px, 4vw, 38px);
+      }
+      .card::before {
+        /* acento de marca no topo */
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--green-500), var(--brand-primary));
       }
       .card__title {
-        font-family: var(--font-display); font-weight: 600;
-        font-size: 1.6rem; letter-spacing: -0.015em; margin: 0 0 6px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.55rem;
+        letter-spacing: -0.015em;
+        margin: 4px 0 6px;
       }
-      .card__sub { margin: 0 0 24px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+      .card__sub {
+        margin: 0 0 26px;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        line-height: 1.55;
+      }
 
       /* Estados (loading / inválido / sucesso) */
-      .state { text-align: center; padding: 24px 8px; }
+      .state {
+        text-align: center;
+        padding: 24px 8px;
+      }
       .state__icon {
-        width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 18px;
-        display: grid; place-items: center; font-size: 1.9rem;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        margin: 0 auto 18px;
+        display: grid;
+        place-items: center;
+        font-size: 1.9rem;
       }
-      .state__icon--load { background: var(--surface-muted); color: var(--brand-primary); }
-      .state__icon--err  { background: rgba(192,57,43,0.10); color: var(--red); }
-      .state__icon--ok   { background: var(--green-100); color: var(--green-700); }
-      .state h2 { font-family: var(--font-display); font-weight: 600; margin: 0 0 8px; font-size: 1.3rem; }
-      .state p { color: var(--text-muted); margin: 0; line-height: 1.55; }
-      .spin { animation: spin 0.8s linear infinite; }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      .state__icon--load {
+        background: var(--surface-muted);
+        color: var(--brand-primary);
+      }
+      .state__icon--err {
+        background: rgba(192, 57, 43, 0.1);
+        color: var(--red);
+      }
+      .state__icon--ok {
+        background: var(--green-100);
+        color: var(--green-700);
+      }
+      .state h2 {
+        font-family: var(--font-display);
+        font-weight: 600;
+        margin: 0 0 8px;
+        font-size: 1.3rem;
+      }
+      .state p {
+        color: var(--text-muted);
+        margin: 0;
+        line-height: 1.55;
+      }
+      .spin {
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-      form { display: grid; gap: 18px; }
-      .field { display: grid; gap: 7px; }
+      form {
+        display: grid;
+        gap: clamp(16px, 2.4vw, 22px);
+      }
+      .form-col {
+        display: grid;
+        gap: clamp(16px, 2.4vw, 22px);
+        align-content: start;
+      }
+      .form-foot {
+        display: grid;
+        gap: 14px;
+      }
+      .field {
+        display: grid;
+        gap: 8px;
+      }
       .field > label {
-        font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
-        text-transform: uppercase; letter-spacing: 0.06em;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
-      .req { color: var(--red); }
-      input[type="text"], textarea {
-        width: 100%; padding: 11px 13px;
-        border: 1.5px solid var(--border-default); border-radius: 11px;
-        font-family: inherit; font-size: 0.95rem; color: var(--text-primary);
-        background: var(--surface-card); transition: border-color .18s, box-shadow .18s;
+      .req {
+        color: var(--red);
       }
-      textarea { resize: none; overflow: hidden; line-height: 1.5; min-height: 120px; }
-      input:focus, textarea:focus {
-        outline: none; border-color: var(--brand-primary);
-        box-shadow: 0 0 0 4px rgba(48,99,173,0.14);
+      .opt {
+        color: var(--text-faint);
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
       }
-      input::placeholder, textarea::placeholder { color: var(--text-faint); }
+      input[type="text"],
+      input[type="url"],
+      textarea {
+        width: 100%;
+        padding: 11px 13px;
+        border: 1.5px solid var(--border-default);
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 0.875rem;
+        color: var(--text-primary);
+        background: var(--surface-muted, rgba(0, 0, 0, 0.02));
+        transition:
+          border-color 0.18s,
+          box-shadow 0.18s,
+          background 0.18s;
+      }
+      /* Campos de texto curtos: mais compactos e fonte menor. */
+      .field--nome input,
+      .field--curso input,
+      .field--linkedin input {
+        padding: 9px 12px;
+        font-size: 0.83rem;
+      }
+      textarea {
+        resize: none;
+        overflow: hidden;
+        line-height: 1.6;
+        min-height: 168px;
+      }
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        background: var(--surface-card);
+        box-shadow: 0 0 0 4px rgba(48, 99, 173, 0.13);
+      }
+      input::placeholder,
+      textarea::placeholder {
+        color: var(--text-faint);
+      }
 
-      /* Eixos (multi) */
-      .eixos { display: grid; grid-template-columns: 1fr; gap: 8px; }
+      /* Eixos (multi) - "pills" que quebram linha: compacto e bonito */
+      .eixos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
       .eixo-opt {
-        display: flex; align-items: center; gap: 9px; cursor: pointer;
-        padding: 10px 12px; border: 1.5px solid var(--border-default);
-        border-radius: 11px; font-size: 0.9rem; user-select: none;
-        transition: border-color .15s, background .15s;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 7px 13px;
+        border: 1.5px solid var(--border-default);
+        border-radius: 999px;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        user-select: none;
+        color: var(--text-secondary);
+        background: var(--surface-card);
+        transition:
+          border-color 0.15s,
+          background 0.15s,
+          color 0.15s,
+          box-shadow 0.15s;
       }
-      .eixo-opt:hover { border-color: var(--brand-primary); }
-      .eixo-opt input { accent-color: var(--brand-primary); width: 17px; height: 17px; }
-      .eixo-opt.is-checked { border-color: var(--brand-primary); background: var(--brand-soft-bg, rgba(48,99,173,0.06)); }
+      .eixo-opt input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .eixo-opt::before {
+        /* + quando livre, vira ✓ quando selecionado */
+        content: "+";
+        font-size: 0.95em;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--text-faint);
+        transition: color 0.15s;
+      }
+      .eixo-opt:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+      }
+      .eixo-opt:hover::before {
+        color: var(--brand-primary);
+      }
+      .eixo-opt.is-checked {
+        border-color: var(--brand-primary);
+        background: var(--brand-primary);
+        color: #fff;
+        box-shadow: 0 5px 12px -5px rgba(48, 99, 173, 0.55);
+      }
+      .eixo-opt.is-checked::before {
+        content: "\2713";
+        color: #fff;
+        font-weight: 800;
+      }
 
-      .bio-head { display: flex; justify-content: space-between; align-items: center; }
-      .bio-count { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-      .bio-count.is-warn { color: #b8860b; }
-      .bio-count.is-full { color: var(--red); }
-      .hint { margin: 2px 0 0; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
-      .hint b { color: var(--text-secondary); }
+      .bio-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .bio-count {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .bio-count.is-warn {
+        color: #b8860b;
+      }
+      .bio-count.is-full {
+        color: var(--red);
+      }
+      .hint {
+        margin: 4px 0 0;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+      .hint b {
+        color: var(--text-secondary);
+      }
 
       /* Foto */
-      .photo-row { display: flex; align-items: center; gap: 16px; }
+      .photo-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
       .photo-prev {
-        width: 96px; height: 96px; border-radius: 50%; flex-shrink: 0;
-        object-fit: cover; border: 1.5px dashed var(--border-default);
-        background: var(--surface-muted); display: grid; place-items: center;
-        color: var(--text-faint); font-size: 1.6rem;
+        width: 104px;
+        height: 104px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        object-fit: cover;
+        border: 2px dashed var(--border-default);
+        background: var(--surface-muted);
+        display: grid;
+        place-items: center;
+        color: var(--text-faint);
+        font-size: 1.85rem;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .photo-prev:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
       }
       .upload-btn {
-        display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
-        padding: 9px 14px; border: 1.5px solid var(--border-default);
-        border-radius: 10px; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
-        background: var(--surface-card); transition: border-color .15s, color .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        padding: 10px 16px;
+        border: 1.5px solid var(--border-default);
+        border-radius: 11px;
+        font-size: 0.86rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        background: var(--surface-card);
+        transition:
+          border-color 0.15s,
+          color 0.15s,
+          background 0.15s;
       }
-      .upload-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+      .upload-btn:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+        background: var(--brand-soft-bg, rgba(48, 99, 173, 0.05));
+      }
 
       button[type="submit"] {
-        margin-top: 6px; height: 52px; width: 100%;
-        background: linear-gradient(135deg, var(--blue-700), var(--blue-600));
-        color: #fff; border: 0; border-radius: 12px; cursor: pointer;
-        font-family: inherit; font-weight: 600; font-size: 0.98rem;
-        display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-        box-shadow: 0 10px 24px -10px rgba(48,99,173,0.55);
-        transition: transform .15s, filter .15s;
+        position: relative;
+        overflow: hidden;
+        margin-top: 8px;
+        height: 54px;
+        width: 100%;
+        background: linear-gradient(135deg, #3f9a2e 0%, var(--blue-700) 52%, var(--blue-600) 100%);
+        color: #fff;
+        border: 0;
+        border-radius: 13px;
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 12px 26px -10px rgba(48, 99, 173, 0.55);
+        transition:
+          transform 0.18s ease,
+          filter 0.18s ease,
+          box-shadow 0.18s ease;
       }
-      button[type="submit"]:hover { transform: translateY(-1px); filter: brightness(1.05); }
-      button[type="submit"][disabled] { opacity: 0.6; cursor: not-allowed; transform: none; }
+      button[type="submit"] > * {
+        position: relative;
+        z-index: 1;
+      }
+      /* Brilho que cruza o botão ao passar o mouse. */
+      button[type="submit"]::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -75%;
+        width: 50%;
+        background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+        transform: skewX(-20deg);
+        z-index: 0;
+        pointer-events: none;
+        transition: left 0.6s ease;
+      }
+      button[type="submit"]:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.08);
+        box-shadow:
+          0 18px 36px -12px rgba(48, 99, 173, 0.75),
+          0 0 22px -2px rgba(77, 173, 51, 0.45);
+      }
+      button[type="submit"]:hover::before {
+        left: 125%;
+      }
+      button[type="submit"]:active {
+        transform: translateY(0);
+      }
+      button[type="submit"][disabled] {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      button[type="submit"][disabled]::before {
+        display: none;
+      }
 
       .err {
-        color: var(--red); font-size: 0.88rem; min-height: 1.1em;
-        display: flex; align-items: center; gap: 6px;
+        color: var(--red);
+        font-size: 0.88rem;
+        min-height: 1.1em;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
-      .err:empty { display: none; }
-      .footer { margin-top: 22px; text-align: center; font-size: 0.78rem; color: var(--text-faint); }
-      [hidden] { display: none !important; }
+      .err:empty {
+        display: none;
+      }
+      .footer {
+        margin-top: 22px;
+        text-align: center;
+        font-size: 0.78rem;
+        color: var(--text-faint);
+      }
+
+      /* ===================== Responsividade ===================== */
+      /* Mobile-first (360px+): coluna única, só o card "Cadastro de Palestrante".
+         O aside fica oculto até dar espaço para o layout de 2 colunas. */
+
+      /* ≥ 1024px (tablet paisagem / desktop): split premium — aside do capelo +
+         marca à esquerda, formulário à direita, ambos da mesma altura. */
+      @media (min-width: 1024px) {
+        .shell {
+          max-width: 1140px;
+          display: grid;
+          grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+          grid-template-areas: "aside form";
+          column-gap: clamp(22px, 3vw, 40px);
+          align-items: stretch;
+        }
+        .card {
+          grid-area: form;
+        }
+        .aside {
+          display: block;
+          grid-area: aside;
+        }
+      }
+      /* ≥ 1200px: o próprio formulário vira 2 colunas internas. */
+      @media (min-width: 1200px) {
+        .shell {
+          grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+        }
+        #stForm form {
+          grid-template-columns: 1fr 1fr;
+          column-gap: clamp(24px, 3vw, 40px);
+          align-items: start;
+        }
+        .form-bio,
+        .form-foot {
+          grid-column: 1 / -1;
+        }
+      }
+      /* ≥ 1560px: respira mais. */
+      @media (min-width: 1560px) {
+        .shell {
+          max-width: 1320px;
+        }
+      }
+      /* Ultrawide (≥ 1920px): trava a largura para o conteúdo não esticar demais. */
+      @media (min-width: 1920px) {
+        .shell {
+          max-width: 1440px;
+        }
+      }
+
+      /* Telas de pouca altura: comprime o ritmo pra caber sem scroll. */
+      @media (max-height: 800px) {
+        body {
+          padding-top: clamp(12px, 3vh, 30px);
+          padding-bottom: clamp(14px, 3vh, 30px);
+        }
+        .brand {
+          margin-bottom: 16px;
+        }
+        .brand__logo {
+          width: 60px;
+          height: 60px;
+          border-radius: 18px;
+          font-size: 1.6rem;
+        }
+        textarea {
+          min-height: 96px;
+        }
+      }
+
+      /* Celulares estreitos (≤ 380px, ex.: 360). */
+      @media (max-width: 380px) {
+        body {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        .card {
+          border-radius: 16px;
+        }
+        .photo-row {
+          gap: 12px;
+        }
+        .photo-prev {
+          width: 84px;
+          height: 84px;
+          font-size: 1.5rem;
+        }
+        .card__title {
+          font-size: 1.3rem;
+        }
+        .eixos {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ===================== Animação de entrada ===================== */
+      /* Splash branded que cobre a validação do convite e dá uma abertura
+         "nível Escola de Governo": placa com o logo, brilho, título e barra. */
+      .intro-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -10%, rgba(48, 99, 173, 0.22), transparent 60%),
+          radial-gradient(ellipse 60% 50% at 50% 0%, rgba(77, 173, 51, 0.12), transparent 55%), var(--surface-bg);
+        transition:
+          opacity 0.55s ease,
+          transform 0.7s cubic-bezier(0.65, 0, 0.25, 1),
+          visibility 0.55s;
+      }
+      .intro-splash.is-hiding {
+        opacity: 0;
+        transform: translateY(-26px);
+        visibility: hidden;
+      }
+      .intro {
+        text-align: center;
+        max-width: 90vw;
+      }
+      /* ---- Cena 3D do capelo (chapéu de formatura) ---- */
+      .grad-scene {
+        width: 260px;
+        height: 220px;
+        margin: 0 auto;
+        perspective: 900px;
+        display: grid;
+        place-items: center;
+      }
+      .grad-cap {
+        position: relative;
+        transform-style: preserve-3d;
+        opacity: 0;
+        animation:
+          capIn 1.5s cubic-bezier(0.2, 0.8, 0.25, 1) forwards,
+          capFloat 4.6s 1.55s ease-in-out infinite;
+      }
+      /* Tábua (mortarboard): quadrado inclinado em 3D = losango com profundidade */
+      /* Tábua = BLOCO 3D real (6 faces). A inclinação vira o losango do capelo;
+         como tem espessura de verdade, ao girar (rotateY) as bordas aparecem. */
+      .grad-cap__board {
+        position: relative;
+        width: 164px;
+        height: 164px;
+        transform-style: preserve-3d;
+        transform: rotateX(58deg) rotateZ(45deg);
+      }
+      .board__face {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+      }
+      .board__top,
+      .board__bottom {
+        width: 164px;
+        height: 164px;
+        border-radius: 16px;
+      }
+      .board__top {
+        transform: translate(-50%, -50%) translateZ(7px);
+        background: linear-gradient(135deg, #3f6cb0 0%, #21477e 42%, #0e2546 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+        overflow: hidden;
+      }
+      .board__top::after {
+        /* brilho diagonal fixo */
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 46%);
+      }
+      /* Filete verde EGov fino contornando a borda da tábua (acompanha os cantos) */
+      .board__trim {
+        position: absolute;
+        inset: 6px;
+        border-radius: 12px;
+        pointer-events: none;
+        border: 1.5px solid rgba(77, 173, 51, 0.92);
+        box-shadow: 0 0 5px rgba(77, 173, 51, 0.4);
+      }
+      .board__bottom {
+        transform: translate(-50%, -50%) translateZ(-7px) rotateY(180deg);
+        background: linear-gradient(135deg, #0c2244, #060e1c);
+      }
+      .board__edge {
+        background: linear-gradient(#173357, #0a1c38);
+      }
+      .board__edge--n {
+        width: 164px;
+        height: 14px;
+        transform: translate(-50%, -50%) rotateX(90deg) translateZ(82px);
+      }
+      .board__edge--s {
+        width: 164px;
+        height: 14px;
+        transform: translate(-50%, -50%) rotateX(-90deg) translateZ(82px);
+      }
+      .board__edge--e {
+        width: 14px;
+        height: 164px;
+        transform: translate(-50%, -50%) rotateY(90deg) translateZ(82px);
+      }
+      .board__edge--w {
+        width: 14px;
+        height: 164px;
+        transform: translate(-50%, -50%) rotateY(-90deg) translateZ(82px);
+      }
+      /* Brilho que cruza o topo uma vez, ao assentar */
+      .board__shine {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .board__shine::before {
+        content: "";
+        position: absolute;
+        top: -25%;
+        bottom: -25%;
+        left: -160%;
+        width: 55%;
+        transform: skewX(-22deg);
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+        animation: capShine 1.15s cubic-bezier(0.5, 0, 0.3, 1) 1.5s 1;
+      }
+      @keyframes capShine {
+        from {
+          left: -160%;
+        }
+        to {
+          left: 175%;
+        }
+      }
+      .grad-cap__button {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        transform: translate(-50%, -50%) translateZ(9px);
+        background: radial-gradient(circle at 34% 30%, #4274c0, #16294d);
+        box-shadow:
+          0 2px 5px rgba(0, 0, 0, 0.35),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+      /* Copa: a parte que encaixa na cabeça, abaixo da tábua. Fica à frente em Z
+         para aparecer sob a borda da tábua (a tábua faz "abas" por cima). */
+      .grad-cap__base {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        z-index: -1;
+        width: 108px;
+        height: 56px;
+        transform: translate(-50%, 16px) translateZ(6px);
+        /* meio-termo: laterais retas em cima, fundo moderadamente arredondado */
+        border-radius: 12px 12px 30px 30px / 14px 14px 42px 42px;
+        background: linear-gradient(180deg, #294f86 0%, #173a6e 38%, #0d2247 78%, #08193400 100%), linear-gradient(180deg, #294f86, #0d2247);
+        box-shadow:
+          inset 0 7px 10px -7px rgba(255, 255, 255, 0.2),
+          0 14px 20px -10px rgba(0, 0, 0, 0.5);
+      }
+      .grad-cap__base::before {
+        /* aro superior onde a tábua encosta na copa */
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 4px;
+        width: 98px;
+        height: 13px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: linear-gradient(180deg, #3a619a, #1c3f74);
+        box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.28);
+      }
+      .grad-cap__base::after {
+        /* abertura inferior (onde entra a cabeça) */
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -4px;
+        width: 80px;
+        height: 16px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 35%, #0a1d3c 40%, #06122700 72%), radial-gradient(ellipse, rgba(0, 0, 0, 0.5), transparent 74%);
+      }
+      /* Borla (tassel): pendura do centro e balança */
+      .grad-cap__tassel {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, 0) translateZ(12px);
+      }
+      .grad-cap__swing {
+        transform-origin: top center;
+        animation: tasselSwing 3s ease-in-out infinite;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .grad-cap__string {
+        width: 3.5px;
+        height: 78px;
+        border-radius: 3px;
+        background: linear-gradient(#f0cf73, #c8941f);
+      }
+      .grad-cap__knot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        margin-top: -1px;
+        background: radial-gradient(circle at 35% 30%, #f7da82, #c8941f);
+      }
+      .grad-cap__fringe {
+        width: 20px;
+        height: 34px;
+        margin-top: -1px;
+        border-radius: 3px 3px 8px 8px;
+        /* fios da franja (linhas verticais) sobre o dourado */
+        background:
+          repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px), linear-gradient(180deg, #f0cf73 0%, #d8a52e 55%, #b9851a 100%);
+        box-shadow:
+          inset 0 -4px 5px rgba(0, 0, 0, 0.25),
+          0 3px 5px -2px rgba(0, 0, 0, 0.3);
+      }
+      .grad-shadow {
+        width: 150px;
+        height: 24px;
+        margin: 4px auto 0;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(14, 32, 64, 0.32), transparent 70%);
+        filter: blur(3px);
+        opacity: 0;
+        animation:
+          shadowIn 0.8s ease 1.2s forwards,
+          shadowPulse 4.6s 1.55s ease-in-out infinite;
+      }
+      .intro__eyebrow {
+        margin: 14px 0 0;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--brand-primary);
+        opacity: 0;
+        transform: translateY(10px);
+        animation: introUp 0.65s ease 1.55s forwards;
+      }
+      .intro__title {
+        margin: 6px 0 0;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: clamp(1.4rem, 5vw, 1.9rem);
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+        opacity: 0;
+        transform: translateY(12px);
+        animation: introUp 0.7s ease 1.68s forwards;
+      }
+      .intro__welcome {
+        margin: 12px 0 0;
+        font-size: clamp(1rem, 3.6vw, 1.18rem);
+        line-height: 1.4;
+        color: var(--text-secondary);
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      .intro__welcome b {
+        color: var(--brand-primary);
+        font-weight: 700;
+      }
+      .intro__welcome.is-on {
+        animation: introUp 0.6s ease forwards;
+      }
+      .intro__bar {
+        width: 190px;
+        max-width: 70vw;
+        height: 4px;
+        margin: 22px auto 0;
+        border-radius: 4px;
+        background: var(--border-default);
+        overflow: hidden;
+        opacity: 0;
+        animation: introUp 0.5s ease 2.05s forwards;
+      }
+      .intro__bar span {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--green-500), var(--blue-600));
+        animation: introBar 1.1s cubic-bezier(0.6, 0.1, 0.2, 1) 2.15s forwards;
+      }
+      @keyframes capIn {
+        0% {
+          opacity: 0;
+          transform: translateY(-140px) rotateY(-200deg) scale(0.5);
+        }
+        55% {
+          opacity: 1;
+          transform: translateY(10px) rotateY(0deg) scale(1.06);
+        }
+        72% {
+          transform: translateY(-6px) rotateY(8deg) scale(0.99);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) rotateY(0) scale(1);
+        }
+      }
+      @keyframes capFloat {
+        0% {
+          transform: translateY(0) rotateY(0deg);
+        }
+        25% {
+          transform: translateY(-8px) rotateY(22deg);
+        }
+        50% {
+          transform: translateY(-11px) rotateY(0deg);
+        }
+        75% {
+          transform: translateY(-8px) rotateY(-22deg);
+        }
+        100% {
+          transform: translateY(0) rotateY(0deg);
+        }
+      }
+      @keyframes tasselSwing {
+        0%,
+        100% {
+          transform: rotate(9deg);
+        }
+        50% {
+          transform: rotate(-9deg);
+        }
+      }
+      @keyframes shadowIn {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes shadowPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.8;
+        }
+        50% {
+          transform: scale(0.84);
+          opacity: 0.55;
+        }
+      }
+      @keyframes introUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes introBar {
+        to {
+          width: 100%;
+        }
+      }
+
+      /* Reveal do conteúdo após o splash sair. */
+      .shell {
+        opacity: 0;
+      }
+      .shell.is-revealed {
+        animation: revealUp 0.6s ease forwards;
+      }
+      @keyframes revealUp {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Saudação personalizada. */
+      .greet {
+        margin: 0 0 14px;
+        font-size: 1.05rem;
+        line-height: 1.45;
+        color: var(--text-secondary);
+      }
+      .greet b {
+        color: var(--brand-primary);
+        font-weight: 700;
+      }
+      .greet .wave {
+        display: inline-block;
+        transform-origin: 70% 70%;
+        animation: wave 1.6s ease 1s 2;
+      }
+      @keyframes wave {
+        0%,
+        100% {
+          transform: rotate(0);
+        }
+        20% {
+          transform: rotate(16deg);
+        }
+        40% {
+          transform: rotate(-8deg);
+        }
+        60% {
+          transform: rotate(12deg);
+        }
+        80% {
+          transform: rotate(-4deg);
+        }
+      }
+
+      /* Stagger dos elementos do formulário ao aparecer. */
+      #stForm.is-revealed .greet,
+      #stForm.is-revealed .card__title,
+      #stForm.is-revealed .card__sub,
+      #stForm.is-revealed .form-col,
+      #stForm.is-revealed .form-bio,
+      #stForm.is-revealed .form-foot {
+        opacity: 0;
+        transform: translateY(12px);
+        animation: fieldUp 0.5s ease forwards;
+      }
+      #stForm.is-revealed .greet {
+        animation-delay: 0.02s;
+      }
+      #stForm.is-revealed .card__title {
+        animation-delay: 0.08s;
+      }
+      #stForm.is-revealed .card__sub {
+        animation-delay: 0.14s;
+      }
+      #stForm.is-revealed .form-col:nth-of-type(1) {
+        animation-delay: 0.22s;
+      }
+      #stForm.is-revealed .form-col:nth-of-type(2) {
+        animation-delay: 0.3s;
+      }
+      #stForm.is-revealed .form-bio {
+        animation-delay: 0.36s;
+      }
+      #stForm.is-revealed .form-foot {
+        animation-delay: 0.42s;
+      }
+      @keyframes fieldUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .state.is-revealed {
+        animation: revealUp 0.5s ease forwards;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .intro-splash,
+        .grad-cap,
+        .grad-cap__swing,
+        .grad-shadow,
+        .intro__eyebrow,
+        .intro__title,
+        .intro__welcome,
+        .intro__bar,
+        .intro__bar span,
+        .shell.is-revealed,
+        .state.is-revealed,
+        #stForm.is-revealed .greet,
+        #stForm.is-revealed .card__title,
+        #stForm.is-revealed .card__sub,
+        #stForm.is-revealed .form-col,
+        #stForm.is-revealed .form-bio,
+        #stForm.is-revealed .form-foot,
+        .greet .wave {
+          animation: none !important;
+        }
+        .shell {
+          opacity: 1;
+        }
+        .grad-cap,
+        .intro__eyebrow,
+        .intro__title,
+        .intro__welcome,
+        .intro__bar {
+          opacity: 1;
+          transform: none;
+        }
+        .grad-shadow {
+          opacity: 1;
+        }
+      }
+      /* ===== Coluna premium (capelo + marca) ao lado do formulário ===== */
+      /* Só aparece no layout de 2 colunas (≥ 1024px); abaixo disso é ocultada
+         pelo @media (max-width: 1023px) lá embaixo. */
+      .aside {
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        border: 1px solid var(--border-default);
+        background:
+          radial-gradient(120% 80% at 50% 0%, rgba(48, 99, 173, 0.12), transparent 55%),
+          radial-gradient(120% 80% at 50% 100%, rgba(77, 173, 51, 0.1), transparent 55%),
+          var(--surface-card);
+        box-shadow:
+          0 1px 2px rgba(16, 24, 40, 0.04),
+          0 26px 50px -30px rgba(16, 24, 40, 0.3);
+        padding: clamp(24px, 3vw, 40px) 22px;
+      }
+      .aside::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--green-500), var(--brand-primary));
+      }
+      .aside__inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+      }
+      .grad-scene--aside {
+        height: 200px;
+      }
+      .aside__brand strong {
+        display: block;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.4rem;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+      }
+      .aside__brand span {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+      }
+      .aside__divider {
+        width: 46px;
+        height: 3px;
+        border-radius: 3px;
+        margin: 16px 0 12px;
+        background: linear-gradient(90deg, var(--green-500), var(--brand-primary));
+      }
+      .aside__tag {
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.02rem;
+        color: var(--brand-primary);
+      }
+      .grad-cap--idle {
+        opacity: 1;
+        animation: capFloat 4.6s ease-in-out infinite;
+      }
+      .grad-shadow--idle {
+        opacity: 0.8;
+        animation: shadowPulse 4.6s ease-in-out infinite;
+      }
+      /* Abaixo de 1024px: só o card do formulário (esconde a coluna do aside). */
+      @media (max-width: 1023px) {
+        .aside {
+          display: none;
+        }
+      }
+
+      [hidden] {
+        display: none !important;
+      }
     </style>
   </head>
   <body>
+    <!-- Splash de abertura (some quando o convite é validado) -->
+    <div class="intro-splash" id="introSplash" aria-hidden="true">
+      <div class="intro">
+        <div class="grad-scene" aria-hidden="true">
+          <div class="grad-cap">
+            <div class="grad-cap__base"></div>
+            <div class="grad-cap__board">
+              <div class="board__face board__bottom"></div>
+              <div class="board__face board__edge board__edge--n"></div>
+              <div class="board__face board__edge board__edge--s"></div>
+              <div class="board__face board__edge board__edge--e"></div>
+              <div class="board__face board__edge board__edge--w"></div>
+              <div class="board__face board__top">
+                <div class="board__trim"></div>
+                <div class="board__shine"></div>
+              </div>
+              <span class="grad-cap__button"></span>
+            </div>
+            <div class="grad-cap__tassel">
+              <div class="grad-cap__swing">
+                <span class="grad-cap__string"></span>
+                <span class="grad-cap__knot"></span>
+                <span class="grad-cap__fringe"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grad-shadow"></div>
+        </div>
+        <p class="intro__eyebrow">Escola de Governo · Pedro Leopoldo</p>
+        <p class="intro__title">Convite de Palestrante</p>
+        <p class="intro__welcome" id="introWelcome"></p>
+        <div class="intro__bar"><span></span></div>
+      </div>
+    </div>
+
     <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema" title="Alternar tema">
       <i class="fas fa-sun icon-sun" aria-hidden="true"></i>
       <i class="fas fa-moon icon-moon" aria-hidden="true"></i>
     </button>
 
     <div class="shell">
-      <div class="brand">
-        <div class="brand__logo">E</div>
-        <div>
-          <strong>Escola de Governo</strong>
-          <span>Pedro Leopoldo · MG</span>
+      <aside class="aside" aria-hidden="true">
+        <div class="aside__inner">
+          <div class="grad-scene grad-scene--aside">
+            <div class="grad-cap grad-cap--idle">
+              <div class="grad-cap__base"></div>
+              <div class="grad-cap__board">
+                <div class="board__face board__bottom"></div>
+                <div class="board__face board__edge board__edge--n"></div>
+                <div class="board__face board__edge board__edge--s"></div>
+                <div class="board__face board__edge board__edge--e"></div>
+                <div class="board__face board__edge board__edge--w"></div>
+                <div class="board__face board__top"><div class="board__trim"></div></div>
+                <span class="grad-cap__button"></span>
+              </div>
+              <div class="grad-cap__tassel">
+                <div class="grad-cap__swing">
+                  <span class="grad-cap__string"></span>
+                  <span class="grad-cap__knot"></span>
+                  <span class="grad-cap__fringe"></span>
+                </div>
+              </div>
+            </div>
+            <div class="grad-shadow grad-shadow--idle"></div>
+          </div>
+          <div class="aside__brand">
+            <strong>Escola de Governo</strong>
+            <span>Prefeitura Municipal de Pedro Leopoldo · MG</span>
+          </div>
+          <div class="aside__divider"></div>
+          <p class="aside__tag">Convite de Palestrante</p>
         </div>
-      </div>
+      </aside>
 
       <div class="card">
         <!-- Loading -->
@@ -211,53 +1280,65 @@
           <p class="card__sub">Preencha seus dados abaixo. Todos os campos são obrigatórios.</p>
 
           <form id="form" novalidate>
-            <div class="field">
-              <label>Foto <span class="req">*</span></label>
-              <div class="photo-row">
-                <div class="photo-prev" id="photoPrev"><i class="fas fa-user"></i></div>
-                <div>
-                  <label class="upload-btn">
-                    <i class="fas fa-image"></i> <span id="uploadLabel">Escolher foto</span>
-                    <input type="file" id="foto" accept="image/png,image/jpeg" hidden />
-                  </label>
-                  <p class="hint">JPG ou PNG. Redimensionada automaticamente.</p>
+            <div class="form-col">
+              <div class="field field--foto">
+                <label>Foto <span class="req">*</span></label>
+                <div class="photo-row">
+                  <div class="photo-prev" id="photoPrev"><i class="fas fa-user"></i></div>
+                  <div>
+                    <label class="upload-btn">
+                      <i class="fas fa-image"></i> <span id="uploadLabel">Escolher foto</span>
+                      <input type="file" id="foto" accept="image/png,image/jpeg" hidden />
+                    </label>
+                    <p class="hint">JPG ou PNG. Redimensionada automaticamente.</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="field">
-              <label for="nome">Nome completo <span class="req">*</span></label>
-              <input type="text" id="nome" maxlength="120" placeholder="Seu nome completo ou profissional" autocomplete="name" />
-            </div>
-
-            <div class="field">
-              <label>Eixo temático <span class="req">*</span> <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-faint)">(selecione um ou mais)</span></label>
-              <div class="eixos" id="eixos"></div>
-            </div>
-
-            <div class="field">
-              <label for="curso">Curso ministrado <span class="req">*</span></label>
-              <input type="text" id="curso" maxlength="140" placeholder="Nome do curso/palestra que você ministra" />
-            </div>
-
-            <div class="field">
-              <div class="bio-head">
-                <label for="bio">Mini bio <span class="req">*</span></label>
-                <span class="bio-count" id="bioCount">0/500</span>
+              <div class="field field--nome">
+                <label for="nome">Nome completo <span class="req">*</span></label>
+                <input type="text" id="nome" maxlength="120" placeholder="Seu nome completo ou profissional" autocomplete="name" />
               </div>
-              <textarea id="bio" maxlength="500" placeholder="Quem é você, cargo e especialidade, formação/experiência e foco/propósito."></textarea>
-              <p class="hint"><b>Estrutura recomendada:</b> Nome → Cargo e Especialidade → Formação ou Experiência → Foco/Propósito.</p>
+
+              <div class="field field--curso">
+                <label for="curso">Curso ministrado <span class="req">*</span></label>
+                <input type="text" id="curso" maxlength="140" placeholder="Nome do curso/palestra que você ministra" />
+              </div>
+
+              <div class="field field--linkedin">
+                <label for="linkedin">LinkedIn <span class="opt">(opcional)</span></label>
+                <input type="url" id="linkedin" maxlength="200" inputmode="url" autocomplete="url" placeholder="https://linkedin.com/in/seu-perfil" />
+              </div>
             </div>
 
-            <div class="err" id="err" role="alert"></div>
-            <button type="submit" id="submit">
-              <i class="fas fa-paper-plane"></i> <span>Enviar cadastro</span>
-            </button>
+            <div class="form-col">
+              <div class="field field--eixos">
+                <label
+                  >Eixo temático <span class="req">*</span>
+                  <span style="font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-faint)">(selecione um ou mais)</span></label
+                >
+                <div class="eixos" id="eixos"></div>
+              </div>
+            </div>
+
+            <div class="form-bio">
+              <div class="field field--bio">
+                <div class="bio-head">
+                  <label for="bio">Mini bio <span class="req">*</span></label>
+                  <span class="bio-count" id="bioCount">0/500</span>
+                </div>
+                <textarea id="bio" maxlength="500" placeholder="Quem é você, cargo e especialidade, formação/experiência e foco/propósito."></textarea>
+                <p class="hint"><b>Estrutura recomendada:</b> Nome → Cargo → Formação/Experiência → Foco.</p>
+              </div>
+            </div>
+
+            <div class="form-foot">
+              <div class="err" id="err" role="alert"></div>
+              <button type="submit" id="submit"><i class="fas fa-paper-plane"></i> <span>Enviar cadastro</span></button>
+            </div>
           </form>
         </div>
       </div>
-
-      <p class="footer">Escola de Governo · Prefeitura Municipal de Pedro Leopoldo</p>
     </div>
 
     <script>
@@ -270,168 +1351,262 @@
         "Proteção de Dados e Segurança da Informação",
         "Liderança Pública e Gestão de Pessoas",
         "Atendimento ao Cidadão e Experiência do Usuário",
-        "Sustentabilidade e Desenvolvimento Territorial",
-      ];
-      const API = "/api/palestrantes";
-      const BIO_MAX = 500;
+        "Sustentabilidade e Desenvolvimento Territorial"
+      ]
+      const API = "/api/palestrantes"
+      const BIO_MAX = 500
 
-      const convite = new URLSearchParams(location.search).get("convite") || "";
-      let fotoPendente = null; // { dataUrl, mime }
+      const convite = new URLSearchParams(location.search).get("convite") || ""
+      let fotoPendente = null // { dataUrl, mime }
 
-      const $ = (id) => document.getElementById(id);
-      const show = (id) => {
-        ["stLoading", "stInvalid", "stSuccess", "stForm"].forEach((s) => { $(s).hidden = s !== id; });
-      };
+      const $ = id => document.getElementById(id)
+      const show = id => {
+        ;["stLoading", "stInvalid", "stSuccess", "stForm"].forEach(s => {
+          $(s).hidden = s !== id
+        })
+      }
 
+      // ---- Animação de entrada ----
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      const BASE_ANIM = reduceMotion ? 0 : 1850 // capelo cai + título aparece
+      const WELCOME_HOLD = reduceMotion ? 0 : 1150 // tempo que o "bem-vindo" fica
+      const wait = ms => new Promise(r => setTimeout(r, Math.max(0, ms)))
+
+      // "Seja bem-vindo, [Nome]" no splash (nome vindo do convite). Mostrado como
+      // passo explícito da coreografia (não por timer solto).
+      function mostrarBoasVindas(nome) {
+        const el = $("introWelcome")
+        if (!el) return
+        const primeiro = String(nome || "")
+          .trim()
+          .split(/\s+/)[0]
+        if (primeiro) {
+          el.innerHTML = "Seja bem-vindo, <b></b>!"
+          el.querySelector("b").textContent = primeiro
+        } else {
+          el.textContent = "Seja bem-vindo!"
+        }
+        el.classList.add("is-on")
+      }
+
+      function hideSplash() {
+        const sp = $("introSplash")
+        if (!sp) return
+        sp.classList.add("is-hiding")
+        setTimeout(() => sp.remove(), 650)
+      }
+      // Mostra um estado já com a animação de revelação (e o reveal da coluna).
+      function revealState(id) {
+        show(id)
+        const el = $(id)
+        document.querySelector(".shell").classList.add("is-revealed")
+        requestAnimationFrame(() => el.classList.add("is-revealed"))
+      }
       async function api(action, payload) {
         const res = await fetch(API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, convite, ...payload }),
-        });
-        let data;
-        try { data = await res.json(); } catch { data = { ok: false, error: "Resposta inválida." }; }
-        if (!res.ok || !data.ok) throw new Error(data.error || `Falha (${res.status}).`);
-        return data;
+          body: JSON.stringify({ action, convite, ...payload })
+        })
+        let data
+        try {
+          data = await res.json()
+        } catch {
+          data = { ok: false, error: "Resposta inválida." }
+        }
+        if (!res.ok || !data.ok) throw new Error(data.error || `Falha (${res.status}).`)
+        return data
       }
 
       function comprimirImagem(file, maxLado = 800, quality = 0.85) {
         return new Promise((resolve, reject) => {
-          if (!file || !/^image\//.test(file.type)) return reject(new Error("Selecione uma imagem (JPG ou PNG)."));
-          const reader = new FileReader();
-          reader.onerror = () => reject(new Error("Falha ao ler a imagem."));
+          if (!file || !/^image\//.test(file.type)) return reject(new Error("Selecione uma imagem (JPG ou PNG)."))
+          const reader = new FileReader()
+          reader.onerror = () => reject(new Error("Falha ao ler a imagem."))
           reader.onload = () => {
-            const img = new Image();
-            img.onerror = () => reject(new Error("Arquivo de imagem inválido."));
+            const img = new Image()
+            img.onerror = () => reject(new Error("Arquivo de imagem inválido."))
             img.onload = () => {
-              let { width, height } = img;
-              if (width >= height && width > maxLado) { height = Math.round(height * maxLado / width); width = maxLado; }
-              else if (height > width && height > maxLado) { width = Math.round(width * maxLado / height); height = maxLado; }
-              const canvas = document.createElement("canvas");
-              canvas.width = width; canvas.height = height;
-              const ctx = canvas.getContext("2d");
-              ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, width, height);
-              ctx.drawImage(img, 0, 0, width, height);
-              resolve({ dataUrl: canvas.toDataURL("image/jpeg", quality), mime: "image/jpeg" });
-            };
-            img.src = reader.result;
-          };
-          reader.readAsDataURL(file);
-        });
+              let { width, height } = img
+              if (width >= height && width > maxLado) {
+                height = Math.round((height * maxLado) / width)
+                width = maxLado
+              } else if (height > width && height > maxLado) {
+                width = Math.round((width * maxLado) / height)
+                height = maxLado
+              }
+              const canvas = document.createElement("canvas")
+              canvas.width = width
+              canvas.height = height
+              const ctx = canvas.getContext("2d")
+              ctx.fillStyle = "#fff"
+              ctx.fillRect(0, 0, width, height)
+              ctx.drawImage(img, 0, 0, width, height)
+              resolve({ dataUrl: canvas.toDataURL("image/jpeg", quality), mime: "image/jpeg" })
+            }
+            img.src = reader.result
+          }
+          reader.readAsDataURL(file)
+        })
       }
 
       function montarEixos() {
-        $("eixos").innerHTML = EIXOS.map((x, i) => `
+        $("eixos").innerHTML = EIXOS.map(
+          (x, i) => `
           <label class="eixo-opt" data-eixo="${i}">
             <input type="checkbox" value="${x}" />
             <span>${x}</span>
-          </label>`).join("");
-        $("eixos").querySelectorAll(".eixo-opt").forEach((opt) => {
-          const cb = opt.querySelector("input");
-          cb.addEventListener("change", () => opt.classList.toggle("is-checked", cb.checked));
-        });
+          </label>`
+        ).join("")
+        $("eixos")
+          .querySelectorAll(".eixo-opt")
+          .forEach(opt => {
+            const cb = opt.querySelector("input")
+            cb.addEventListener("change", () => opt.classList.toggle("is-checked", cb.checked))
+          })
       }
 
       function eixosSelecionados() {
-        return Array.from($("eixos").querySelectorAll("input:checked")).map((c) => c.value);
+        return Array.from($("eixos").querySelectorAll("input:checked")).map(c => c.value)
       }
 
       function wireForm() {
-        const bio = $("bio"), count = $("bioCount"), err = $("err");
-        const showErr = (m) => { err.innerHTML = m ? `<i class="fas fa-circle-exclamation"></i> ${m}` : ""; };
+        const bio = $("bio"),
+          count = $("bioCount"),
+          err = $("err")
+        const showErr = m => {
+          err.innerHTML = m ? `<i class="fas fa-circle-exclamation"></i> ${m}` : ""
+        }
 
-        const autoGrow = () => { bio.style.height = "auto"; bio.style.height = Math.max(bio.scrollHeight, 120) + "px"; };
+        // A textarea sempre cresce para mostrar TODO o texto (sem scroll interno).
+        // Como a bio ocupa a largura toda, ela cresce pouco mesmo com 500 chars.
+        const autoGrow = () => {
+          bio.style.height = "auto"
+          bio.style.height = Math.max(bio.scrollHeight, 138) + "px"
+        }
+        window.addEventListener("resize", autoGrow)
         bio.addEventListener("input", () => {
-          const n = bio.value.length;
-          count.textContent = `${n}/${BIO_MAX}`;
-          count.classList.toggle("is-warn", n >= BIO_MAX * 0.85 && n < BIO_MAX);
-          count.classList.toggle("is-full", n >= BIO_MAX);
-          autoGrow();
-        });
-        requestAnimationFrame(autoGrow);
+          const n = bio.value.length
+          count.textContent = `${n}/${BIO_MAX}`
+          count.classList.toggle("is-warn", n >= BIO_MAX * 0.85 && n < BIO_MAX)
+          count.classList.toggle("is-full", n >= BIO_MAX)
+          autoGrow()
+        })
+        requestAnimationFrame(autoGrow)
 
-        $("foto").addEventListener("change", async (e) => {
-          const file = e.target.files && e.target.files[0];
-          if (!file) return;
+        $("foto").addEventListener("change", async e => {
+          const file = e.target.files && e.target.files[0]
+          if (!file) return
           try {
-            fotoPendente = await comprimirImagem(file);
-            $("photoPrev").innerHTML = `<img src="${fotoPendente.dataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
-            $("uploadLabel").textContent = "Trocar foto";
-            showErr("");
-          } catch (e2) { showErr(e2.message); }
-          finally { e.target.value = ""; }
-        });
+            fotoPendente = await comprimirImagem(file)
+            $("photoPrev").innerHTML = `<img src="${fotoPendente.dataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+            $("uploadLabel").textContent = "Trocar foto"
+            showErr("")
+          } catch (e2) {
+            showErr(e2.message)
+          } finally {
+            e.target.value = ""
+          }
+        })
 
-        $("form").addEventListener("submit", async (e) => {
-          e.preventDefault();
-          showErr("");
-          const nome = $("nome").value.trim();
-          const eixos = eixosSelecionados();
-          const curso = $("curso").value.trim();
-          const miniBio = bio.value.trim();
+        $("form").addEventListener("submit", async e => {
+          e.preventDefault()
+          showErr("")
+          const nome = $("nome").value.trim()
+          const eixos = eixosSelecionados()
+          const curso = $("curso").value.trim()
+          const miniBio = bio.value.trim()
+          let linkedin = $("linkedin").value.trim()
+          if (linkedin && !/^https?:\/\//i.test(linkedin)) linkedin = "https://" + linkedin
 
-          if (!fotoPendente) return showErr("Envie uma foto.");
-          if (nome.length < 3) return showErr("Informe o nome completo.");
-          if (!eixos.length) return showErr("Selecione ao menos um eixo temático.");
-          if (!curso) return showErr("Informe o curso ministrado.");
-          if (!miniBio) return showErr("Escreva sua mini bio.");
+          if (!fotoPendente) return showErr("Envie uma foto.")
+          if (nome.length < 3) return showErr("Informe o nome completo.")
+          if (!eixos.length) return showErr("Selecione ao menos um eixo temático.")
+          if (!curso) return showErr("Informe o curso ministrado.")
+          if (!miniBio) return showErr("Escreva sua mini bio.")
 
-          const btn = $("submit");
-          btn.disabled = true;
-          btn.querySelector("span").textContent = "Enviando…";
+          const btn = $("submit")
+          btn.disabled = true
+          btn.querySelector("span").textContent = "Enviando…"
           try {
             await api("invite-submit", {
-              nome, eixos, cursoId: "", cursoTitulo: curso, miniBio,
-              fotoBase64: fotoPendente.dataUrl, fotoMime: fotoPendente.mime,
-            });
-            show("stSuccess");
+              nome,
+              eixos,
+              cursoId: "",
+              cursoTitulo: curso,
+              miniBio,
+              linkedin,
+              fotoBase64: fotoPendente.dataUrl,
+              fotoMime: fotoPendente.mime
+            })
+            revealState("stSuccess")
           } catch (e3) {
             // Se o convite expirou no meio do caminho, mostra a tela de inválido.
             if (/utilizado|revogado|invalido|inválido/i.test(e3.message)) {
-              setInvalid(e3.message);
+              setInvalid(e3.message)
             } else {
-              btn.disabled = false;
-              btn.querySelector("span").textContent = "Enviar cadastro";
-              showErr(e3.message);
+              btn.disabled = false
+              btn.querySelector("span").textContent = "Enviar cadastro"
+              showErr(e3.message)
             }
           }
-        });
+        })
       }
 
       function setInvalid(msg) {
-        if (msg) $("invMsg").textContent = msg;
-        show("stInvalid");
+        if (msg) $("invMsg").textContent = msg
+        revealState("stInvalid")
       }
 
-      (async function init() {
-        if (!convite) { setInvalid("Link sem código de convite. Solicite um novo link à Escola de Governo."); return; }
-        try {
-          const r = await api("invite-check", {});
-          if (r.valid) {
-            montarEixos();
-            wireForm();
-            show("stForm");
-          } else {
+      ;(async function init() {
+        const started = performance.now()
+
+        // Valida o convite em paralelo ao splash (o capelo girando faz as vezes
+        // de "loader" enquanto isso). Resolve num descritor do que mostrar.
+        const checagem = (async () => {
+          if (!convite) return { tipo: "invalido", msg: "Link sem código de convite. Solicite um novo link à Escola de Governo." }
+          try {
+            const r = await api("invite-check", {})
+            if (r.valid) return { tipo: "form", nome: r.nome }
             const map = {
               used: "Este link já foi utilizado. Solicite um novo link à Escola de Governo.",
               revoked: "Este link foi revogado. Solicite um novo link à Escola de Governo.",
               notfound: "Link inválido. Verifique o endereço ou solicite um novo.",
-              missing: "Link sem código de convite.",
-            };
-            setInvalid(map[r.reason] || "Este link não é válido ou já foi utilizado.");
+              missing: "Link sem código de convite."
+            }
+            return { tipo: "invalido", msg: map[r.reason] || "Este link não é válido ou já foi utilizado." }
+          } catch (e) {
+            return { tipo: "invalido", msg: "Não foi possível validar o convite. Tente novamente mais tarde." }
           }
-        } catch (e) {
-          setInvalid("Não foi possível validar o convite. Tente novamente mais tarde.");
+        })()
+
+        // Espera a animação base do capelo E a validação (o que terminar por último).
+        const [res] = await Promise.all([checagem, wait(BASE_ANIM - (performance.now() - started))])
+
+        if (res.tipo === "form") {
+          // Mostra o "Seja bem-vindo, [Nome]" e segura um instante ANTES de sair.
+          mostrarBoasVindas(res.nome)
+          await wait(WELCOME_HOLD)
+          hideSplash()
+          montarEixos()
+          wireForm()
+          revealState("stForm")
+        } else {
+          await wait(reduceMotion ? 0 : 280)
+          hideSplash()
+          setInvalid(res.msg)
         }
-      })();
+      })()
 
       // Alternância de tema (dark/white), persistida como no portal.
       $("themeToggle").addEventListener("click", () => {
-        const cur = document.documentElement.getAttribute("data-theme") || "light";
-        const next = cur === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        try { localStorage.setItem("egovpl-theme", next); } catch (_) {}
-      });
+        const cur = document.documentElement.getAttribute("data-theme") || "light"
+        const next = cur === "dark" ? "light" : "dark"
+        document.documentElement.setAttribute("data-theme", next)
+        try {
+          localStorage.setItem("egovpl-theme", next)
+        } catch (_) {}
+      })
     </script>
   </body>
 </html>

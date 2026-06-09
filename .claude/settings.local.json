@@ -112,7 +112,20 @@
       "Bash(git rev-list *)",
       "PowerShell(Get-Process *)",
       "Bash(git commit -m '@ *)",
-      "Bash(git commit --amend -m 'feat\\(painel\\): relatorios ABNT por evento+geral, carga horaria e palestrante em modal' -m '- Exportacoes CSV/PDF/Excel/PPTX em padrao ABNT \\(capa, sumario, introducao, numeracao, figuras com fonte e data de extracao\\); conteudo por evento e consolidado conforme filtro de evento/secretaria; sem listas nominais; sem travessao. *)"
+      "Bash(git commit --amend -m 'feat\\(painel\\): relatorios ABNT por evento+geral, carga horaria e palestrante em modal' -m '- Exportacoes CSV/PDF/Excel/PPTX em padrao ABNT \\(capa, sumario, introducao, numeracao, figuras com fonte e data de extracao\\); conteudo por evento e consolidado conforme filtro de evento/secretaria; sem listas nominais; sem travessao. *)",
+      "Bash(curl -s --max-time 20 \"http://localhost:3000/assets/js/palestrantes.js\")",
+      "Bash(curl -s --max-time 20 \"http://localhost:3000/assets/css/module/palestrantes.css\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 20 \"http://localhost:3000/assets/img/marca/egov-pl-combo.png\")",
+      "Bash(curl -sL --max-time 20 \"http://localhost:3000/cadastro-palestrante\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 20 \"http://localhost:3000/assets/img/marca/egov-logo.png\")",
+      "Bash(curl -s --max-time 30 -X POST \"http://localhost:3000/api/palestrantes\" -H \"Content-Type: application/json\" -d '{\"action\":\"invite-list\"}')",
+      "Bash(curl -s --max-time 40 -X POST \"http://localhost:3000/api/palestrantes\" -H \"Content-Type: application/json\" -d '{\"action\":\"invite-list\"}')",
+      "Bash(curl -s --max-time 45 -X POST \"http://localhost:3000/api/palestrantes\" -H \"Content-Type: application/json\" -d '{\"action\":\"invite-list\"}')",
+      "Bash(curl -sL --max-time 20 \"http://localhost:3002/cadastro-palestrante\")",
+      "Bash(curl -sL --max-time 15 \"http://localhost:3002/cadastro-palestrante\")",
+      "Bash(curl -s --max-time 45 -X POST \"http://localhost:3002/api/palestrantes\" -H \"Content-Type: application/json\" -d '{\"action\":\"invite-create\",\"nome\":\"Lucelho Silva\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3002/cadastro-palestrante)",
+      "Bash(curl *)"
     ]
   }
 }

@@ -56,10 +56,11 @@ const COL = {
   STATUS:        10,
   ORIGEM:        11,
   FOTO:          12,
+  LINKEDIN:      13,
 };
 const HEADER = [
   'ID', 'Nome', 'Eixos', 'CursoId', 'CursoTitulo', 'MiniBio',
-  'FotoFileId', 'CriadoEm', 'AtualizadoEm', 'Status', 'Origem', 'Foto',
+  'FotoFileId', 'CriadoEm', 'AtualizadoEm', 'Status', 'Origem', 'Foto', 'Linkedin',
 ];
 
 // Colunas da aba Convites (1-based).
@@ -172,6 +173,7 @@ function _update(payload) {
   sheet.getRange(linha, COL.CURSO_TITULO).setValue(dados.cursoTitulo);
   sheet.getRange(linha, COL.MINIBIO).setValue(dados.miniBio);
   sheet.getRange(linha, COL.FOTO_FILE_ID).setValue(fotoFileId);
+  sheet.getRange(linha, COL.LINKEDIN).setValue(dados.linkedin || '');
   sheet.getRange(linha, COL.ATUALIZADO_EM).setValue(new Date());
   _marcarFoto(sheet, linha, fotoFileId);
 
@@ -211,9 +213,12 @@ function _inserirPalestrante(dados, payload, origem) {
     dados.miniBio, fotoFileId, agora, agora, STATUS_ATIVO, origem,
   ];
   sheet.appendRow(row);
+  const lastRow = sheet.getLastRow();
   // Coluna "Foto": smart chip / link clicavel para o arquivo no Drive.
-  _marcarFoto(sheet, sheet.getLastRow(), fotoFileId);
-  return row;
+  _marcarFoto(sheet, lastRow, fotoFileId);
+  sheet.getRange(lastRow, COL.LINKEDIN).setValue(dados.linkedin || '');
+  // Devolve a linha completa (inclui Foto e Linkedin) para o objeto de retorno.
+  return sheet.getRange(lastRow, 1, 1, HEADER.length).getValues()[0];
 }
 
 // ============ ACOES: CONVITES (uso unico) ============
@@ -282,7 +287,9 @@ function _inviteCheck(payload) {
   const status = String(sheet.getRange(linha, ICOL.STATUS).getValue()).trim().toLowerCase();
   if (status === INVITE_USADO)    return { ok: true, valid: false, reason: 'used' };
   if (status === INVITE_REVOGADO) return { ok: true, valid: false, reason: 'revoked' };
-  return { ok: true, valid: true };
+  const nome = sheet.getLastColumn() >= ICOL.NOME
+    ? String(sheet.getRange(linha, ICOL.NOME).getValue() || '').trim() : '';
+  return { ok: true, valid: true, nome: nome };
 }
 
 // Publico: o palestrante envia o cadastro. Valida o convite (deve estar
@@ -322,6 +329,9 @@ function _validar(payload, opts) {
   const cursoId     = String(payload.cursoId || '').trim();
   const cursoTitulo = String(payload.cursoTitulo || '').trim();
   const miniBio     = String(payload.miniBio || '').trim();
+  let linkedin      = String(payload.linkedin || '').trim();
+  // LinkedIn e OPCIONAL. Se vier sem esquema, prefixa https://
+  if (linkedin && !/^https?:\/\//i.test(linkedin)) linkedin = 'https://' + linkedin;
 
   if (nome.length < 3)  return { erro: 'Nome completo invalido (minimo 3 caracteres).' };
   if (!eixos)           return { erro: 'Selecione ao menos um eixo tematico.' };
@@ -330,7 +340,7 @@ function _validar(payload, opts) {
   if (miniBio.length > MINIBIO_MAX) return { erro: 'Mini bio excede ' + MINIBIO_MAX + ' caracteres.' };
   if (opts.fotoObrigatoria && !payload.fotoBase64) return { erro: 'Foto obrigatoria.' };
 
-  return { nome: nome, eixos: eixos, cursoId: cursoId, cursoTitulo: cursoTitulo, miniBio: miniBio };
+  return { nome: nome, eixos: eixos, cursoId: cursoId, cursoTitulo: cursoTitulo, miniBio: miniBio, linkedin: linkedin };
 }
 
 // Normaliza eixos (array ou string) para "A; B; C".
@@ -461,6 +471,7 @@ function _linhaParaObjeto(row) {
     atualizadoEm: _isoData(row[COL.ATUALIZADO_EM - 1]),
     status:      String(row[COL.STATUS - 1] || STATUS_ATIVO),
     origem:      String(row[COL.ORIGEM - 1] || 'admin'),
+    linkedin:    String(row[COL.LINKEDIN - 1] || '').trim(),
   };
 }
 

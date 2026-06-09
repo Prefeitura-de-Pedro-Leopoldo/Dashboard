@@ -221,6 +221,10 @@ export async function openCadastroModal(id = null) {
                   ${cursoOptions}
                 </select>
               </div>
+              <div class="field">
+                <label for="palLinkedin">LinkedIn <span class="pal-label-aux">(opcional)</span></label>
+                <input type="url" id="palLinkedin" maxlength="200" inputmode="url" placeholder="https://linkedin.com/in/perfil" value="${escapeHtml(p.linkedin || "")}" autocomplete="off" />
+              </div>
             </div>
           </div>
         </section>
@@ -346,6 +350,8 @@ function wirePalModal(p) {
     const cursoId = cursoSel.value
     const cursoTitulo = cursoSel.selectedOptions[0]?.value ? cursoSel.selectedOptions[0].textContent.trim() : ""
     const miniBio = bio.value.trim()
+    let linkedin = q("#palLinkedin")?.value.trim() || ""
+    if (linkedin && !/^https?:\/\//i.test(linkedin)) linkedin = "https://" + linkedin
 
     if (nome.length < 3) { showStep(0); return showErr("Informe o nome completo (mínimo 3 caracteres).") }
     if (!cursoId || !cursoTitulo) { showStep(0); return showErr("Selecione o curso ministrado.") }
@@ -359,7 +365,7 @@ function wirePalModal(p) {
     const labelPrev = labelSpan ? labelSpan.textContent : ""
     if (labelSpan) labelSpan.textContent = "Salvando..."
 
-    const payload = { nome, eixos, cursoId, cursoTitulo, miniBio }
+    const payload = { nome, eixos, cursoId, cursoTitulo, miniBio, linkedin }
     if (_fotoPendente) { payload.fotoBase64 = _fotoPendente.dataUrl; payload.fotoMime = _fotoPendente.mime }
     else if (_editId && _removerFoto) { payload.removerFoto = true }
 
@@ -542,6 +548,7 @@ function cardHtml(p) {
       <div class="pal-card__foot">
         <span class="pal-card__date">${p.criadoEm ? formatDateBR(String(p.criadoEm).slice(0, 10)) : ""}</span>
         <div class="pal-card__actions">
+          ${p.linkedin ? `<a class="pal-icon-btn pal-icon-btn--in" href="${escapeHtml(p.linkedin)}" target="_blank" rel="noopener" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>` : ""}
           <button type="button" class="pal-icon-btn" data-pal-edit="${escapeHtml(p.id)}" title="Editar"><i class="fas fa-pen"></i></button>
           <button type="button" class="pal-icon-btn pal-icon-btn--danger" data-pal-del="${escapeHtml(p.id)}" title="Excluir"><i class="fas fa-trash-can"></i></button>
         </div>
@@ -585,59 +592,138 @@ export async function listarConvites() {
 }
 
 // ================ Convites de uso único ================
+// Modal EGov dedicado, em 2 fases: (1) pede o nome do palestrante; (2) abertura
+// personalizada com o link pronto. O nome alimenta o alerta de "ainda não
+// preencheu" (sino de notificações) depois de 3 dias.
+
+const INVC_LOGO = "/assets/img/marca/egov-pl-combo.png"
+let _invcEl = null
+
+function _invcEsc(e) { if (e.key === "Escape") fecharConvite() }
+function fecharConvite() {
+  if (!_invcEl) return
+  document.removeEventListener("keydown", _invcEsc)
+  _invcEl.remove()
+  _invcEl = null
+}
+
+function _invcHeroHtml() {
+  return `<div class="pal-invc-hero"><img class="pal-invc-logo" src="${INVC_LOGO}" alt="Escola de Governo · Pedro Leopoldo" /></div>`
+}
+
 async function gerarConvite() {
-  const host = document.getElementById("palInviteHost")
-  const btn = document.getElementById("palConvite")
-  if (!host) return
+  fecharConvite()
+  const overlay = document.createElement("div")
+  overlay.className = "pal-modal__overlay"
+  overlay.innerHTML = `
+    <div class="pal-modal pal-modal--invite" role="dialog" aria-modal="true" aria-label="Gerar link de convite">
+      <div class="pal-modal__head">
+        <h3><i class="fas fa-paper-plane"></i> Convite de palestrante</h3>
+        <button type="button" class="pal-modal__close" id="invcClose" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="pal-modal__body pal-invc-body" id="invcBody"></div>
+      <div class="pal-modal__foot" id="invcFoot"></div>
+    </div>`
+  document.body.appendChild(overlay)
+  _invcEl = overlay
+  document.addEventListener("keydown", _invcEsc)
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) fecharConvite() })
+  overlay.querySelector("#invcClose").addEventListener("click", fecharConvite)
+  _invcRenderForm()
+}
 
-  // Pede o nome do palestrante antes de gerar (alimenta o alerta de "ainda não
-  // preencheu" após 3 dias, no sino de notificações).
-  const nome = await deps.showPrompt({
-    title: "Gerar link de convite",
-    label: "Nome do palestrante",
-    placeholder: "Ex.: Maria Souza",
-    message: "Usamos o nome só para acompanhar quem ainda não preencheu o cadastro.",
-    confirmLabel: "Gerar link",
-    maxLength: 120,
-  })
-  if (!nome) return // cancelou
+// Fase 1: pedir o nome.
+function _invcRenderForm(valor = "") {
+  const body = _invcEl.querySelector("#invcBody")
+  const foot = _invcEl.querySelector("#invcFoot")
+  body.innerHTML = `
+    ${_invcHeroHtml()}
+    <div class="pal-invc-pad">
+      <h4 class="pal-invc-title">Gerar link de convite</h4>
+      <p class="pal-invc-text">Para quem é este convite? O nome personaliza a abertura e nos ajuda a acompanhar quem ainda não preencheu o cadastro.</p>
+      <div class="field pal-invc-field">
+        <label for="invcNome">Nome do palestrante</label>
+        <input type="text" id="invcNome" maxlength="120" placeholder="Ex.: Maria Souza" autocomplete="off" value="${escapeHtml(valor)}" />
+      </div>
+    </div>`
+  foot.innerHTML = `
+    <button type="button" class="btn btn--sm" id="invcCancel">Cancelar</button>
+    <div class="pal-modal__nav">
+      <button type="button" class="btn btn--primary btn--sm" id="invcGerar" disabled><i class="fas fa-link"></i> Gerar link</button>
+    </div>`
+  const input = body.querySelector("#invcNome")
+  const gerar = foot.querySelector("#invcGerar")
+  const sync = () => { gerar.disabled = input.value.trim().length < 3 }
+  sync()
+  input.addEventListener("input", sync)
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && input.value.trim().length >= 3) _invcGerar(input.value.trim()) })
+  foot.querySelector("#invcCancel").addEventListener("click", fecharConvite)
+  gerar.addEventListener("click", () => _invcGerar(input.value.trim()))
+  setTimeout(() => input.focus(), 60)
+}
 
-  if (btn) btn.disabled = true
-  host.innerHTML = `<div class="pal-invite pal-invite--loading"><i class="fas fa-circle-notch fa-spin"></i> Gerando link…</div>`
+async function _invcGerar(nome) {
+  const gerar = _invcEl?.querySelector("#invcGerar")
+  if (gerar) { gerar.disabled = true; gerar.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Gerando…` }
   try {
     const data = await api("invite-create", { nome })
     const url = `${location.origin}/cadastro-palestrante?convite=${encodeURIComponent(data.token)}`
-    host.innerHTML = `
-      <div class="pal-invite">
-        <div class="pal-invite__head">
-          <strong><i class="fas fa-link"></i> Link de convite gerado</strong>
-          <span class="pal-invite__badge">uso único</span>
-          <button type="button" class="pal-invite__close" id="palInviteClose" title="Fechar"><i class="fas fa-xmark"></i></button>
-        </div>
-        <div class="pal-invite__row">
-          <input type="text" id="palInviteUrl" readonly value="${escapeHtml(url)}" />
-          <button type="button" class="btn btn--primary btn--sm" id="palInviteCopy"><i class="fas fa-copy"></i> Copiar</button>
-        </div>
-        <p class="pal-invite__hint">Envie este link para <b>${escapeHtml(nome)}</b>. O cadastro pode ser preenchido <b>uma única vez</b>; após o envio o link expira. Se não preencher em 3 dias, um alerta aparece no sino de notificações.</p>
-      </div>`
-    const input = document.getElementById("palInviteUrl")
-    input.focus()
-    input.select()
-    document.getElementById("palInviteCopy").addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(url)
-      } catch {
-        input.select()
-        document.execCommand("copy")
-      }
-      const b = document.getElementById("palInviteCopy")
-      b.innerHTML = `<i class="fas fa-check"></i> Copiado`
-      setTimeout(() => { b.innerHTML = `<i class="fas fa-copy"></i> Copiar` }, 1800)
-    })
-    document.getElementById("palInviteClose").addEventListener("click", () => { host.innerHTML = "" })
+    _invcRenderDone(nome, url)
   } catch (err) {
-    host.innerHTML = `<div class="pal-invite pal-invite--err"><i class="fas fa-circle-exclamation"></i> ${escapeHtml(err.message)}</div>`
-  } finally {
-    if (btn) btn.disabled = false
+    _invcRenderErro(err.message || "Não foi possível gerar o link.", nome)
   }
+}
+
+// Fase 2: abertura personalizada com o link.
+function _invcRenderDone(nome, url) {
+  const primeiro = String(nome).trim().split(/\s+/)[0] || nome
+  const body = _invcEl.querySelector("#invcBody")
+  const foot = _invcEl.querySelector("#invcFoot")
+  body.innerHTML = `
+    ${_invcHeroHtml()}
+    <div class="pal-invc-pad pal-invc-done">
+      <div class="pal-invc-check"><i class="fas fa-circle-check"></i></div>
+      <p class="pal-invc-eyebrow">Convite de palestrante · uso único</p>
+      <h4 class="pal-invc-name">${escapeHtml(nome)}</h4>
+      <p class="pal-invc-text">Link de cadastro pronto para enviar a <b>${escapeHtml(primeiro)}</b>.</p>
+      <div class="pal-invc-link">
+        <input type="text" id="invcUrl" readonly value="${escapeHtml(url)}" />
+        <button type="button" class="btn btn--primary btn--sm" id="invcCopy"><i class="fas fa-copy"></i> Copiar</button>
+      </div>
+      <p class="pal-invc-hint"><i class="fas fa-circle-info"></i> Pode ser preenchido <b>uma única vez</b>; após o envio o link expira. Se <b>${escapeHtml(primeiro)}</b> não preencher em <b>3 dias</b>, um alerta aparece no <b>sino de notificações</b>.</p>
+    </div>`
+  foot.innerHTML = `
+    <button type="button" class="btn btn--sm" id="invcOutro"><i class="fas fa-plus"></i> Gerar outro</button>
+    <div class="pal-modal__nav">
+      <button type="button" class="btn btn--primary btn--sm" id="invcDone"><i class="fas fa-check"></i> Concluir</button>
+    </div>`
+  const input = body.querySelector("#invcUrl")
+  setTimeout(() => { input.focus(); input.select() }, 40)
+  body.querySelector("#invcCopy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(url) } catch { input.select(); document.execCommand("copy") }
+    const b = body.querySelector("#invcCopy")
+    b.innerHTML = `<i class="fas fa-check"></i> Copiado`
+    setTimeout(() => { b.innerHTML = `<i class="fas fa-copy"></i> Copiar` }, 1800)
+  })
+  foot.querySelector("#invcOutro").addEventListener("click", () => _invcRenderForm())
+  foot.querySelector("#invcDone").addEventListener("click", fecharConvite)
+}
+
+function _invcRenderErro(msg, nome) {
+  const body = _invcEl.querySelector("#invcBody")
+  const foot = _invcEl.querySelector("#invcFoot")
+  body.innerHTML = `
+    ${_invcHeroHtml()}
+    <div class="pal-invc-pad pal-invc-done">
+      <div class="pal-invc-check pal-invc-check--err"><i class="fas fa-circle-exclamation"></i></div>
+      <h4 class="pal-invc-name">Não foi possível gerar</h4>
+      <p class="pal-invc-text">${escapeHtml(msg)}</p>
+    </div>`
+  foot.innerHTML = `
+    <button type="button" class="btn btn--sm" id="invcCancel">Fechar</button>
+    <div class="pal-modal__nav">
+      <button type="button" class="btn btn--primary btn--sm" id="invcRetry"><i class="fas fa-rotate-right"></i> Tentar de novo</button>
+    </div>`
+  foot.querySelector("#invcCancel").addEventListener("click", fecharConvite)
+  foot.querySelector("#invcRetry").addEventListener("click", () => _invcRenderForm(nome))
 }
