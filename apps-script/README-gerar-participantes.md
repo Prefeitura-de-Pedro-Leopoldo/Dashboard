@@ -21,9 +21,10 @@ bater — cobre quem se inscreveu com e-mail diferente ou nome com erro de digit
 ## Quando gera
 
 - Roda por **gatilho de tempo (de hora em hora)**.
-- Só gera depois de **3h após a data/hora do evento** (`HORAS_APOS_EVENTO`),
-  lida do `eventos-meta.json` publicado. Se não houver data no meta, usa o
-  **último check-in** da planilha Presentes como referência.
+- Só gera depois de **3h após o evento TERMINAR** (`HORAS_APOS_EVENTO`). O fim =
+  início (`date` + `time` do `eventos-meta.json`) **+ duração** (`cargaHoraria`),
+  e ainda considera o **último check-in** da Presentes (usa o que for mais tarde).
+  Ex.: evento 09h30 com 3h de duração → termina 12h30 → gera **15h30**.
 - **Não regera** eventos que já têm um `participantes.xlsx` **com dados reais** —
   os eventos já encerrados/exportados ficam intactos. Só gera para quem está
   **sem arquivo** ou com o **placeholder vazio** (o `participantes.xlsx` só com

@@ -64,6 +64,14 @@ export async function eventosComInscricaoAberta(eventosExistentes) {
   } catch (_) { return [] }
   if (!data || !data.ok || !Array.isArray(data.sheets)) return []
 
+  // Metadata dos eventos (título, data, local, vagas…) para o card sintético
+  // sair com o nome/data corretos mesmo sem participantes.xlsx ainda.
+  let meta = {}
+  try {
+    const mres = await fetch("/assets/docs/relatorios/eventos-meta.json", { cache: "no-cache" })
+    if (mres.ok) { const mj = await mres.json(); meta = (mj && mj.eventos) || {} }
+  } catch (_) {}
+
   const jaExiste = new Set((eventosExistentes || []).map((e) => pastaDoEvento(e)).filter(Boolean))
   const novos = []
   for (const s of data.sheets) {
@@ -71,21 +79,28 @@ export async function eventosComInscricaoAberta(eventosExistentes) {
     if (!folder || jaExiste.has(folder)) continue
     const slug = folder.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+    const m = meta[folder + "/participantes.xlsx"] || {}
     novos.push({
-      id: "insc-" + slug,
-      title: folder.split("/").pop(),
+      id: m.id || ("insc-" + slug),
+      title: m.title || folder.split("/").pop(),
+      tituloCurto: m.tituloCurto || null,
       fonte: folder + "/Inscrição",
       pastaInscricao: folder,
-      date: null, dateRaw: null, time: "", local: "", city: "",
+      date: m.date || null,
+      dateFim: m.dateFim || null,
+      dateRaw: m.dateRaw || m.date || null,
+      time: m.time || "",
+      local: m.local || "",
+      city: m.city || "",
       status: "inscricoes-abertas",
       inscricaoAberta: true,
-      cargaHoraria: null,
+      cargaHoraria: m.cargaHoraria ?? null,
       totalInscritos: 0, totalAprovados: 0, totalPresentes: 0, totalAusentes: 0, totalAptos: 0,
       taxaPresenca: null, modulos: null,
       turmas: {}, turmasPresentes: {}, secretarias: {}, secretariasPresentes: {},
       timelineInscricoes: [], timelineCheckins: [],
-      participantes: [], vagas: null, taxaOcupacao: null,
-      grupo: null,
+      participantes: [], vagas: m.vagas ?? null, taxaOcupacao: null,
+      grupo: m.grupo || null,
     })
   }
   return novos

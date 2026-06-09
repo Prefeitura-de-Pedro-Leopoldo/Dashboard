@@ -97,12 +97,13 @@ function _processar(forcar) {
     const pres = _acharArquivo(folder, _ehPresente);
     if (!pres) { Logger.log('— %s: sem planilha "Presentes" (pulado).', rel); pulados++; continue; }
 
-    // Janela de 3h: só gera depois de HORAS_APOS_EVENTO da data/hora do evento.
+    // Janela de 3h: só gera depois de HORAS_APOS_EVENTO do FIM do evento
+    // (início + duração), considerando também o último check-in da Presentes.
     if (!forcar) {
-      const refEvento = _dataDoEvento(meta, rel, pres);
-      if (!refEvento) { Logger.log('— %s: sem data do evento (meta/Presentes). Pulado.', rel); pulados++; continue; }
-      const liberaEm = new Date(refEvento.getTime() + HORAS_APOS_EVENTO * 3600 * 1000);
-      if (agora < liberaEm) { pulados++; continue; } // ainda não passaram as 3h
+      const fim = _fimDoEvento(meta, rel, pres);
+      if (!fim) { Logger.log('— %s: sem data do evento (meta/Presentes). Pulado.', rel); pulados++; continue; }
+      const liberaEm = new Date(fim.getTime() + HORAS_APOS_EVENTO * 3600 * 1000);
+      if (agora < liberaEm) { pulados++; continue; } // ainda não passaram as 3h do fim
     }
 
     try {
@@ -286,15 +287,28 @@ function _carregarMeta() {
   }
 }
 
-// Data/hora de referência do evento: tenta o eventos-meta.json (chave
-// "<pasta>/participantes.xlsx"); se não houver, usa o ÚLTIMO check-in da Presentes.
-function _dataDoEvento(meta, rel, presFile) {
+// Quando o evento TERMINA (para contar as 3h a partir do fim, não do início).
+// Fim = início (eventos-meta: date+time) + duração (cargaHoraria, em horas).
+// Considera também o ÚLTIMO check-in da planilha Presentes e usa o que for mais
+// tarde — assim, se o evento atrasar/esticar, ainda esperamos o fim real.
+function _fimDoEvento(meta, rel, presFile) {
+  let fim = null;
   const m = meta[rel + '/' + NOME_SAIDA];
   if (m && m.date) {
-    const d = _parseDataHora(m.date, m.time);
-    if (d) return d;
+    const ini = _parseDataHora(m.date, m.time);
+    if (ini) {
+      const dur = parseFloat(m.cargaHoraria) || 0; // horas de duração
+      fim = new Date(ini.getTime() + dur * 3600 * 1000);
+    }
   }
-  // Fallback: último carimbo da planilha Presentes.
+  // Último check-in da Presentes (se houver) — usa o mais tardio.
+  const ult = _ultimoCheckin(presFile);
+  if (ult && (!fim || ult > fim)) fim = ult;
+  return fim;
+}
+
+// Carimbo de check-in mais recente da planilha Presentes (ou null).
+function _ultimoCheckin(presFile) {
   try {
     const dados = _lerValores(presFile);
     if (dados.values.length > 1) {
@@ -305,7 +319,7 @@ function _dataDoEvento(meta, rel, presFile) {
           const d = _comoData(dados.values[i][idx.data]);
           if (d && (!ult || d > ult)) ult = d;
         }
-        if (ult) return ult;
+        return ult;
       }
     }
   } catch (e) {}
