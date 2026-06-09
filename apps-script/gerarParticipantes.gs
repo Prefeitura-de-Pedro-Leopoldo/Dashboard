@@ -288,17 +288,24 @@ function _carregarMeta() {
 }
 
 // Quando o evento TERMINA (para contar as 3h a partir do fim, não do início).
-// Fim = início (eventos-meta: date+time) + duração (cargaHoraria, em horas).
-// Considera também o ÚLTIMO check-in da planilha Presentes e usa o que for mais
-// tarde — assim, se o evento atrasar/esticar, ainda esperamos o fim real.
+// Em evento de VÁRIOS ENCONTROS, o fim é o ÚLTIMO encontro: usa `dateFim` do
+// eventos-meta (data do último encontro) + horário + duração do encontro.
+//   fim = (dateFim || date) + time + duracaoHoras (ou cargaHoraria, p/ 1 dia só).
+// Considera também o ÚLTIMO check-in da Presentes e usa o que for mais tarde —
+// assim, se o evento atrasar/esticar, ainda esperamos o fim real.
 function _fimDoEvento(meta, rel, presFile) {
   let fim = null;
   const m = meta[rel + '/' + NOME_SAIDA];
-  if (m && m.date) {
-    const ini = _parseDataHora(m.date, m.time);
-    if (ini) {
-      const dur = parseFloat(m.cargaHoraria) || 0; // horas de duração
-      fim = new Date(ini.getTime() + dur * 3600 * 1000);
+  if (m) {
+    const refDia = m.dateFim || m.date; // último encontro (se houver), senão o único
+    if (refDia) {
+      const ini = _parseDataHora(refDia, m.time);
+      if (ini) {
+        // Duração do encontro do último dia. `duracaoHoras` tem prioridade;
+        // senão usa cargaHoraria (vale quando o evento é de um dia só).
+        const dur = parseFloat(m.duracaoHoras != null ? m.duracaoHoras : m.cargaHoraria) || 0;
+        fim = new Date(ini.getTime() + dur * 3600 * 1000);
+      }
     }
   }
   // Último check-in da Presentes (se houver) — usa o mais tardio.
