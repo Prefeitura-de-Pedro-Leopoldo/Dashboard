@@ -118,6 +118,19 @@
       "city": "Pedro Leopoldo",
       "vagas": 50,
       "grupo": null
+    },
+    "gestao-inovacao-presencial-2026-06/participantes.xlsx": {
+      "id": "gestao-da-inovacao-no-setor-publico",
+      "cargaHoraria": 3,
+      "title": "Gestão da Inovação no Setor Público",
+      "tituloCurto": "Gestão da Inovação no Setor Público",
+      "date": "2026-06-16",
+      "dateRaw": "Data: 16/06/2026 09h30",
+      "time": "09h30",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU",
+      "city": "Pedro Leopoldo",
+      "vagas": 40,
+      "grupo": null
     }
   }
 }
