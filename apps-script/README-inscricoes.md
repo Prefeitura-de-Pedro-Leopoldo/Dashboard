@@ -46,6 +46,12 @@ Dashboard  aba "Inscrições"
 5. **Colocar a planilha "Inscrição"** na pasta do evento, no Drive, junto do
    `participantes.xlsx`. Pode ser a própria planilha de respostas vinculada ao
    Forms (mova-a para a pasta do evento).
+6. **(Opcional) Planilha "Presentes"** na mesma pasta, com as MESMAS colunas da
+   inscrição (Carimbo, Nome, Email, Lotação, Secretária). É a planilha de
+   respostas de um Forms de check-in: o **carimbo de cada linha indica o
+   encontro** (a data). Alimenta a aba **Presença** do dashboard.
+   ⚠️ Republique o Web App após atualizar o `.gs` para a ação `presentes` ficar
+   disponível.
 
 ## Testes rápidos
 
@@ -62,6 +68,8 @@ Dashboard  aba "Inscrições"
 | `manifest` | `?action=manifest&token=…` | `{ ok, sheets:[{folder,name,id}] }` |
 | `inscritos` (por pasta) | `?action=inscritos&token=…&path=<pasta>` | `{ ok, folder, sheetId, total, inscritos:[{nome,email,dataInscricao}], atualizadoEm }` |
 | `inscritos` (por id) | `?action=inscritos&token=…&id=<sheetId>` | idem |
+| `presentes` (por pasta) | `?action=presentes&token=…&path=<pasta>` | `{ ok, folder, sheetId, total, presentes:[{nome,email,dataInscricao}], atualizadoEm }` |
+| `presentes` (por id) | `?action=presentes&token=…&id=<sheetId>` | idem |
 
 ## Observações
 

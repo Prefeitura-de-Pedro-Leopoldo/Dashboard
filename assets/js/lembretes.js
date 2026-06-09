@@ -245,6 +245,248 @@ function inscInfoHtml(tipo, titulo, msg) {
     </div>`
 }
 
+// ================ ABA: PRESENÇA ================
+// Cruza os inscritos (planilha "Inscrição") com os check-ins (planilha
+// "Presente(s)") por encontro: o carimbo de cada check-in indica a data do
+// encontro. Para cada encontro mostra presentes vs faltantes entre os inscritos
+// até aquela data. Tudo 100% fiel às planilhas (nada é inventado).
+
+// Casamento inscrito x presente por e-mail OU nome: as duas planilhas costumam
+// ter o e-mail digitado diferente (domínio truncado, e-mail pessoal vs
+// institucional), mas o nome bate. Geramos as duas chaves e casamos por qualquer
+// uma. _coletarChaves alimenta um Set; _casa testa se a pessoa bate nele.
+function _emailKey(p) {
+  const e = String(p.email || "").trim().toLowerCase()
+  return e ? "e:" + e : null
+}
+function _nomeKey(p) {
+  const n = String(p.nome || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/\s+/g, " ").trim()
+  return n ? "n:" + n : null
+}
+function _coletarChaves(set, p) {
+  const e = _emailKey(p); if (e) set.add(e)
+  const n = _nomeKey(p); if (n) set.add(n)
+}
+function _casa(set, p) {
+  const e = _emailKey(p); if (e && set.has(e)) return true
+  const n = _nomeKey(p); if (n && set.has(n)) return true
+  return false
+}
+
+function _dia(iso) { return String(iso || "").slice(0, 10) }
+
+// Busca só os dados (sem renderizar) dos inscritos da pasta do evento.
+async function fetchInscritos(ev, fresh) {
+  const pasta = pastaDoEvento(ev)
+  if (!pasta) return { state: "nopasta", list: [], at: "" }
+  try {
+    const res = await fetch(`/api/inscricoes?path=${encodeURIComponent(pasta)}${fresh ? "&fresh=1" : ""}`, { cache: "no-cache" })
+    if (res.status === 503) return { state: "unconfigured", list: [], at: "" }
+    const data = await res.json().catch(() => null)
+    if (!data || !data.ok) {
+      const r = data && data.reason
+      return { state: r === "noinscricao" || r === "folder" ? "empty" : "error", list: [], at: "" }
+    }
+    return { state: "ok", list: Array.isArray(data.inscritos) ? data.inscritos : [], at: data.atualizadoEm || "" }
+  } catch (_) { return { state: "error", list: [], at: "" } }
+}
+
+// Busca só os dados (sem renderizar) dos check-ins (planilha "Presente(s)").
+async function fetchPresentes(ev, fresh) {
+  const pasta = pastaDoEvento(ev)
+  if (!pasta) return { state: "nopasta", list: [], at: "" }
+  try {
+    const res = await fetch(`/api/inscricoes?kind=presentes&path=${encodeURIComponent(pasta)}${fresh ? "&fresh=1" : ""}`, { cache: "no-cache" })
+    if (res.status === 503) return { state: "unconfigured", list: [], at: "" }
+    const data = await res.json().catch(() => null)
+    if (!data || !data.ok) {
+      const r = data && data.reason
+      return { state: r === "nopresente" || r === "folder" ? "empty" : "error", list: [], at: "" }
+    }
+    return { state: "ok", list: Array.isArray(data.presentes) ? data.presentes : [], at: data.atualizadoEm || "" }
+  } catch (_) { return { state: "error", list: [], at: "" } }
+}
+
+export function renderPresenca(containerId, ev) {
+  const host = document.getElementById(containerId)
+  if (!host) return
+  const st = store(ev)
+
+  // 1ª vez: carrega config de encontros (datas) + inscritos + presentes.
+  if (!st.presLoaded && st.presState !== "loading") {
+    st.presState = "loading"
+    host.innerHTML = `<div class="card">${loaderHtml("Carregando presença…")}</div>`
+    const fresh = !!st.presFresh
+    st.presFresh = false
+    Promise.all([
+      st.encLoaded ? Promise.resolve() : carregarConfigEncontros(ev, st),
+      fetchInscritos(ev, fresh),
+      fetchPresentes(ev, fresh),
+    ]).then(([, insc, pres]) => {
+      st.encLoaded = true
+      st.presInscritos = insc.list
+      st.presInscState = insc.state
+      st.presPresentes = pres.list
+      st.presPresState = pres.state
+      st.presAt = pres.at || insc.at || ""
+    }).finally(() => {
+      st.presLoaded = true
+      st.presState = "ok"
+      renderPresenca(containerId, ev)
+    })
+    return
+  }
+
+  // Encontros com data, ordenados cronologicamente.
+  const encontros = (st.encontros || [])
+    .filter((e) => e.data)
+    .slice()
+    .sort((a, b) => a.data.localeCompare(b.data))
+
+  host.innerHTML = `
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <h3><i class="fas fa-clipboard-check"></i> Presença</h3>
+          <p>Presença por encontro, cruzando os inscritos com os check-ins da planilha “Presentes”.</p>
+        </div>
+        <div class="lemb-bar">
+          <span class="card__header-meta" id="presMeta">${st.presAt ? "Atualizado " + dataHoraBR(st.presAt) : "-"}</span>
+          <button type="button" class="btn btn--sm" id="presReload"><i class="fas fa-arrows-rotate"></i> Atualizar</button>
+        </div>
+      </div>
+      <div id="presBody">${presBodyHtml(st, encontros)}</div>
+    </div>
+  `
+
+  host.querySelector("#presReload")?.addEventListener("click", () => {
+    st.presLoaded = false
+    st.presState = "idle"
+    st.presFresh = true
+    renderPresenca(containerId, ev)
+  })
+
+  host.querySelectorAll(".turma-pill[data-enc]").forEach((b) =>
+    b.addEventListener("click", () => {
+      st.presSel = b.dataset.enc
+      renderPresenca(containerId, ev)
+    })
+  )
+}
+
+function presBodyHtml(st, encontros) {
+  if (st.presInscState === "unconfigured" || st.presPresState === "unconfigured") {
+    return inscInfoHtml("plug", "Presença ao vivo ainda não configurada",
+      "Falta publicar o Apps Script <b>servirInscricoes.gs</b> (com a ação <code>presentes</code>) e definir <code>INSCRICOES_WEBAPP_URL</code> e <code>INSCRICOES_TOKEN</code> na Vercel.")
+  }
+  if (st.presInscState === "nopasta") {
+    return inscInfoHtml("warn", "Sem pasta de origem",
+      "Este evento não tem uma pasta de origem, então não há onde procurar as planilhas “Inscrição” e “Presentes”.")
+  }
+  if (!encontros.length) {
+    return inscInfoHtml("file", "Nenhum encontro com data",
+      "Cadastre as datas dos encontros na aba <b>Encontros & Lembretes</b> para acompanhar a presença de cada um.")
+  }
+
+  // Encontro selecionado: padrão = último que já ocorreu (senão o 1º).
+  const hoje = _dia(new Date().toISOString())
+  let sel = encontros.find((e) => e.id === st.presSel)
+  if (!sel) {
+    const passados = encontros.filter((e) => e.data <= hoje)
+    sel = passados.length ? passados[passados.length - 1] : encontros[0]
+  }
+
+  const inscritos = st.presInscritos || []
+  const presentes = st.presPresentes || []
+
+  // Elegíveis = inscritos até a data do encontro (sem data = elegível sempre).
+  const elegiveis = inscritos.filter((i) => { const d = _dia(i.dataInscricao); return !d || d <= sel.data })
+  // Check-ins cujo carimbo cai na data do encontro selecionado.
+  const presDia = presentes.filter((p) => _dia(p.dataInscricao) === sel.data)
+  const presSet = new Set(); presDia.forEach((p) => _coletarChaves(presSet, p))
+  const eligSet = new Set(); elegiveis.forEach((i) => _coletarChaves(eligSet, i))
+
+  const listaPresentes = elegiveis.filter((i) => _casa(presSet, i))
+  const listaFaltantes = elegiveis.filter((i) => !_casa(presSet, i))
+  // Check-ins de quem não consta como inscrito até a data (não esconder ninguém).
+  const extras = presDia.filter((p) => !_casa(eligSet, p))
+
+  const total = elegiveis.length
+  const taxa = total ? Math.round((listaPresentes.length / total) * 100) : 0
+
+  const semPresentes = st.presPresState !== "ok"
+    ? `<p class="lemb-hint" style="margin-top:var(--space-3)"><i class="fas fa-triangle-exclamation"></i> Nenhuma planilha “Presentes” encontrada na pasta — todos aparecem como faltantes até ela existir.</p>`
+    : ""
+
+  const pills = encontros.map((e, i) => {
+    const ativo = e.id === sel.id
+    const passou = e.data <= hoje
+    return `<button type="button" class="turma-pill${ativo ? " is-active" : ""}" data-enc="${escapeHtml(e.id)}" title="${escapeHtml(e.titulo || "")} - ${formatDateBR(e.data)}">
+      ${escapeHtml(e.titulo || ("Encontro " + (i + 1)))}<span class="pres-pill-date">${formatDateBR(e.data)}</span>${passou ? "" : ` <i class="fas fa-clock" title="encontro futuro"></i>`}</button>`
+  }).join("")
+
+  // Encontro futuro: ainda não ocorreu → sem presentes nem faltantes.
+  if (sel.data > hoje) {
+    return `
+    <div class="turma-switch pres-enc-switch" role="tablist" aria-label="Selecionar encontro">${pills}</div>
+    <div class="empty-state empty-state--inline" style="margin-top:var(--space-4)">
+      <div class="empty-state__art"><i class="fas fa-clock"></i></div>
+      <h3>Encontro futuro - ${formatDateBR(sel.data)}</h3>
+      <p>A presença será registrada no dia do encontro. Por enquanto não há presentes nem faltantes.</p>
+    </div>`
+  }
+
+  return `
+    <div class="turma-switch pres-enc-switch" role="tablist" aria-label="Selecionar encontro">${pills}</div>
+
+    <div class="pres-summary">
+      <div class="pres-kpi pres-kpi--good"><span class="pres-kpi__num">${listaPresentes.length}</span><span class="pres-kpi__lbl">Presentes</span></div>
+      <div class="pres-kpi pres-kpi--bad"><span class="pres-kpi__num">${listaFaltantes.length}</span><span class="pres-kpi__lbl">Faltantes</span></div>
+      <div class="pres-kpi"><span class="pres-kpi__num">${total}</span><span class="pres-kpi__lbl">Inscritos até ${formatDateBR(sel.data)}</span></div>
+      <div class="pres-kpi"><span class="pres-kpi__num">${taxa}%</span><span class="pres-kpi__lbl">Taxa de presença</span></div>
+    </div>
+
+    ${semPresentes}
+    ${extras.length ? `<p class="lemb-hint" style="margin-top:var(--space-3)"><i class="fas fa-circle-info"></i> ${extras.length} check-in(s) nesta data sem inscrição correspondente até ${formatDateBR(sel.data)}.</p>` : ""}
+
+    <div class="grid-2 participantes-grid" style="margin-top:var(--space-4)">
+      <div class="table-wrap">
+        <div class="table-wrap__head">
+          <h3><i class="fas fa-circle-check" style="color: var(--ind-good)"></i> Presentes</h3>
+          <span class="card__header-meta">${listaPresentes.length} pessoa(s)</span>
+        </div>
+        ${presPessoasTabela(listaPresentes, "Ninguém presente neste encontro ainda.")}
+        ${extras.length ? `<div class="table-wrap__head" style="margin-top:var(--space-4)"><h4>Check-ins sem inscrição</h4><span class="card__header-meta">${extras.length}</span></div>${presPessoasTabela(extras, "")}` : ""}
+      </div>
+      <div class="table-wrap">
+        <div class="table-wrap__head">
+          <h3><i class="fas fa-circle-xmark" style="color: var(--red)"></i> Faltantes</h3>
+          <span class="card__header-meta">${listaFaltantes.length} pessoa(s)</span>
+        </div>
+        ${presPessoasTabela(listaFaltantes, "Nenhum faltante neste encontro.")}
+      </div>
+    </div>`
+}
+
+function presPessoasTabela(list, vazio) {
+  if (!list.length) return `<div class="cell-empty">${escapeHtml(vazio)}</div>`
+  const rows = list.map((p, i) => `
+    <tr>
+      <td class="cell-num">${i + 1}</td>
+      <td class="cell-name">${escapeHtml(p.nome || "")}</td>
+      <td>${escapeHtml(p.email || "-")}</td>
+    </tr>`).join("")
+  return `
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th style="width:48px">#</th><th>Nome</th><th>E-mail</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`
+}
+
 // ================ ABA: ENCONTROS & LEMBRETES ================
 export function renderEncontros(containerId, ev) {
   const host = document.getElementById(containerId)

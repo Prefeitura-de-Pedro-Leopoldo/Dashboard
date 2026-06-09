@@ -7,6 +7,7 @@
  *   ?path=<pasta do evento>   ex.: "mapa-gerenciamento-risco-2026-05/turma 1"
  *                              (a pasta de onde sai o participantes.xlsx)
  *   ?manifest=1               lista todas as planilhas "Inscrição" (debug)
+ *   ?kind=presentes&path=...  lê a planilha "Presente(s)" (check-ins) da pasta
  *   ?fresh=1                  ignora o cache em memória
  *
  * Env vars (Vercel e .env): INSCRICOES_WEBAPP_URL, INSCRICOES_TOKEN.
@@ -43,8 +44,10 @@ export default async function handler(req, res) {
   } else {
     const path = String(q.path || "").trim();
     if (!path) return res.status(400).json({ ok: false, error: 'Parâmetro "path" ausente.' });
-    cacheKey = path;
-    upstreamUrl = `${WEBAPP_URL}?action=inscritos&token=${encodeURIComponent(TOKEN)}&path=${encodeURIComponent(path)}`;
+    const presentes = q.kind === "presentes";
+    const action = presentes ? "presentes" : "inscritos";
+    cacheKey = (presentes ? "presentes:" : "") + path;
+    upstreamUrl = `${WEBAPP_URL}?action=${action}&token=${encodeURIComponent(TOKEN)}&path=${encodeURIComponent(path)}`;
   }
 
   const agora = Date.now();

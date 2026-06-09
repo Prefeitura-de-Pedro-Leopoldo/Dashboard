@@ -52,7 +52,7 @@ import {
   taxaRetencao
 } from "./servidores.js"
 import { initPalestrantes, renderLista as renderPalestrantesLista } from "./palestrantes.js"
-import { renderInscricoes, renderEncontros, eventosComInscricaoAberta } from "./lembretes.js"
+import { renderInscricoes, renderEncontros, renderPresenca, eventosComInscricaoAberta } from "./lembretes.js"
 import { showCover } from "./loader.js"
 import { triggerDownload } from "./util.js"
 import { renderViewQrCode } from "./views/qrcode.js"
@@ -893,7 +893,7 @@ function renderEventBlock(ev) {
   //    → só as análises (Resumo, Distribuições, Participantes).
   const aberta = !!ev.inscricaoAberta
   const tabIds = aberta
-    ? ["inscricoes", "encontros"]
+    ? ["inscricoes", "encontros", "presenca"]
     : ["resumo", "distribuicoes", "participantes"]
   let active = getActiveTab(tabsKey, tabIds[0])
   if (!tabIds.includes(active)) active = tabIds[0]
@@ -904,6 +904,7 @@ function renderEventBlock(ev) {
     participantes: { id: "participantes", label: "Participantes", icon: "fa-users", badge: (ev.participantes || []).length },
     inscricoes: { id: "inscricoes", label: "Inscrições", icon: "fa-user-plus" },
     encontros: { id: "encontros", label: "Encontros & Lembretes", icon: "fa-bell" },
+    presenca: { id: "presenca", label: "Presença", icon: "fa-clipboard-check" },
   }
 
   // Cabeçalho: turma aberta tem um banner próprio (sem KPIs de presença).
@@ -993,6 +994,10 @@ function renderEventBlock(ev) {
     ${tabIds.includes("encontros") ? `<div class="view-tabs__panel" data-tab-panel="encontros" ${active === "encontros" ? "" : "hidden"}>
       <div id="lembEncPanel"></div>
     </div>` : ""}
+
+    ${tabIds.includes("presenca") ? `<div class="view-tabs__panel" data-tab-panel="presenca" ${active === "presenca" ? "" : "hidden"}>
+      <div id="lembPresPanel"></div>
+    </div>` : ""}
   `
 
   wireTabs(tabsKey, () => renderEventBlock(ev))
@@ -1006,6 +1011,8 @@ function renderEventBlock(ev) {
     renderInscricoes("lembInscPanel", ev)
   } else if (active === "encontros") {
     renderEncontros("lembEncPanel", ev)
+  } else if (active === "presenca") {
+    renderPresenca("lembPresPanel", ev)
   }
 
   if (active === "resumo") {

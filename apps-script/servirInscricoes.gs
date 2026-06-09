@@ -19,6 +19,9 @@
  *   ?action=inscritos&token=...&path=<pasta do evento>
  *   ?action=inscritos&token=...&id=<sheetId>
  *        -> { ok, folder, sheetId, headers, total, inscritos:[{nome,email,dataInscricao}], atualizadoEm }
+ *   ?action=presentes&token=...&path=<pasta do evento>
+ *        -> idem inscritos, mas lendo a planilha cujo nome comeca com "Presente(s)".
+ *           O carimbo de cada linha (dataInscricao) indica o encontro/data da presenca.
  */
 
 // ============ CONFIGURACOES ============
@@ -47,6 +50,11 @@ function doGet(e) {
       if (p.path != null) return _json(_inscritosByPath(p.path));
       return _json({ ok: false, error: 'Informe "path" (pasta do evento) ou "id" (planilha).' });
     }
+    if (action === 'presentes') {
+      if (p.id)   return _json(_presentesById(p.id));
+      if (p.path != null) return _json(_presentesByPath(p.path));
+      return _json({ ok: false, error: 'Informe "path" (pasta do evento) ou "id" (planilha).' });
+    }
     return _json({ ok: false, error: 'Acao desconhecida: ' + action });
   } catch (err) {
     return _json({ ok: false, error: (err && err.message) ? err.message : String(err) });
@@ -55,40 +63,35 @@ function doGet(e) {
 
 // ============ ACOES ============
 
-// Lista as planilhas "Inscrição" com o caminho da pasta (relativo ao ROOT).
-// Usa busca INDEXADA do Drive (rápida) em vez de varrer a árvore inteira.
+// Lista as planilhas "Inscrição" varrendo a árvore de pastas a partir da raiz.
+// (NÃO usa DriveApp.searchFiles: o operador `contains` faz prefixo de PALAVRA,
+//  então "nscri" não casa com "Inscrição" e a busca indexada também pode não
+//  enxergar planilhas acessíveis só por herança da pasta compartilhada.)
 function _manifest() {
-  const rootId = DriveApp.getFolderById(ROOT_FOLDER_ID).getId();
+  const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
   const out = [];
-  // "nscri" cobre Inscrição/inscricao/Inscrições; o filtro fino é _ehInscricao.
-  const it = DriveApp.searchFiles(
-    'mimeType = "application/vnd.google-apps.spreadsheet" and title contains "nscri" and trashed = false'
-  );
-  while (it.hasNext()) {
-    const f = it.next();
-    if (!_ehInscricao(f.getName())) continue;
-    const folder = _caminhoRelativo(f, rootId);
-    if (folder == null) continue; // fora da pasta de relatórios
-    out.push({ folder: folder, name: f.getName(), id: f.getId() });
-  }
+  _varrerPasta(root, '', out, 0);
   out.sort(function (a, b) { return a.folder.localeCompare(b.folder); });
   return { ok: true, sheets: out };
 }
 
-// Caminho da pasta do arquivo relativo ao ROOT (null se não estiver sob o root).
-function _caminhoRelativo(file, rootId) {
-  const parents = file.getParents();
-  if (!parents.hasNext()) return null;
-  let folder = parents.next();
-  const segs = [];
-  let guard = 0;
-  while (folder && guard++ < 25) {
-    if (folder.getId() === rootId) return segs.reverse().join('/');
-    segs.push(folder.getName());
-    const ps = folder.getParents();
-    folder = ps.hasNext() ? ps.next() : null;
+// Varre recursivamente a pasta acumulando as planilhas "Inscrição" achadas,
+// montando o caminho relativo ao ROOT (mesma estratégia do confirmacaoInscricao.gs).
+function _varrerPasta(folder, prefixo, out, depth) {
+  if (depth > 25) return;
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    if (f.getMimeType() === MimeType.GOOGLE_SHEETS && _ehInscricao(f.getName())) {
+      out.push({ folder: prefixo, name: f.getName(), id: f.getId() });
+    }
   }
-  return null; // não chegou ao root
+  const subs = folder.getFolders();
+  while (subs.hasNext()) {
+    const sub = subs.next();
+    const novo = prefixo ? prefixo + '/' + sub.getName() : sub.getName();
+    _varrerPasta(sub, novo, out, depth + 1);
+  }
 }
 
 // Lê a inscrição navegando até a pasta do evento (ex.: "mapa.../turma 1").
@@ -111,6 +114,33 @@ function _inscritosById(id) {
   const file = DriveApp.getFileById(id);
   const dados = _lerInscricao(file);
   return Object.assign({ ok: true, sheetId: id }, dados);
+}
+
+// Lê a planilha "Presente(s)" navegando até a pasta do evento. Mesmo formato da
+// inscrição; o carimbo de cada linha indica o encontro (data) da presença.
+function _presentesByPath(path) {
+  const segs = String(path || '').split('/').map(function (s) { return s.trim(); }).filter(Boolean);
+  let folder = DriveApp.getFolderById(ROOT_FOLDER_ID);
+  for (let i = 0; i < segs.length; i++) {
+    const child = _acharSubpasta(folder, segs[i]);
+    if (!child) return { ok: false, error: 'Pasta não encontrada: ' + segs[i], reason: 'folder' };
+    folder = child;
+  }
+  const file = _acharArquivo(folder, _ehPresente);
+  if (!file) return { ok: false, error: 'Nenhuma planilha "Presente" nesta pasta.', reason: 'nopresente' };
+  const dados = _lerInscricao(file);
+  // expõe como "presentes" mantendo nome/email/dataInscricao(=carimbo do check-in)
+  return { ok: true, folder: segs.join('/'), sheetId: file.getId(),
+           headers: dados.headers, total: dados.total, atualizadoEm: dados.atualizadoEm,
+           presentes: dados.inscritos };
+}
+
+// Lê a planilha "Presente(s)" diretamente por ID.
+function _presentesById(id) {
+  const file = DriveApp.getFileById(id);
+  const dados = _lerInscricao(file);
+  return { ok: true, sheetId: id, headers: dados.headers, total: dados.total,
+           atualizadoEm: dados.atualizadoEm, presentes: dados.inscritos };
 }
 
 // ============ LEITURA DA PLANILHA ============
@@ -166,16 +196,25 @@ function _acharSubpasta(folder, nome) {
 }
 
 function _acharInscricao(folder) {
+  return _acharArquivo(folder, _ehInscricao);
+}
+
+// Acha na pasta a 1ª planilha Google cujo nome satisfaz o predicado.
+function _acharArquivo(folder, pred) {
   const it = folder.getFiles();
   while (it.hasNext()) {
     const f = it.next();
-    if (f.getMimeType() === MimeType.GOOGLE_SHEETS && _ehInscricao(f.getName())) return f;
+    if (f.getMimeType() === MimeType.GOOGLE_SHEETS && pred(f.getName())) return f;
   }
   return null;
 }
 
 function _ehInscricao(nome) {
   return _norm(nome).indexOf('inscri') === 0; // "inscrição", "inscricao", "inscrições"...
+}
+
+function _ehPresente(nome) {
+  return _norm(nome).indexOf('presente') === 0; // "presente", "presentes"...
 }
 
 // minúsculas + sem acentos + espaços colapsados.
