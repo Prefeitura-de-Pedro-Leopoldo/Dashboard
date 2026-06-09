@@ -461,6 +461,7 @@ export function buildEvento(arquivo, meta, participantes) {
     title: meta.title,
     cargaHoraria: meta.cargaHoraria ?? null,
     date: meta.date || null,
+    dateFim: meta.dateFim || null,
     dateRaw: meta.dateRaw || meta.date || null,
     time: meta.time || "",
     local: meta.local || "",

@@ -380,7 +380,7 @@ async function reloadData(opts = {}) {
     state.dataRaw = raw
     // Junta inscrições abertas (sintéticos), remove duplicatas de estático antigo,
     // infere grupo pela pasta (turmas/módulos) e consolida em cards de curso.
-    const base = dedupEventos((raw.eventos || []).concat(state.inscricoesAbertas || []))
+    const base = marcarAbertasPorData(dedupEventos((raw.eventos || []).concat(state.inscricoesAbertas || [])))
     state.data = { ...raw, eventos: consolidarPorGrupo(inferirGruposPorPasta(base)) }
     renderAll()
   }
@@ -410,9 +410,28 @@ async function reloadData(opts = {}) {
 // Recalcula state.data com as turmas de inscrição aberta e re-renderiza.
 function _reaplicarComInscricoes() {
   if (!state.dataRaw) return
-  const base = dedupEventos((state.dataRaw.eventos || []).concat(state.inscricoesAbertas || []))
+  const base = marcarAbertasPorData(dedupEventos((state.dataRaw.eventos || []).concat(state.inscricoesAbertas || [])))
   state.data = { ...state.dataRaw, eventos: consolidarPorGrupo(inferirGruposPorPasta(base)) }
   renderAll()
+}
+
+// Um evento REAL (com participantes.xlsx) cuja data ainda está no futuro e que
+// ainda não teve check-ins é, na prática, um evento com INSCRIÇÃO ABERTA: a
+// planilha de participantes só é preenchida quando o evento encerra. Marca-o
+// como `inscricaoAberta` para exibir as abas Inscrições/Encontros/Presença
+// (em vez das abas de análise), preservando título/data do eventos-meta.json.
+function marcarAbertasPorData(eventos) {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+  return (eventos || []).map((ev) => {
+    if (ev.inscricaoAberta) return ev
+    const d = ev.date ? new Date(ev.date + "T00:00:00") : null
+    const futuro = d && !isNaN(d) && d >= hoje
+    if (!futuro || (ev.totalPresentes || 0) > 0) return ev
+    const pasta = String(ev.fonte || "").replace(/\/[^/]*$/, "")
+    // Mantém o status original ("agendado") para o card exibir "Agendado"; é o
+    // inscricaoAberta que liga as abas Inscrições/Encontros/Presença e o banner.
+    return { ...ev, inscricaoAberta: true, pastaInscricao: pasta || ev.pastaInscricao }
+  })
 }
 
 // Busca (em 2º plano) as turmas com inscrição aberta e re-renderiza incluindo-as.
@@ -696,9 +715,22 @@ function renderDashboard() {
     const t = Date.parse(d)
     return Number.isFinite(t) ? t : 0
   }
+  // "Ativo" = inscrição aberta OU ainda acontecendo (data de início já passou e
+  // a data-fim — último encontro — ainda não passou). Esses vêm no topo da lista.
+  const hojeMs = (() => { const h = new Date(); h.setHours(0, 0, 0, 0); return h.getTime() })()
+  const eventoAtivo = e => {
+    const cands = (e._turmas && e._turmas.length) ? e._turmas : [e]
+    return cands.some(c => {
+      if (c.inscricaoAberta) return true
+      const ini = parseDateSafe(c.date), fim = parseDateSafe(c.dateFim)
+      return ini && fim && ini <= hojeMs && hojeMs <= fim
+    })
+  }
   const gruposEventos = agruparEventos(eventos)
     .slice()
     .sort((a, b) => {
+      const aA = a.eventos.some(eventoAtivo), bA = b.eventos.some(eventoAtivo)
+      if (aA !== bA) return aA ? -1 : 1 // ativos (abertos/acontecendo) primeiro
       const da = Math.max(0, ...a.eventos.map(e => parseDateSafe(e.date)))
       const db = Math.max(0, ...b.eventos.map(e => parseDateSafe(e.date)))
       return db - da
