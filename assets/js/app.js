@@ -380,7 +380,7 @@ async function reloadData(opts = {}) {
     state.dataRaw = raw
     // Junta inscrições abertas (sintéticos), remove duplicatas de estático antigo,
     // infere grupo pela pasta (turmas/módulos) e consolida em cards de curso.
-    const base = marcarAbertasPorData(dedupEventos((raw.eventos || []).concat(state.inscricoesAbertas || [])))
+    const base = _baseComInscricoes(raw.eventos)
     state.data = { ...raw, eventos: consolidarPorGrupo(inferirGruposPorPasta(base)) }
     renderAll()
   }
@@ -410,9 +410,29 @@ async function reloadData(opts = {}) {
 // Recalcula state.data com as turmas de inscrição aberta e re-renderiza.
 function _reaplicarComInscricoes() {
   if (!state.dataRaw) return
-  const base = marcarAbertasPorData(dedupEventos((state.dataRaw.eventos || []).concat(state.inscricoesAbertas || [])))
+  const base = _baseComInscricoes(state.dataRaw.eventos)
   state.data = { ...state.dataRaw, eventos: consolidarPorGrupo(inferirGruposPorPasta(base)) }
   renderAll()
+}
+
+// Pasta do evento (sem o nome do arquivo). Para sintéticos, é a pastaInscricao.
+function pastaDeEvento(ev) {
+  if (ev && ev.pastaInscricao) return ev.pastaInscricao
+  return ev && ev.fonte ? String(ev.fonte).replace(/\/[^/]*$/, "") : ""
+}
+
+// Mescla os eventos reais (raw) com os sintéticos de inscrição aberta, descartando
+// o sintético quando JÁ existe um evento real na mesma pasta. A filtragem é feita
+// AQUI (contra os dados vigentes), não na busca — assim um evento presente só no
+// estático ou só no ao vivo não "pisca e some" entre as duas fontes.
+function _baseComInscricoes(rawEventos) {
+  const reais = rawEventos || []
+  const pastasReais = new Set(reais.map(pastaDeEvento).filter(Boolean))
+  const sinteticos = (state.inscricoesAbertas || []).filter((s) => {
+    const f = pastaDeEvento(s)
+    return f && !pastasReais.has(f)
+  })
+  return marcarAbertasPorData(dedupEventos(reais.concat(sinteticos)))
 }
 
 // Um evento REAL (com participantes.xlsx) cuja data ainda está no futuro e que

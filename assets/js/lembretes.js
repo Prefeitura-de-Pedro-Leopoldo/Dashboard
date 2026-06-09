@@ -72,11 +72,14 @@ export async function eventosComInscricaoAberta(eventosExistentes) {
     if (mres.ok) { const mj = await mres.json(); meta = (mj && mj.eventos) || {} }
   } catch (_) {}
 
-  const jaExiste = new Set((eventosExistentes || []).map((e) => pastaDoEvento(e)).filter(Boolean))
+  // Gera um sintético para TODA pasta com Inscrição. A remoção de duplicata
+  // (quando já existe participantes.xlsx) é feita na hora de aplicar, contra os
+  // dados vigentes — senão um evento que existe no estático mas não no ao vivo
+  // (ou vice-versa) pisca e some. (eventosExistentes fica como compat, não filtra.)
   const novos = []
   for (const s of data.sheets) {
     const folder = String(s.folder || "").trim()
-    if (!folder || jaExiste.has(folder)) continue
+    if (!folder) continue
     const slug = folder.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
     const m = meta[folder + "/participantes.xlsx"] || {}
