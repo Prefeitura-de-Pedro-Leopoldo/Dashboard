@@ -4149,6 +4149,23 @@ function setupAutoReportPesquisaEventPicker() {
         } catch (_) {}
       }
     }
+    // Fallback AO VIVO: se o arquivo estatico nao foi servido (ex.: `vercel dev`
+    // nao serve os .xlsx ignorados, ou a planilha so existe no Drive), busca a
+    // satisfacao direto do Drive via /api/satisfacao (mesma fonte do /api/eventos).
+    if (!blob) {
+      for (const folder of folders) {
+        try {
+          const r = await fetch(`/api/satisfacao?folder=${encodeURIComponent(folder)}`)
+          const ct = r.headers.get("content-type") || ""
+          if (r.ok && !ct.includes("application/json")) {
+            blob = await r.blob()
+            usedName = "satisfacao.xlsx"
+            usedFolder = `${folder} (Drive ao vivo)`
+            break
+          }
+        } catch (_) {}
+      }
+    }
     if (!blob) {
       state.autoReport.pesquisa = null
       console.warn("[auto-relatório] pesquisa não encontrada. URLs tentadas:", urlsTentadas)
