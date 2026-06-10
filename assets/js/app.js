@@ -4102,37 +4102,63 @@ function setupAutoReportPesquisaEventPicker() {
       return
     }
     const ev = (state.data?.eventos || []).find(e => e.id === id)
-    if (!ev || !ev.fonte) return
-    const folder = ev.fonte.split("/").slice(0, -1).join("/")
-    if (!folder) {
-      status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-triangle-exclamation"></i> Evento sem pasta vinculada.</p>`
+    if (!ev) return
+    status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-circle-notch fa-spin"></i> Procurando pesquisa...</p>`
+
+    // Reúne as PASTAS candidatas onde a satisfacao.xlsx pode estar. A pesquisa
+    // mora na mesma pasta da planilha de participantes. Como `ev.fonte` pode vir
+    // do AO VIVO (caminho do Drive) e os arquivos servidos são os LOCAIS, também
+    // consultamos o manifesto local (build) — que sempre casa com o que está no
+    // servidor. Cobre ainda eventos consolidados (sem fonte) via `_turmas`.
+    const folderOf = p => String(p || "").split("/").slice(0, -1).join("/")
+    const folders = []
+    const addFolder = f => { if (f && !folders.includes(f)) folders.push(f) }
+    addFolder(folderOf(ev.fonte))
+    ;(ev._turmas || []).forEach(t => addFolder(folderOf(t.fonte)))
+    try {
+      const man = await fetch("assets/docs/relatorios/manifest.json", { cache: "no-cache" }).then(r => (r.ok ? r.json() : null))
+      const ids = new Set([id, ...((ev._turmas || []).map(t => t.id))])
+      ;(man?.planilhas || []).forEach(p => { if (ids.has(p.id)) addFolder(folderOf(p.arquivo)) })
+    } catch (_) {}
+
+    if (!folders.length) {
+      state.autoReport.pesquisa = null
+      status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-triangle-exclamation"></i> Evento sem pasta vinculada. Use a aba "Enviar planilha".</p>`
+      updateAutoReportSummary()
       return
     }
-    status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-circle-notch fa-spin"></i> Procurando pesquisa...</p>`
-    // tenta variações comuns do nome
+
+    // tenta variações comuns do nome, em cada pasta candidata
     const tries = ["satisfacao.xlsx", "Satisfação.xlsx", "satisfação.xlsx", "Satisfacao.xlsx", "pesquisa.xlsx", "Pesquisa.xlsx"]
     let blob = null
     let usedName = null
-    for (const name of tries) {
-      const url = `assets/docs/relatorios/${encodeURI(folder)}/${encodeURIComponent(name)}`
-      try {
-        const r = await fetch(url)
-        if (r.ok) {
-          blob = await r.blob()
-          usedName = name
-          break
-        }
-      } catch (_) {}
+    let usedFolder = null
+    const urlsTentadas = []
+    outer: for (const folder of folders) {
+      for (const name of tries) {
+        const url = `assets/docs/relatorios/${encodeURI(folder)}/${encodeURIComponent(name)}`
+        urlsTentadas.push(url)
+        try {
+          const r = await fetch(url)
+          if (r.ok) {
+            blob = await r.blob()
+            usedName = name
+            usedFolder = folder
+            break outer
+          }
+        } catch (_) {}
+      }
     }
     if (!blob) {
       state.autoReport.pesquisa = null
-      status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-triangle-exclamation"></i> Este evento não possui <b>satisfacao.xlsx</b>. Use a aba "Enviar planilha".</p>`
+      console.warn("[auto-relatório] pesquisa não encontrada. URLs tentadas:", urlsTentadas)
+      status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-triangle-exclamation"></i> Não encontrei <b>satisfacao.xlsx</b> na(s) pasta(s): ${folders.map(escapeHtml).join(" · ")}. Use a aba "Enviar planilha".</p>`
       updateAutoReportSummary()
       return
     }
     const file = new File([blob], usedName, { type: blob.type })
     handleAutoReportPesquisa(file, { fromEventId: id, displayName: `Evento: ${ev.title}` })
-    status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-check-circle"></i> Pesquisa carregada de <b>${escapeHtml(usedName)}</b>.</p>`
+    status.innerHTML = `<p class="ar-event-summary__empty"><i class="fas fa-check-circle"></i> Pesquisa carregada de <b>${escapeHtml(usedFolder + "/" + usedName)}</b>.</p>`
   })
 }
 
@@ -5167,6 +5193,105 @@ function modeloGradedColors(values) {
   })
 }
 
+// Carrega o brasão de Pedro Leopoldo (assets/img/brasao.png) como data URL,
+// com a razão de aspecto natural. Usado no cabeçalho dos relatórios gerados.
+let _brasaoCache = null
+async function loadBrasao() {
+  if (_brasaoCache !== null) return _brasaoCache
+  try {
+    const r = await fetch("assets/img/brasao.png")
+    const blob = await r.blob()
+    const dataUrl = await new Promise((res, rej) => {
+      const fr = new FileReader()
+      fr.onload = () => res(fr.result)
+      fr.onerror = rej
+      fr.readAsDataURL(blob)
+    })
+    const ratio = await new Promise(res => {
+      const im = new Image()
+      im.onload = () => res(im.naturalWidth / im.naturalHeight || 942 / 634)
+      im.onerror = () => res(942 / 634)
+      im.src = dataUrl
+    })
+    _brasaoCache = { dataUrl, ratio }
+  } catch (e) {
+    _brasaoCache = false // marca como tentado-e-falhou; cabeçalho cai p/ só texto
+  }
+  return _brasaoCache
+}
+
+// Agrupa respostas IDÊNTICAS sem alterar o texto. A normalização (minúsculas +
+// colapso de espaços) serve APENAS para comparar; o rótulo guarda o texto
+// original (verbatim) da primeira ocorrência. Não reescreve, não lematiza e não
+// interpreta nada. Devolve [{ label, value }] ordenado por frequência desc.
+function groupIdenticalResponses(responses) {
+  const map = new Map()
+  ;(responses || []).forEach(r => {
+    const text = String(r || "").trim()
+    if (!text) return
+    const key = text.toLowerCase().replace(/\s+/g, " ")
+    const hit = map.get(key)
+    if (hit) hit.value += 1
+    else map.set(key, { label: text, value: 1 })
+  })
+  return [...map.values()].sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+}
+
+// Quebra um texto em até `maxLines` linhas de ~`max` chars para caber como
+// rótulo do eixo Y do gráfico. Só afeta a EXIBIÇÃO no gráfico; a resposta segue
+// íntegra na lista verbatim logo abaixo (o "…" sinaliza que foi cortada só ali).
+function wrapChartLabel(txt, max = 42, maxLines = 3) {
+  const words = String(txt).split(/\s+/)
+  const lines = [""]
+  words.forEach(w => {
+    if ((lines[lines.length - 1] + " " + w).trim().length > max) lines.push(w)
+    else lines[lines.length - 1] = (lines[lines.length - 1] + " " + w).trim()
+  })
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines)
+    kept[maxLines - 1] = kept[maxLines - 1] + "…"
+    return kept
+  }
+  return lines
+}
+
+// Gráfico de barras horizontais das respostas que se REPETEM (2+ idênticas).
+// O rótulo de cada barra é a própria resposta (verbatim). Devolve null quando
+// nenhuma resposta se repete.
+async function renderRespostasRepetidasChart(titulo, repetidas, canvasW, canvasH) {
+  if (!repetidas.length) return null
+  const vals = repetidas.map(g => g.value)
+  return renderChartToImage(
+    "bar",
+    {
+      data: {
+        labels: repetidas.map(g => wrapChartLabel(g.label)),
+        datasets: [{ data: vals, backgroundColor: modeloGradedColors(vals), borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.78 }]
+      },
+      options: {
+        indexAxis: "y",
+        scales: {
+          x: {
+            beginAtZero: true,
+            suggestedMax: Math.max(...vals) + 1,
+            title: { display: true, text: "Nº de respostas iguais", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+            grid: { color: MODELO_CHART.grid, drawBorder: false }
+          },
+          y: { ticks: { font: { family: MODELO_CHART.font, size: 11 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: titulo, font: { size: 15, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 14 } },
+          datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 13, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+        }
+      }
+    },
+    canvasW,
+    canvasH
+  )
+}
+
 async function generateSatisfacaoPdf() {
   const s = state.autoReport
   const status = document.getElementById("arStatus")
@@ -5200,21 +5325,31 @@ async function generateSatisfacaoPdf() {
   const W = pageW - M * 2
   let y = 0
   let pageNum = 0
+  let brasaoImg = null
 
   const drawHeader = () => {
     pageNum += 1
+    let topY = 14
+    // Brasão de Pedro Leopoldo centralizado no topo (como no relatório-modelo).
+    if (brasaoImg) {
+      const h = 13 // mm de altura
+      const w = h * brasaoImg.ratio
+      doc.addImage(brasaoImg.dataUrl, "PNG", (pageW - w) / 2, 7, w, h)
+      topY = 7 + h + 3.5
+    }
     doc.setFont("helvetica", "bold")
     doc.setFontSize(10)
     doc.setTextColor(22, 31, 54)
-    doc.text("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", pageW / 2, 14, { align: "center" })
+    doc.text("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", pageW / 2, topY, { align: "center" })
     doc.setFontSize(9)
-    doc.text("SECRETARIA MUNICIPAL DE GESTÃO E FINANÇAS", pageW / 2, 19, { align: "center" })
+    doc.text("SECRETARIA MUNICIPAL DE GESTÃO E FINANÇAS", pageW / 2, topY + 4.5, { align: "center" })
     doc.setFont("helvetica", "normal")
-    doc.text("DIRETORIA DE GESTÃO DE PESSOAS", pageW / 2, 24, { align: "center" })
+    doc.text("DIRETORIA DE GESTÃO DE PESSOAS", pageW / 2, topY + 9, { align: "center" })
     doc.setDrawColor(48, 99, 173)
     doc.setLineWidth(0.5)
-    doc.line(M, 28, pageW - M, 28)
-    y = 36
+    const lineY = topY + 12.5
+    doc.line(M, lineY, pageW - M, lineY)
+    y = lineY + 8
   }
 
   const drawFooter = () => {
@@ -5273,6 +5408,7 @@ async function generateSatisfacaoPdf() {
   }
 
   // ===== PÁGINA 1: capa + Gráfico 1 =====
+  brasaoImg = await loadBrasao()
   drawHeader()
   doc.setFont("helvetica", "bold")
   doc.setFontSize(15)
@@ -5467,17 +5603,33 @@ async function generateSatisfacaoPdf() {
   // listamos verbatim cada resposta registrada - sem agrupar, sem reescrever em
   // rótulos e sem contabilizar "menções". Fidelidade total ao que foi escrito.
   status.textContent = "Listando respostas abertas..."
-  const listarAbertas = (titulo, arr) => {
+  const listarAbertas = async (titulo, arr) => {
     const itens = (arr || []).map(t => String(t || "").trim()).filter(Boolean)
     if (!itens.length) return
     ensureSpace(20)
     sectionTitle(titulo)
-    justified(`${itens.length} ${itens.length === 1 ? "resposta registrada" : "respostas registradas"}:`)
+    // Agrupa respostas IDÊNTICAS (sem alterar o texto) e plota só as que se
+    // repetem (2+). A lista completa verbatim vem logo abaixo — nada é omitido.
+    const repetidas = groupIdenticalResponses(itens).filter(g => g.value >= 2)
+    if (repetidas.length) {
+      const canvasH = Math.max(300, 120 + repetidas.length * 56)
+      const chartImg = await renderRespostasRepetidasChart(titulo, repetidas, 900, canvasH)
+      if (chartImg) {
+        const chH = (W * canvasH) / 900 // mantém a proporção do canvas
+        ensureSpace(chH + 6)
+        doc.addImage(chartImg, "PNG", M, y, W, chH)
+        y += chH + 4
+        justified(
+          `O gráfico acima mostra as respostas que se repetiram (${repetidas.length} ${repetidas.length === 1 ? "resposta idêntica citada" : "respostas idênticas citadas"} por mais de um participante).`
+        )
+      }
+    }
+    justified(`${itens.length} ${itens.length === 1 ? "resposta registrada" : "respostas registradas"} (na íntegra):`)
     itens.forEach(t => bullet(`"${t}"`, "•"))
   }
-  listarAbertas("Pontos Altos da Capacitação", s.pesquisa.textos.altos)
-  listarAbertas("O que pode ser melhorado", s.pesquisa.textos.melhorias)
-  listarAbertas("Sugestões de Temas para as Próximas Ações", s.pesquisa.textos.sugestoes)
+  await listarAbertas("Pontos Altos da Capacitação", s.pesquisa.textos.altos)
+  await listarAbertas("O que pode ser melhorado", s.pesquisa.textos.melhorias)
+  await listarAbertas("Sugestões de Temas para as Próximas Ações", s.pesquisa.textos.sugestoes)
 
   // ===== COMENTÁRIOS =====
   // Apenas a coluna de comentários/observações gerais, se existir, na íntegra.
@@ -5577,7 +5729,11 @@ async function generateSatisfacaoDocx() {
     PageNumber,
     Header,
     Footer,
-    PageBreak
+    PageBreak,
+    HorizontalPositionAlign,
+    HorizontalPositionRelativeFrom,
+    VerticalPositionRelativeFrom,
+    TextWrappingType
   } = D
 
   const evento = s.participantes.evento
@@ -5790,17 +5946,41 @@ async function generateSatisfacaoDocx() {
     rows: [headerRow, ...dataRows]
   })
 
-  // Header e Footer institucionais
-  const headerInst = new Header({
-    children: AR_CONFIG.cabecalho.map(
-      (t, i) =>
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 40 },
-          children: [new TextRun({ text: t, bold: i < 2, size: i === 0 ? 20 : 18, color: "161F36" })]
+  // Header e Footer institucionais.
+  // Layout fiel ao "Relatorio Satisfacao - Dia Internacional da Mulher.docx":
+  // brasão FLUTUANTE à esquerda + 3 linhas de texto centralizadas e em negrito,
+  // com tamanhos decrescentes (16pt / 14pt / 12pt).
+  const brasaoImg = await loadBrasao()
+  const headerChildren = []
+  const cabSizes = [32, 28, 24] // half-points: 16pt, 14pt, 12pt
+  AR_CONFIG.cabecalho.forEach((t, i) => {
+    const runs = [new TextRun({ text: t, bold: true, size: cabSizes[i] || 22, color: "161F36" })]
+    // O brasão é ancorado (flutuante) na PRIMEIRA linha, fixado à esquerda da
+    // coluna; o texto segue centralizado por cima, como no modelo.
+    if (i === 0 && brasaoImg) {
+      const bh = 54 // px de altura do brasão no cabeçalho
+      runs.unshift(
+        new ImageRun({
+          data: dataUrlToUint8(brasaoImg.dataUrl),
+          transformation: { width: Math.round(bh * brasaoImg.ratio), height: bh },
+          floating: {
+            horizontalPosition: { relative: HorizontalPositionRelativeFrom.COLUMN, align: HorizontalPositionAlign.LEFT },
+            verticalPosition: { relative: VerticalPositionRelativeFrom.PARAGRAPH, offset: -150000 },
+            wrap: { type: TextWrappingType.NONE },
+            allowOverlap: true
+          }
         })
+      )
+    }
+    headerChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 40 },
+        children: runs
+      })
     )
   })
+  const headerInst = new Header({ children: headerChildren })
   const footerInst = new Footer({
     children: [
       new Paragraph({
@@ -5850,18 +6030,67 @@ async function generateSatisfacaoDocx() {
     )
   )
 
-  // Respostas abertas na íntegra (sem reprocessar/agrupar/contar menções)
-  const listarAbertasDocx = (titulo, arr) => {
-    const itens = (arr || []).map(t => String(t || "").trim()).filter(Boolean)
-    if (!itens.length) return
-    children.push(new Paragraph({ children: [new PageBreak()] }))
-    children.push(heading(titulo))
-    children.push(para(`${itens.length} ${itens.length === 1 ? "resposta registrada" : "respostas registradas"}:`))
-    itens.forEach(t => children.push(bullet(`"${t}"`, "•")))
+  // Respostas abertas → GRÁFICO DE BARRA dos temas (igual ao modelo
+  // "Relatorio Satisfacao - Dia Internacional da Mulher.docx"): cada seção tem
+  // um gráfico de barras com os temas agrupados e o nº de menções, seguido de um
+  // parágrafo analítico montado a partir dos próprios dados (sem inventar texto).
+  const mencao = n => (n === 1 ? "menção" : "menções")
+  const listaMencoes = cats => cats.map(c => `${c.label} (${c.value} ${mencao(c.value)})`).join(", ").replace(/, ([^,]*)$/, " e $1")
+
+  // Gera o gráfico de barras horizontais de um conjunto de temas, no mesmo
+  // estilo do PPTX/PDF (eixo "Nº de menções", barras "graded", rótulos navy).
+  const renderTemaChart = async (titulo, cats) => {
+    if (!cats.length) return null
+    const vals = cats.map(c => c.value)
+    return renderChartToImage("bar", {
+      data: { labels: cats.map(c => c.label), datasets: [{ data: vals, backgroundColor: modeloGradedColors(vals), borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.78 }] },
+      options: {
+        indexAxis: "y",
+        scales: {
+          x: { beginAtZero: true, suggestedMax: Math.max(...vals) + 1, title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
+          y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: titulo, font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
+          datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 14, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+        }
+      }
+    }, 1200, Math.max(500, 140 + cats.length * 60))
   }
-  listarAbertasDocx("Pontos Altos da Capacitação", s.pesquisa.textos.altos)
-  listarAbertasDocx("O que pode ser melhorado", s.pesquisa.textos.melhorias)
-  listarAbertasDocx("Sugestões de Temas para as Próximas Ações", s.pesquisa.textos.sugestoes)
+
+  // Monta uma seção de respostas abertas: heading "Gráfico N - ...", o gráfico
+  // de barra e o parágrafo de análise. Sem chart (sem temas) → seção omitida.
+  const secaoTemaDocx = async (numero, tituloGrafico, cats, analise) => {
+    if (!cats.length) return
+    const chartImg = await renderTemaChart(tituloGrafico, cats)
+    if (!chartImg) return
+    children.push(new Paragraph({ children: [new PageBreak()] }))
+    children.push(heading(`Gráfico ${numero} - ${tituloGrafico}`))
+    const canvasH = Math.max(500, 140 + cats.length * 60) // mesma altura do canvas
+    const w = 560
+    const h = Math.round((w * canvasH) / 1200) // mantém a proporção 1200×canvasH
+    children.push(imgPara(chartImg, w, h))
+    if (analise) children.push(para(analise))
+  }
+
+  const cAltos = s.pesquisa.temas?.altos || []
+  const cMelhor = s.pesquisa.temas?.melhorias || []
+  const cSugest = s.pesquisa.temas?.sugestoes || []
+
+  const analiseAltos = cAltos.length
+    ? `A análise qualitativa das respostas evidencia que os principais pontos altos do evento foram ${listaMencoes(cAltos.slice(0, 2))}, demonstrando a valorização do conteúdo e da abordagem da iniciativa pelos participantes.`
+    : ""
+  const analiseMelhor = cMelhor.length
+    ? `A principal oportunidade de melhoria identificada foi ${cMelhor[0].label.toLowerCase()} (${cMelhor[0].value} ${mencao(cMelhor[0].value)})${cMelhor.length > 1 ? `, seguida de ${listaMencoes(cMelhor.slice(1, 3))}` : ""}, sinalizando caminhos para o aprimoramento de futuras edições.`
+    : ""
+  const analiseSugest = cSugest.length
+    ? `A análise das sugestões evidencia maior interesse em ${listaMencoes(cSugest.slice(0, 3))} como temas para as próximas ações de capacitação.`
+    : ""
+
+  await secaoTemaDocx(3, "Principais Pontos Altos", cAltos, analiseAltos)
+  await secaoTemaDocx(4, "O que pode ser melhorado?", cMelhor, analiseMelhor)
+  await secaoTemaDocx(5, "Sugestões de Temas para as Próximas Ações", cSugest, analiseSugest)
 
   // Comentários: apenas a coluna de observações gerais, se existir, na íntegra
   const comentarios = (s.pesquisa.textos.comentarios || []).map(t => String(t || "").trim()).filter(Boolean)
