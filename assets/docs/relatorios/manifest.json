@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-06-09T16:54:55.030Z",
+  "geradoEm": "2026-06-10T15:33:26.643Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "planilhas": [
     {
@@ -20,7 +20,7 @@
     {
       "id": "ciclo-de-debates-pl-por-elas",
       "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1 e 2/participantes.xlsx",
-      "titulo": "Ciclo de Debates PL por Elas"
+      "titulo": "Ciclo de Debates PL por Elas - Turmas 1 e 2 (Juntas)"
     },
     {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",
@@ -43,9 +43,9 @@
       "titulo": "Gestão Pública para Resultados"
     },
     {
-      "id": "ciclo-de-debates-pl-por-elas-2026-05-turma-1-participantes",
-      "arquivo": "ciclo-de-debates-pl-por-elas-2026-05/turma 1/participantes.xlsx",
-      "titulo": "ciclo-de-debates-pl-por-elas-2026-05 · turma 1 · participantes"
+      "id": "gestao-da-inovacao-no-setor-publico",
+      "arquivo": "gestao-inovacao-presencial-2026-06/participantes.xlsx",
+      "titulo": "Gestão da Inovação no Setor Público"
     }
   ]
 }

@@ -82,8 +82,13 @@ export default async function handler(req, res) {
       const arquivo = arquivos[i].rel;
       const buf = buffers[i];
       if (!buf) continue;
+      const metaEntry = meta[arquivo] || {};
+      // Respeita o mesmo "ignore" do build estático (eventos-meta.json): arquivo
+      // legado já consolidado em outra turma não vira evento (evita duplicar o
+      // Ciclo no seletor e não re-agrupar a turma única, que perderia o fonte).
+      if (metaEntry.ignore) continue;
       try {
-        const evento = processarArquivo(buf, arquivo, meta[arquivo] || {});
+        const evento = processarArquivo(buf, arquivo, metaEntry);
         if (evento) eventos.push(evento);
       } catch (err) {
         // Cabeçalho não reconhecido = não é lista de participantes; pula.

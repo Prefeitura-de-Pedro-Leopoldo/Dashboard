@@ -563,6 +563,12 @@ function main() {
     const filePath = path.join(RELATORIOS_DIR, arquivo);
     try {
       const m = meta[arquivo] || {};
+      // Planilha marcada como ignore no eventos-meta.json (ex.: arquivo legado
+      // já consolidado em outra turma). Não vira evento nem entra no manifest.
+      if (m.ignore) {
+        console.log(`[build-data] ⏭ Ignorando "${arquivo}" (ignore=true no eventos-meta.json).`);
+        continue;
+      }
       const defaults = {
         id: slugify(arquivo.replace(/\.xlsx$/i, "").replace(/\//g, "-")),
         title: arquivo.replace(/\.xlsx$/i, "").replace(/\//g, " · "),
