@@ -6,3 +6,8 @@ node_modules/
 # eventos-meta.json e manifest.json NAO sao ignorados (config/gerados).
 assets/docs/relatorios/**/*.xlsx
 assets/docs/relatorios/**/*.xls
+
+# Relatorios de exemplo/modelo passados manualmente (referencia local).
+# Grandes (PDF ~27MB) e com dados de participantes -> nao versionar nem publicar.
+/Relatorio Satisfacao - *.pdf
+/Relatorio Satisfacao - *.docx
