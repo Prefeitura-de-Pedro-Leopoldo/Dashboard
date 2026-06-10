@@ -51,6 +51,7 @@ let _loading = false
 let _editId = null         // id em edição (null = criação)
 let _fotoPendente = null   // { dataUrl, mime } da nova foto escolhida
 let _removerFoto = false   // marca remoção da foto existente (edição)
+let _palResizeHandler = null // handler de resize p/ reajustar cursos (1 só ativo)
 
 // ================ API ================
 async function api(action, payload = {}) {
@@ -482,14 +483,26 @@ export async function renderLista() {
       return
     }
     gridHost.innerHTML = `<div class="pal-grid">${arr.map(cardHtml).join("")}</div>`
+    gridHost.querySelectorAll("[data-pal-open]").forEach((b) =>
+      b.addEventListener("click", () => abrirDetalhe(b.dataset.palOpen))
+    )
     gridHost.querySelectorAll("[data-pal-edit]").forEach((b) =>
       b.addEventListener("click", () => abrirEdicao(b.dataset.palEdit))
     )
     gridHost.querySelectorAll("[data-pal-del]").forEach((b) =>
       b.addEventListener("click", () => excluir(b.dataset.palDel))
     )
+    // Curso sempre em 1 linha, sem "...": encolhe a fonte até caber.
+    ajustarCursos(gridHost)
   }
   draw(lista)
+
+  // Recalcula o ajuste dos cursos quando a largura dos cards muda (resize).
+  let _rzT
+  const onResize = () => { clearTimeout(_rzT); _rzT = setTimeout(() => ajustarCursos(gridHost), 120) }
+  window.removeEventListener("resize", _palResizeHandler)
+  _palResizeHandler = onResize
+  window.addEventListener("resize", onResize)
 
   document.getElementById("palNovo")?.addEventListener("click", () => {
     openCadastroModal()
@@ -522,32 +535,52 @@ function eixosDe(p) {
   return []
 }
 
-function cardHtml(p) {
+// Mantém o título do curso em ATÉ 2 linhas, mostrando tudo (nunca "..."): reduz
+// a fonte (via --curso-fs) só o necessário p/ o texto caber na altura de 2
+// linhas do container. Piso ~8px p/ não ficar ilegível. Roda após o layout (rAF).
+function ajustarCursos(scope) {
+  const cursos = scope.querySelectorAll(".pal-card__curso")
+  if (!cursos.length) return
+  requestAnimationFrame(() => {
+    cursos.forEach((el) => {
+      if (!el.textContent.trim()) return
+      const base = 11           // px — tamanho de partida (≈ --fs-2xs)
+      const min = 6             // piso de segurança p/ o loop (raro chegar aqui)
+      let fs = base
+      el.style.setProperty("--curso-fs", fs + "px")
+      // Encolhe enquanto transbordar a altura reservada (2 linhas) p/ mostrar
+      // TUDO. Em 2 linhas a redução é pequena (cabe a ~9-10px na maioria).
+      while (el.scrollHeight > el.clientHeight + 1 && fs > min) {
+        fs -= 0.5
+        el.style.setProperty("--curso-fs", fs + "px")
+      }
+    })
+  })
+}
+
+// Card da galeria: compacto e uniforme — foto em destaque, nome e curso. A
+// mini-bio e os eixos NÃO aparecem aqui (só no modal de detalhe), p/ o card
+// não crescer. O rodapé concentra as 4 ações (visualizar, LinkedIn, editar,
+// excluir). --i alimenta o fade-in escalonado na montagem.
+function cardHtml(p, i = 0) {
   const fotoBkp = _fotoPendente, removeBkp = _removerFoto
   _fotoPendente = null; _removerFoto = false // garante uso de p.fotoUrl
   const avatar = avatarHtml(p, "card")
   _fotoPendente = fotoBkp; _removerFoto = removeBkp
 
-  const bio = p.miniBio
-    ? `<p class="pal-card__bio">${escapeHtml(p.miniBio)}</p>`
-    : `<p class="pal-card__bio pal-card__bio--empty">Sem mini bio.</p>`
-
-  const chips = eixosDe(p).map((x) => `<span class="pal-chip">${escapeHtml(x)}</span>`).join("")
   const origemBadge = p.origem === "convite"
     ? `<span class="pal-origem" title="Cadastrado via link de convite"><i class="fas fa-link"></i></span>`
     : ""
 
-  // Layout vertical: a FOTO é o destaque (topo), depois nome, eixo, curso, bio.
   return `
-    <article class="pal-card pal-card--v">
+    <article class="pal-card pal-card--v" style="--i:${i}">
       <div class="pal-card__photo">${avatar}</div>
       <h4 class="pal-card__name" title="${escapeHtml(p.nome)}">${origemBadge}${escapeHtml(p.nome)}</h4>
-      ${chips ? `<div class="pal-card__chips">${chips}</div>` : ""}
-      ${p.cursoTitulo ? `<div class="pal-card__curso"><i class="fas fa-chalkboard-user"></i> ${escapeHtml(p.cursoTitulo)}</div>` : ""}
-      ${bio}
+      ${p.cursoTitulo ? `<div class="pal-card__curso"><i class="fas fa-chalkboard-user"></i> ${escapeHtml(p.cursoTitulo)}</div>` : `<div class="pal-card__curso pal-card__curso--empty"></div>`}
       <div class="pal-card__foot">
         <span class="pal-card__date">${p.criadoEm ? formatDateBR(String(p.criadoEm).slice(0, 10)) : ""}</span>
         <div class="pal-card__actions">
+          <button type="button" class="pal-icon-btn" data-pal-open="${escapeHtml(p.id)}" title="Visualizar"><i class="fas fa-eye"></i></button>
           ${p.linkedin ? `<a class="pal-icon-btn pal-icon-btn--in" href="${escapeHtml(p.linkedin)}" target="_blank" rel="noopener" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>` : ""}
           <button type="button" class="pal-icon-btn" data-pal-edit="${escapeHtml(p.id)}" title="Editar"><i class="fas fa-pen"></i></button>
           <button type="button" class="pal-icon-btn pal-icon-btn--danger" data-pal-del="${escapeHtml(p.id)}" title="Excluir"><i class="fas fa-trash-can"></i></button>
@@ -555,6 +588,80 @@ function cardHtml(p) {
       </div>
     </article>
   `
+}
+
+// ================ Modal: DETALHE do palestrante ================
+// Aberto ao clicar num card compacto. Mostra tudo (foto grande, eixos, curso,
+// bio completa, data) e concentra as ações: LinkedIn, Editar, Excluir.
+let _palDetalheEl = null
+function _palDetalheEsc(e) { if (e.key === "Escape") fecharDetalhe() }
+function fecharDetalhe() {
+  if (!_palDetalheEl) return
+  document.removeEventListener("keydown", _palDetalheEsc)
+  _palDetalheEl.remove()
+  _palDetalheEl = null
+}
+
+function abrirDetalhe(id) {
+  const p = (_cache || []).find((x) => x.id === id)
+  if (!p) return
+
+  // Garante uso da foto salva (p.fotoUrl), ignorando estado de edição pendente.
+  const fotoBkp = _fotoPendente, removeBkp = _removerFoto
+  _fotoPendente = null; _removerFoto = false
+  const avatar = avatarHtml(p, "xl")
+  _fotoPendente = fotoBkp; _removerFoto = removeBkp
+
+  const chips = eixosDe(p).map((x) => `<span class="pal-chip">${escapeHtml(x)}</span>`).join("")
+  const origemBadge = p.origem === "convite"
+    ? `<span class="pal-detalhe__origem" title="Cadastrado via link de convite"><i class="fas fa-link"></i> Cadastro via convite</span>`
+    : ""
+  const data = p.criadoEm ? formatDateBR(String(p.criadoEm).slice(0, 10)) : ""
+  const bio = p.miniBio
+    ? `<p class="pal-detalhe__bio">${escapeHtml(p.miniBio)}</p>`
+    : `<p class="pal-detalhe__bio pal-detalhe__bio--empty">Sem mini bio cadastrada.</p>`
+
+  fecharDetalhe()
+  const overlay = document.createElement("div")
+  overlay.className = "pal-modal__overlay"
+  overlay.innerHTML = `
+    <div class="pal-modal pal-modal--detalhe" role="dialog" aria-modal="true" aria-label="Detalhes de ${escapeHtml(p.nome)}">
+      <button type="button" class="pal-modal__close pal-detalhe__close" id="palDetClose" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+      <div class="pal-detalhe__head">
+        <div class="pal-detalhe__photo">${avatar}</div>
+        <h3 class="pal-detalhe__name">${escapeHtml(p.nome)}</h3>
+        ${origemBadge}
+      </div>
+      <div class="pal-detalhe__body">
+        ${chips ? `<div class="pal-detalhe__section">
+          <span class="pal-detalhe__label">Eixos temáticos</span>
+          <div class="pal-card__chips pal-detalhe__chips">${chips}</div>
+        </div>` : ""}
+        ${p.cursoTitulo ? `<div class="pal-detalhe__section">
+          <span class="pal-detalhe__label">Curso ministrado</span>
+          <div class="pal-detalhe__curso"><i class="fas fa-chalkboard-user"></i> ${escapeHtml(p.cursoTitulo)}</div>
+        </div>` : ""}
+        <div class="pal-detalhe__section">
+          <span class="pal-detalhe__label">Mini bio</span>
+          ${bio}
+        </div>
+      </div>
+      <div class="pal-detalhe__foot">
+        <span class="pal-card__date">${data}</span>
+        <div class="pal-card__actions">
+          ${p.linkedin ? `<a class="pal-icon-btn pal-icon-btn--in" href="${escapeHtml(p.linkedin)}" target="_blank" rel="noopener" title="Abrir LinkedIn"><i class="fab fa-linkedin-in"></i></a>` : ""}
+          <button type="button" class="btn btn--sm" id="palDetEdit"><i class="fas fa-pen"></i> Editar</button>
+          <button type="button" class="btn btn--sm pal-detalhe__del" id="palDetDel"><i class="fas fa-trash-can"></i> Excluir</button>
+        </div>
+      </div>
+    </div>`
+  document.body.appendChild(overlay)
+  _palDetalheEl = overlay
+  document.addEventListener("keydown", _palDetalheEsc)
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) fecharDetalhe() })
+  overlay.querySelector("#palDetClose").addEventListener("click", fecharDetalhe)
+  overlay.querySelector("#palDetEdit").addEventListener("click", () => { fecharDetalhe(); abrirEdicao(id) })
+  overlay.querySelector("#palDetDel").addEventListener("click", async () => { fecharDetalhe(); await excluir(id) })
 }
 
 function abrirEdicao(id) {
