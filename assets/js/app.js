@@ -68,7 +68,22 @@ import { showAlert, showConfirm, showPrompt } from "./core/modal.js"
 import { renderPaginatedTable, renderTabsNav, wireTabs, getActiveTab } from "./core/ui-kit.js"
 
 // ================ Auth gate ================
-const session = sessionStorage.getItem("egov_admin_session")
+// Restaura a sessão persistida ("Manter conectado") diretamente aqui: no PWA
+// instalado, cada abertura é uma sessão nova — sem isso o app pularia para o
+// login e voltaria, interrompendo a abertura (capelo + textos). Só redireciona
+// ao login quem realmente não tem sessão nenhuma.
+const session = (() => {
+  let s = sessionStorage.getItem("egov_admin_session")
+  if (s) return s
+  try {
+    s = localStorage.getItem("egov_admin_session")
+    if (s) {
+      sessionStorage.setItem("egov_admin_session", s)
+      return s
+    }
+  } catch (_) {}
+  return null
+})()
 if (!session) window.location.replace("index.html")
 const userData = (() => {
   try {
