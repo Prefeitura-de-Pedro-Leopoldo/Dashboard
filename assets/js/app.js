@@ -375,17 +375,14 @@ function hideSplash() {
   const el = document.getElementById("appSplash")
   if (!el || el.classList.contains("is-hiding")) return
   const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
+  // Site (navegador/desktop): a abertura é exclusiva do app instalado — o
+  // splash nem pintou (classe no-splash no <html>); só remove do DOM.
+  if (!standalone) { el.remove(); return }
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  let first = true
-  try {
-    first = !sessionStorage.getItem("egov_splash_seen")
-    sessionStorage.setItem("egov_splash_seen", "1")
-  } catch (_) {}
-  // Abertura completa (capelo assenta → brilho → título → instituição →
-  // saudação → barra) leva ~3.75s. No app instalado / 1ª visita deixamos a
-  // cena terminar com um respiro — a abertura é o ponto alto do app.
-  // Em recargas na mesma sessão, sai rápido para não atrapalhar o uso.
-  const minMs = reduced ? 0 : (standalone || first) ? 4300 : 900
+  // App instalado: a cena completa (capelo assenta → brilho → título →
+  // instituição → saudação → barra, ~3.75s) roda em TODA abertura, com um
+  // respiro antes de revelar o painel — a abertura é o ponto alto do app.
+  const minMs = reduced ? 0 : 4300
   const wait = Math.max(0, minMs - (performance.now() - _splashT0))
   setTimeout(() => {
     el.classList.add("is-hiding")

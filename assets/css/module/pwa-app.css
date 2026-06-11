@@ -11,12 +11,15 @@
 
 html { -webkit-tap-highlight-color: transparent; }
 
-/* Impede o gesto de "voltar/avançar" do navegador no deslize horizontal —
-   senão o swipe para a direita tira o usuário do app (volta no histórico). */
-html, body { overscroll-behavior-x: none; }
+/* Acessou pelo NAVEGADOR (site/desktop): sem abertura — o splash nem pinta.
+   A experiência completa de app é exclusiva do instalado (standalone). */
+.no-splash .splash { display: none !important; }
 
-/* Desativa o pull-to-refresh NATIVO do Chrome (usamos o nosso, com a marca) */
-@media (hover: none) and (pointer: coarse) {
+/* Comportamentos de app SÓ no instalado: bloquear o gesto de voltar do
+   navegador e o pull-to-refresh nativo (substituído pelo nosso). No site,
+   o navegador segue 100% padrão. */
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-x: none; }
   body { overscroll-behavior-y: contain; }
 }
 

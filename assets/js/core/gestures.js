@@ -14,6 +14,12 @@
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
 const isMobile = () => window.matchMedia("(max-width: 768px)").matches
 
+// App INSTALADO (PWA standalone)? Os gestos de app (swipe de abas,
+// pull-to-refresh, gaveta por deslize) são exclusivos dele — no site
+// (navegador/desktop) o comportamento fica 100% padrão.
+export const isStandalone = () =>
+  window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
+
 /** Vibração curta (no-op onde não suportado). Só vibra após o usuário já ter
  *  interagido com a página — evita o warning de Intervention do Chrome
  *  ("Blocked call to navigator.vibrate"). */
@@ -57,7 +63,7 @@ function _scrolledYAncestor(el) {
    EDGE-SWIPE da gaveta (segue o dedo)
    ================================================================ */
 export function initDrawerGestures({ sidebar, isOpen, open, close }) {
-  if (!sidebar) return
+  if (!sidebar || !isStandalone()) return
   const W = () => Math.min(284, window.innerWidth * 0.86)
   let tracking = null // { startX, startY, fromEdge, lastX, lastT, vx }
 
@@ -128,6 +134,7 @@ export function initDrawerGestures({ sidebar, isOpen, open, close }) {
 const SWIPE_OUTSIDE = ".sidebar, .topbar, .app-modal__overlay, .pal-modal__overlay, .notif-panel, .servidor-perfil-overlay, .splash, .group-tabs"
 
 export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
+  if (!isStandalone()) return
   // ESSENCIAL para o swipe funcionar em celular de verdade: sem isso, ao
   // detectar movimento o Chrome assume o gesto para o scroll da página e
   // dispara touchcancel — o swipe nunca completa. pan-y deixa o scroll
@@ -201,7 +208,7 @@ export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
    PULL-TO-REFRESH
    ================================================================ */
 export function initPullToRefresh({ onRefresh }) {
-  if (!("ontouchstart" in window)) return
+  if (!("ontouchstart" in window) || !isStandalone()) return
   const THRESH = 84
   let indicator = null
   let st = null

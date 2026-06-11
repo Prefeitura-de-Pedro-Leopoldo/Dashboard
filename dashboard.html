@@ -44,6 +44,14 @@
           document.documentElement.setAttribute("data-theme", theme);
         } catch (e) {}
       })();
+      // Abertura (capelo) é experiência do APP INSTALADO. No navegador
+      // (site/desktop) o splash nem chega a pintar.
+      (function () {
+        try {
+          var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+          if (!standalone) document.documentElement.classList.add("no-splash");
+        } catch (e) {}
+      })();
     </script>
     <!-- Libs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
