@@ -1,0 +1,483 @@
+/* ================================================================
+   PWA / APP FEEL
+   - Splash de abertura (capelo 3D, mesmo da página de convite)
+   - Safe-area (notch) no modo standalone
+   - Ripple + estados de toque (press)
+   - Pull-to-refresh (indicador)
+   - Tilt 3D nos cards + glare
+   - Entrada escalonada (stagger) de KPIs/cards
+   - Transição de swipe entre abas
+   ================================================================ */
+
+html { -webkit-tap-highlight-color: transparent; }
+
+/* Desativa o pull-to-refresh NATIVO do Chrome (usamos o nosso, com a marca) */
+@media (hover: none) and (pointer: coarse) {
+  body { overscroll-behavior-y: contain; }
+}
+
+/* ----------------------------------------------------------------
+   SPLASH DE ABERTURA — capelo 3D + título + barra de progresso
+   ---------------------------------------------------------------- */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(48, 99, 173, 0.22), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(77, 173, 51, 0.12), transparent 55%),
+    var(--surface-bg);
+  transition:
+    opacity 0.5s ease,
+    transform 0.65s cubic-bezier(0.65, 0, 0.25, 1),
+    visibility 0.5s;
+}
+.splash.is-hiding {
+  opacity: 0;
+  transform: translateY(-26px);
+  visibility: hidden;
+  pointer-events: none;
+}
+.splash__inner { text-align: center; max-width: 90vw; }
+
+/* ---- Cena 3D do capelo (mesma construção do convite, levemente menor) ---- */
+.splash .grad-scene {
+  width: 230px;
+  height: 196px;
+  margin: 0 auto;
+  perspective: 860px;
+  display: grid;
+  place-items: center;
+}
+.splash .grad-cap {
+  position: relative;
+  transform-style: preserve-3d;
+  opacity: 0;
+  animation:
+    splCapIn 1.25s cubic-bezier(0.2, 0.8, 0.25, 1) forwards,
+    splCapFloat 4.6s 1.3s ease-in-out infinite;
+}
+/* Tábua = bloco 3D real (6 faces); inclinada vira o losango do capelo */
+.splash .grad-cap__board {
+  position: relative;
+  width: 144px;
+  height: 144px;
+  transform-style: preserve-3d;
+  transform: rotateX(58deg) rotateZ(45deg);
+}
+.splash .board__face { position: absolute; top: 50%; left: 50%; }
+.splash .board__top,
+.splash .board__bottom { width: 144px; height: 144px; border-radius: 14px; }
+.splash .board__top {
+  transform: translate(-50%, -50%) translateZ(6px);
+  background: linear-gradient(135deg, #3f6cb0 0%, #21477e 42%, #0e2546 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.splash .board__top::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 46%);
+}
+.splash .board__trim {
+  position: absolute;
+  inset: 5px;
+  border-radius: 11px;
+  pointer-events: none;
+  border: 1.5px solid rgba(77, 173, 51, 0.92);
+  box-shadow: 0 0 5px rgba(77, 173, 51, 0.4);
+}
+.splash .board__bottom {
+  transform: translate(-50%, -50%) translateZ(-6px) rotateY(180deg);
+  background: linear-gradient(135deg, #0c2244, #060e1c);
+}
+.splash .board__edge { background: linear-gradient(#173357, #0a1c38); }
+.splash .board__edge--n { width: 144px; height: 12px; transform: translate(-50%, -50%) rotateX(90deg) translateZ(72px); }
+.splash .board__edge--s { width: 144px; height: 12px; transform: translate(-50%, -50%) rotateX(-90deg) translateZ(72px); }
+.splash .board__edge--e { width: 12px; height: 144px; transform: translate(-50%, -50%) rotateY(90deg) translateZ(72px); }
+.splash .board__edge--w { width: 12px; height: 144px; transform: translate(-50%, -50%) rotateY(-90deg) translateZ(72px); }
+/* Brilho que cruza o topo uma vez, ao assentar */
+.splash .board__shine { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.splash .board__shine::before {
+  content: "";
+  position: absolute;
+  top: -25%; bottom: -25%; left: -160%;
+  width: 55%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: splCapShine 1.1s cubic-bezier(0.5, 0, 0.3, 1) 1.25s 1;
+}
+.splash .grad-cap__button {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 19px; height: 19px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) translateZ(8px);
+  background: radial-gradient(circle at 34% 30%, #4274c0, #16294d);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.splash .grad-cap__base {
+  position: absolute;
+  left: 50%; top: 50%;
+  z-index: -1;
+  width: 95px; height: 49px;
+  transform: translate(-50%, 14px) translateZ(5px);
+  border-radius: 11px 11px 26px 26px / 12px 12px 37px 37px;
+  background: linear-gradient(180deg, #294f86 0%, #173a6e 38%, #0d2247 78%, #08193400 100%), linear-gradient(180deg, #294f86, #0d2247);
+  box-shadow: inset 0 7px 10px -7px rgba(255, 255, 255, 0.2), 0 14px 20px -10px rgba(0, 0, 0, 0.5);
+}
+.splash .grad-cap__base::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 4px;
+  width: 86px; height: 12px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, #3a619a, #1c3f74);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.28);
+}
+.splash .grad-cap__base::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: -4px;
+  width: 70px; height: 14px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 35%, #0a1d3c 40%, #06122700 72%), radial-gradient(ellipse, rgba(0, 0, 0, 0.5), transparent 74%);
+}
+.splash .grad-cap__tassel {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, 0) translateZ(10px);
+}
+.splash .grad-cap__swing {
+  transform-origin: top center;
+  animation: splTasselSwing 3s ease-in-out infinite;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.splash .grad-cap__string {
+  width: 3px; height: 66px;
+  border-radius: 3px;
+  background: linear-gradient(#f0cf73, #c8941f);
+}
+.splash .grad-cap__knot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-top: -1px;
+  background: radial-gradient(circle at 35% 30%, #f7da82, #c8941f);
+}
+.splash .grad-cap__fringe {
+  width: 17px; height: 29px;
+  margin-top: -1px;
+  border-radius: 3px 3px 7px 7px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #f0cf73 0%, #d8a52e 55%, #b9851a 100%);
+  box-shadow: inset 0 -4px 5px rgba(0, 0, 0, 0.25), 0 3px 5px -2px rgba(0, 0, 0, 0.3);
+}
+.splash .grad-shadow {
+  width: 130px; height: 21px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(14, 32, 64, 0.32), transparent 70%);
+  filter: blur(3px);
+  opacity: 0;
+  animation: splShadowIn 0.7s ease 1s forwards, splShadowPulse 4.6s 1.3s ease-in-out infinite;
+}
+[data-theme="dark"] .splash .grad-shadow {
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
+}
+
+/* ---- Texto + barra ---- */
+.splash__eyebrow {
+  margin: 12px 0 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: splUp 0.6s ease 1.05s forwards;
+}
+.splash__title {
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 5.4vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: splUp 0.65s ease 1.16s forwards;
+}
+.splash__welcome {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  min-height: 1.3em;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.splash__welcome.is-on { animation: splUp 0.55s ease forwards; }
+.splash__welcome b { color: var(--brand-primary); font-weight: 700; }
+.splash__bar {
+  width: 180px;
+  max-width: 70vw;
+  height: 4px;
+  margin: 20px auto 0;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: splUp 0.5s ease 1.4s forwards;
+}
+.splash__bar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
+  animation: splBar 1.15s cubic-bezier(0.6, 0.1, 0.2, 1) 1.5s forwards;
+}
+
+@keyframes splCapIn {
+  0%   { opacity: 0; transform: translateY(-140px) rotateY(-200deg) scale(0.5); }
+  55%  { opacity: 1; transform: translateY(10px) rotateY(0deg) scale(1.06); }
+  72%  { transform: translateY(-6px) rotateY(8deg) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) rotateY(0) scale(1); }
+}
+@keyframes splCapFloat {
+  0%   { transform: translateY(0) rotateY(0deg); }
+  25%  { transform: translateY(-8px) rotateY(22deg); }
+  50%  { transform: translateY(-11px) rotateY(0deg); }
+  75%  { transform: translateY(-8px) rotateY(-22deg); }
+  100% { transform: translateY(0) rotateY(0deg); }
+}
+@keyframes splTasselSwing {
+  0%, 100% { transform: rotate(9deg); }
+  50%      { transform: rotate(-9deg); }
+}
+@keyframes splShadowIn { to { opacity: 1; } }
+@keyframes splShadowPulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50%      { transform: scale(0.84); opacity: 0.55; }
+}
+@keyframes splCapShine { from { left: -160%; } to { left: 175%; } }
+@keyframes splUp { to { opacity: 1; transform: translateY(0); } }
+@keyframes splBar { to { width: 100%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash .grad-cap,
+  .splash .grad-cap__swing,
+  .splash .grad-shadow,
+  .splash .board__shine::before,
+  .splash__eyebrow,
+  .splash__title,
+  .splash__welcome,
+  .splash__bar,
+  .splash__bar span {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .splash__bar span { width: 100%; }
+}
+
+/* ----------------------------------------------------------------
+   SAFE-AREA (notch / barra de gesto) — só no app instalado
+   ---------------------------------------------------------------- */
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(64px + env(safe-area-inset-top, 0px));
+  }
+  .sidebar__header {
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(64px + env(safe-area-inset-top, 0px));
+  }
+  .main {
+    padding-bottom: calc(var(--space-10) + env(safe-area-inset-bottom, 0px));
+  }
+  .wizard__nav { bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); }
+}
+@media (display-mode: standalone) and (max-width: 768px) {
+  .topbar { height: calc(56px + env(safe-area-inset-top, 0px)); }
+}
+
+/* ----------------------------------------------------------------
+   RIPPLE (toque estilo app) — JS injeta .ripple-wrap > .ripple
+   ---------------------------------------------------------------- */
+.ripple-wrap {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 4;
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  background: currentColor;
+  opacity: 0.18;
+  animation: rippleGo 0.55s ease-out forwards;
+}
+@keyframes rippleGo {
+  to { transform: scale(1); opacity: 0; }
+}
+
+/* Estados de pressão (touch): resposta tátil visual imediata */
+@media (hover: none) and (pointer: coarse) {
+  .btn, .topbar__btn, .topbar__menu, .view-tab, .pill, .source-tab,
+  .pager__btn, .pal-icon-btn, .notif-item__btn {
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  }
+  .btn:active, .topbar__btn:active, .topbar__menu:active, .view-tab:active,
+  .pill:active, .source-tab:active, .pager__btn:active, .pal-icon-btn:active,
+  .notif-item__btn:active {
+    transform: scale(0.95);
+  }
+  .event-card:active, .kpi:active, .pal-card:active, .insight:active {
+    transform: scale(0.985);
+    transition: transform 0.12s ease;
+  }
+  .nav-link:active { background: var(--brand-soft-bg); }
+}
+
+/* ----------------------------------------------------------------
+   PULL-TO-REFRESH — indicador circular com a marca
+   ---------------------------------------------------------------- */
+.ptr-indicator {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 1300;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-lg);
+  display: grid;
+  place-items: center;
+  color: var(--brand-primary);
+  font-size: 1rem;
+  transform: translate(-50%, -68px);
+  will-change: transform;
+  pointer-events: none;
+}
+.ptr-indicator i { transition: transform 0.18s ease; }
+.ptr-indicator.is-ready i { transform: rotate(180deg); }
+.ptr-indicator.is-refreshing i { animation: ptrSpin 0.7s linear infinite; }
+@keyframes ptrSpin { to { transform: rotate(360deg); } }
+
+/* ----------------------------------------------------------------
+   TILT 3D + GLARE nos cards (desktop, ponteiro fino)
+   ---------------------------------------------------------------- */
+[data-tilt] {
+  will-change: transform;
+}
+[data-tilt]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(420px circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.16), transparent 44%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+[data-tilt]:hover::after { opacity: 1; }
+[data-theme="dark"] [data-tilt]::after {
+  background: radial-gradient(420px circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.08), transparent 44%);
+}
+
+/* ----------------------------------------------------------------
+   ENTRADA ESCALONADA (stagger) — KPIs, cards de evento e insights
+   ---------------------------------------------------------------- */
+.view.is-active .kpi-grid > .kpi,
+.view.is-active .event-grid > .event-card,
+.view.is-active .insights-grid > .insight,
+.view.is-active .alert-strip > .insight {
+  opacity: 0;
+  animation: itemRise 0.45s var(--ease-out) forwards;
+}
+.view.is-active .kpi-grid > :nth-child(1),
+.view.is-active .event-grid > :nth-child(1),
+.view.is-active .insights-grid > :nth-child(1),
+.view.is-active .alert-strip > :nth-child(1) { animation-delay: 0.03s; }
+.view.is-active .kpi-grid > :nth-child(2),
+.view.is-active .event-grid > :nth-child(2),
+.view.is-active .insights-grid > :nth-child(2),
+.view.is-active .alert-strip > :nth-child(2) { animation-delay: 0.08s; }
+.view.is-active .kpi-grid > :nth-child(3),
+.view.is-active .event-grid > :nth-child(3),
+.view.is-active .insights-grid > :nth-child(3),
+.view.is-active .alert-strip > :nth-child(3) { animation-delay: 0.13s; }
+.view.is-active .kpi-grid > :nth-child(4),
+.view.is-active .event-grid > :nth-child(4),
+.view.is-active .insights-grid > :nth-child(4) { animation-delay: 0.18s; }
+.view.is-active .kpi-grid > :nth-child(n + 5),
+.view.is-active .event-grid > :nth-child(n + 5),
+.view.is-active .insights-grid > :nth-child(n + 5) { animation-delay: 0.23s; }
+@keyframes itemRise {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ----------------------------------------------------------------
+   SWIPE entre abas — conteúdo desliza na direção do gesto
+   ---------------------------------------------------------------- */
+.main-inner.swipe-in-left  { animation: swipeInLeft 0.28s var(--ease-out); }
+.main-inner.swipe-in-right { animation: swipeInRight 0.28s var(--ease-out); }
+@keyframes swipeInLeft {
+  from { opacity: 0.4; transform: translateX(42px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes swipeInRight {
+  from { opacity: 0.4; transform: translateX(-42px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Drawer seguindo o dedo (JS controla transform; sem transição no arrasto) */
+.sidebar.is-dragging { transition: none !important; }
+
+/* ----------------------------------------------------------------
+   Barras de abas roláveis no toque: snap suave, sem scrollbar,
+   e dica visual de "tem mais" (fade na borda direita).
+   ---------------------------------------------------------------- */
+@media (hover: none) and (pointer: coarse) {
+  .group-tabs, .view-tabs {
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 26px), rgba(0,0,0,0.25) 100%);
+    mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 26px), rgba(0,0,0,0.25) 100%);
+  }
+  .group-tabs::-webkit-scrollbar, .view-tabs::-webkit-scrollbar { display: none; }
+  .group-tab, .view-tab { scroll-snap-align: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view.is-active .kpi-grid > .kpi,
+  .view.is-active .event-grid > .event-card,
+  .view.is-active .insights-grid > .insight,
+  .view.is-active .alert-strip > .insight {
+    animation: none;
+    opacity: 1;
+  }
+  .main-inner.swipe-in-left,
+  .main-inner.swipe-in-right { animation: none; }
+  .ripple { animation-duration: 0.01ms; }
+}

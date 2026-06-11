@@ -55,6 +55,7 @@ import { initPalestrantes, renderLista as renderPalestrantesLista, listarConvite
 import { initNotificacoes, refreshNotificacoes } from "./notificacoes.js"
 import { renderInscricoes, renderEncontros, renderPresenca, eventosComInscricaoAberta } from "./lembretes.js"
 import { showCover } from "./loader.js"
+import { haptic, initDrawerGestures, initSwipeTabs, initPullToRefresh, initRipple, initTilt, countUp } from "./core/gestures.js"
 import { triggerDownload } from "./util.js"
 import { renderViewQrCode } from "./views/qrcode.js"
 import { renderViewSecretarias } from "./views/secretarias.js"
@@ -350,8 +351,39 @@ const VIEW_TO_GROUP = (() => {
   return out
 })()
 
+// ================ Splash de abertura ================
+// O splash (capelo 3D) cobre a tela até os dados ficarem prontos. No app
+// instalado (standalone) ou na 1ª visita da sessão a animação completa roda;
+// nas recargas seguintes ele sai cedo para não atrapalhar.
+const _splashT0 = performance.now()
+function hideSplash() {
+  const el = document.getElementById("appSplash")
+  if (!el || el.classList.contains("is-hiding")) return
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  let first = true
+  try {
+    first = !sessionStorage.getItem("egov_splash_seen")
+    sessionStorage.setItem("egov_splash_seen", "1")
+  } catch (_) {}
+  const minMs = reduced ? 0 : (standalone || first) ? 2450 : 700
+  const wait = Math.max(0, minMs - (performance.now() - _splashT0))
+  setTimeout(() => {
+    el.classList.add("is-hiding")
+    setTimeout(() => el.remove(), 700)
+  }, wait)
+}
+
 // ================ Bootstrap ================
 ;(async function init() {
+  // Saudação no splash (nome da sessão), no mesmo espírito do convite.
+  const welcome = document.getElementById("splashWelcome")
+  if (welcome) {
+    const primeiro = String(userData.name || "").trim().split(/\s+/)[0]
+    welcome.innerHTML = primeiro ? `Bem-vindo de volta, <b>${escapeHtml(primeiro)}</b>` : "Preparando seu painel…"
+    setTimeout(() => welcome.classList.add("is-on"), 1250)
+  }
+
   setupSidebar()
   setupUserChrome()
   setupThemeToggle()
@@ -364,9 +396,55 @@ const VIEW_TO_GROUP = (() => {
     navigate
   })
   initNotificacoes({ listarConvites, navigate, getLotados: () => state.inscricoesAbertas || [] })
+
+  // ---- Experiência de app: gestos, ripple, tilt, pull-to-refresh ----
+  initRipple()
+  initTilt()
+  initPullToRefresh({
+    onRefresh: async () => { await reloadData({ force: true }); refreshNotificacoes() },
+  })
+  initSwipeTabs({
+    getTabs: () => _swipeTabsCtx()?.tabs || [],
+    getCurrent: () => _swipeTabsCtx()?.cur,
+    goTo: (t) => _swipeTabsCtx()?.go(t),
+  })
+
+  // Service worker (PWA): cache do shell + dados offline.
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {})
+    })
+  }
+
   preloadTemplate()
   await reloadData()
+
+  // Atalhos do app instalado (manifest shortcuts): /dashboard#nav=eventos
+  const mNav = location.hash.match(/nav=([\w-]+)/)
+  if (mNav && VIEW_TO_GROUP[mNav[1]]) navigate(mNav[1])
 })()
+
+// Contexto de swipe: sub-abas do grupo atual; se o grupo não tem sub-abas
+// (ex.: Visão Geral), usa as abas internas da view ativa (Resumo/Gráficos/…).
+function _swipeTabsCtx() {
+  const groupId = VIEW_TO_GROUP[state.view]
+  const grp = SIDEBAR_GROUPS.find(g => g.id === groupId)
+  if (grp && grp.tabs && grp.tabs.length > 1) {
+    return { tabs: grp.tabs.map(t => t.view), cur: state.view, go: v => navigate(v) }
+  }
+  const nav = document.querySelector(".view.is-active .view-tabs")
+  if (nav) {
+    const btns = [...nav.querySelectorAll(".view-tab")]
+    if (btns.length > 1) {
+      return {
+        tabs: btns.map(b => b.dataset.tab),
+        cur: nav.querySelector(".view-tab.is-active")?.dataset.tab,
+        go: id => nav.querySelector(`[data-tab="${id}"]`)?.click(),
+      }
+    }
+  }
+  return null
+}
 
 async function reloadData(opts = {}) {
   showDashboardSkeleton()
@@ -388,10 +466,12 @@ async function reloadData(opts = {}) {
     const raw = await loadData((live) => applyData(live), opts)
     applyData(raw)
     hideLoader()
+    hideSplash()
     // Turmas com inscrição aberta entram em 2º plano (não travam a tela).
     augmentInscricoesAbertas()
   } catch (err) {
     hideLoader()
+    hideSplash()
     document.getElementById("mainContent").innerHTML = `
       <div class="empty-state">
         <div class="empty-state__art"><i class="fas fa-circle-exclamation"></i></div>
@@ -569,6 +649,15 @@ function setupSidebar() {
   if (mqMobile.addEventListener) mqMobile.addEventListener("change", onMqChange)
   else if (mqMobile.addListener) mqMobile.addListener(onMqChange)
 
+  // Gestos: deslizar da borda abre a gaveta (seguindo o dedo); deslizar
+  // para a esquerda fecha. Mesma mecânica dos apps nativos.
+  initDrawerGestures({
+    sidebar: shell.querySelector(".sidebar"),
+    isOpen: () => shell.classList.contains("is-mobile-open"),
+    open: openDrawer,
+    close: closeDrawer,
+  })
+
   try {
     // Default: colapsada. Só mantém aberta se o usuário marcou explicitamente "0".
     const pref = localStorage.getItem("egov_sidebar_collapsed")
@@ -613,6 +702,7 @@ function setupNavigation() {
 }
 
 function navigate(view) {
+  haptic(6) // resposta tátil sutil ao trocar de tela (Android)
   state.view = view
   const groupId = VIEW_TO_GROUP[view]
   // Sidebar: marca o item do grupo correspondente como ativo
@@ -658,6 +748,8 @@ function renderGroupTabs(groupId) {
   host.querySelectorAll("[data-group-tab]").forEach(btn => {
     btn.addEventListener("click", () => navigate(btn.dataset.groupTab))
   })
+  // Mantém a sub-aba ativa à vista quando a barra rola horizontal (celular).
+  host.querySelector(".group-tab.is-active")?.scrollIntoView({ inline: "center", block: "nearest" })
 }
 
 // ================ Helpers de UI: Tabs internas ================
@@ -745,6 +837,7 @@ function renderDashboard() {
   const kpisHost = document.getElementById("kpisGlobal")
   kpisHost.className = "kpi-grid"
   kpisHost.innerHTML = renderKPIs(resumo, eventos)
+  countUp(kpisHost)
 
   // Insights particionados por severidade
   const insights = gerarInsightsGlobais(data)
@@ -1346,10 +1439,10 @@ function populateFaltasTable() {
           <tr>
             <th>Participante</th>
             <th class="col-hide-sm">E-mail</th>
-            <th>Secretaria</th>
-            <th style="text-align:center;">Inscrições</th>
+            <th class="col-hide-sm">Secretaria</th>
+            <th class="col-hide-sm" style="text-align:center;">Inscrições</th>
             <th style="text-align:center;">Faltas</th>
-            <th style="text-align:center;">Presenças</th>
+            <th class="col-hide-sm" style="text-align:center;">Presenças</th>
             <th style="text-align:right;">Absenteísmo</th>
           </tr>
         </thead>
@@ -1360,10 +1453,10 @@ function populateFaltasTable() {
             <tr>
               <td class="cell-name"><a class="servidor-link" data-servidor-chave="${escapeHtml(r.chave || "")}" tabindex="0" role="button">${escapeHtml(r.nome || "-")}</a></td>
               <td class="col-hide-sm">${escapeHtml(r.email || "-")}</td>
-              <td>${escapeHtml(r.secretaria || "-")}</td>
-              <td style="text-align:center;">${r.inscricoes}</td>
+              <td class="col-hide-sm">${escapeHtml(r.secretaria || "-")}</td>
+              <td class="col-hide-sm" style="text-align:center;">${r.inscricoes}</td>
               <td style="text-align:center;"><span class="cell-status ${r.faltas >= 2 ? "red" : "amber"}">${r.faltas}</span></td>
-              <td style="text-align:center;">${r.presencas}</td>
+              <td class="col-hide-sm" style="text-align:center;">${r.presencas}</td>
               <td style="text-align:right; font-weight:600;">${r.taxaAbsenteismo}%</td>
             </tr>
           `
@@ -3580,7 +3673,7 @@ function populateCertTable() {
       <td class="cell-name">${escapeHtml(p.nome)}</td>
       <td class="col-hide-sm">${escapeHtml(p.email || "")}</td>
       <td class="col-hide-md cell-turma" title="${escapeHtml(p.turma || "")}">${escapeHtml(p.turma || "")}</td>
-      <td>${escapeHtml(p.secretaria || "")}</td>
+      <td class="col-hide-sm">${escapeHtml(p.secretaria || "")}</td>
       <td><span class="cell-status green"><i class="fas fa-check"></i> Elegível</span></td>
       <td><span class="cell-status muted">A emitir</span></td>
     </tr>
@@ -3613,7 +3706,7 @@ function populateCertTable() {
             <th>Participante</th>
             <th class="col-hide-sm">E-mail</th>
             <th class="col-hide-md">Turma</th>
-            <th>Secretaria</th>
+            <th class="col-hide-sm">Secretaria</th>
             <th>Presença</th>
             <th>Certificado</th>
           </tr>

@@ -2,16 +2,21 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Painel · Escola de Governo Pedro Leopoldo</title>
     <link rel="icon" href="assets/img/favicon/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon/favicon-16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon/apple-touch-icon.png" />
-    <link rel="manifest" href="assets/img/favicon/site.webmanifest" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#3063ad" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)" />
+    <!-- PWA / iOS standalone -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="EGov-PL" />
 
     <link rel="stylesheet" href="assets/css/main.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -46,6 +51,46 @@
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   </head>
   <body>
+    <!-- ============================================================
+         SPLASH DE ABERTURA — capelo 3D (mesma cena do convite de
+         palestrante). O app.js esconde quando os dados ficam prontos.
+         ============================================================ -->
+    <div class="splash" id="appSplash" aria-hidden="true">
+      <div class="splash__inner">
+        <div class="grad-scene" aria-hidden="true">
+          <div>
+            <div class="grad-cap">
+              <div class="grad-cap__board">
+                <div class="board__face board__bottom"></div>
+                <div class="board__face board__edge board__edge--n"></div>
+                <div class="board__face board__edge board__edge--s"></div>
+                <div class="board__face board__edge board__edge--e"></div>
+                <div class="board__face board__edge board__edge--w"></div>
+                <div class="board__face board__top">
+                  <span class="board__trim"></span>
+                  <span class="board__shine"></span>
+                </div>
+                <div class="grad-cap__button"></div>
+                <div class="grad-cap__tassel">
+                  <div class="grad-cap__swing">
+                    <span class="grad-cap__string"></span>
+                    <span class="grad-cap__knot"></span>
+                    <span class="grad-cap__fringe"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="grad-cap__base"></div>
+            </div>
+            <div class="grad-shadow"></div>
+          </div>
+        </div>
+        <p class="splash__eyebrow">Escola de Governo · Pedro Leopoldo</p>
+        <p class="splash__title">Painel Administrativo</p>
+        <p class="splash__welcome" id="splashWelcome"></p>
+        <div class="splash__bar"><span></span></div>
+      </div>
+    </div>
+
     <div class="app-shell" id="appShell">
       <!-- ============================================================
            SIDEBAR

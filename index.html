@@ -2,15 +2,20 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Login · Painel · EGov-PL</title>
     <link rel="icon" href="assets/img/favicon/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon/favicon-16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon/apple-touch-icon.png" />
-    <link rel="manifest" href="assets/img/favicon/site.webmanifest" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#3063ad" />
+    <!-- PWA / iOS standalone -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="EGov-PL" />
     <link rel="stylesheet" href="assets/css/base/_variables.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -665,6 +670,13 @@
         document.documentElement.setAttribute("data-theme", next);
         try { localStorage.setItem("egovpl-theme", next); } catch (_) {}
       });
+
+      // PWA: registra o service worker (cache do shell + uso offline)
+      if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
+        });
+      }
     </script>
   </body>
 </html>

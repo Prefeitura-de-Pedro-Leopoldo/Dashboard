@@ -35,6 +35,7 @@
 @import url('module/palestrantes.css');
 @import url('module/lembretes.css');
 @import url('module/notificacoes.css');
+@import url('module/pwa-app.css');
 @import url('state/skeleton.css');
 @import url('state/loader.css');
 @import url('state/loading.css');
