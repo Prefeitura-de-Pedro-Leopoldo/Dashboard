@@ -113,3 +113,28 @@
   .cert-typo-control__range::-moz-range-thumb     { width: 20px; height: 20px; }
 }
 
+/* Gráficos: alturas menores no celular para manter boa proporção */
+@media (max-width: 600px) {
+  .chart-wrap { height: 240px; }
+  .chart-wrap.sm { height: 200px; }
+  .chart-wrap.lg { height: 280px; }
+  .chart-wrap.xl { height: 300px; }
+}
+
+/* Perfil do servidor (modal drill-down): respiro lateral menor no celular */
+@media (max-width: 480px) {
+  .servidor-perfil-overlay { padding: 16px 10px; }
+  .servidor-perfil { padding: 22px 18px !important; }
+  .servidor-perfil__header { gap: 14px; }
+  .servidor-perfil__avatar { width: 56px; height: 56px; font-size: 1.4rem; }
+  .servidor-perfil__name { font-size: 1.3rem; }
+  /* Linha de evento: data acima, título + status abaixo (não espreme) */
+  .srv-event { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .srv-event__date { grid-column: 1 / -1; }
+}
+
+/* Auto-relatório: KPIs do resumo em 2 colunas em telas estreitas */
+@media (max-width: 380px) {
+  .ar-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+

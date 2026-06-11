@@ -28,7 +28,9 @@ const ROOT_FOLDER_ID = '1Jfyl8jE70W05t8YydDvVMEzkqXZZ7QJK';
 // Remetente (reaproveite os do enviarCertificados.gs / lembretesEventos.gs).
 const SENDER_EMAIL = 'egov@pedroleopoldo.mg.gov.br';
 const REPLY_TO     = 'egov@pedroleopoldo.mg.gov.br';
-const BCC_EMAIL    = 'fabiana.silva@pedroleopoldo.mg.gov.br';
+// Sem cópia oculta nas CONFIRMAÇÕES de inscrição. (A Fabiana fica em cópia
+// apenas dos LEMBRETES de evento — ver lembretesEventos.gs.)
+const BCC_EMAIL    = '';
 const PROJECT_NAME = 'Escola de Governo · Prefeitura de Pedro Leopoldo';
 
 // true = não envia; apenas registra no log (use para semear os já existentes).

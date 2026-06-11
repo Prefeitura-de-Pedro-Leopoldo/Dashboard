@@ -49,7 +49,9 @@
       }
       @media (max-width: 960px) {
         .login-shell { grid-template-columns: 1fr; }
-        .brand-panel { display: none; }
+        /* especificidade extra: a regra base .brand-panel{display:flex} é
+           declarada depois deste bloco e venceria por ordem de carga. */
+        .login-shell .brand-panel { display: none; }
       }
 
       /* ============================================================

@@ -1,14 +1,16 @@
 /**
  * notificacoes.js - sino de notificações do topbar.
  *
- * Hoje cobre um tipo de alerta: convites de palestrante que continuam
- * PENDENTES há 3 dias ou mais (o palestrante ainda não preencheu o cadastro).
- * Os dados vêm do mesmo back-end de palestrantes (action invite-list), via a
- * função injetada `listarConvites`.
+ * Cobre dois tipos de alerta:
+ *   1. Convites de palestrante PENDENTES há 3 dias ou mais (o palestrante ainda
+ *      não preencheu o cadastro). Vêm do back-end de palestrantes (listarConvites).
+ *   2. Inscrições LOTADAS: eventos com inscrição aberta cujo total de inscritos
+ *      (ao vivo) já atingiu as vagas — ou seja, o formulário foi/será encerrado.
+ *      Vêm de `getLotados()` (os eventos sintéticos de inscrição aberta do app).
  *
- * O "lido" é por token e fica no localStorage: abrir o painel marca os alertas
- * atuais como lidos (zera o badge), mas eles continuam listados até o convite
- * ser preenchido/revogado.
+ * O "lido" é por chave e fica no localStorage: abrir o painel marca os alertas
+ * atuais como lidos (zera o badge), mas eles continuam listados até deixarem de
+ * existir (convite preenchido/revogado; ou o evento já ter passado).
  */
 
 import { escapeHtml, formatDateBR } from "./ui.js"
@@ -17,7 +19,7 @@ const DIAS_LIMITE = 3
 const LS_KEY = "egovpl-notif-lidas"
 const MS_DIA = 86400000
 
-let _deps = { listarConvites: async () => [], navigate: () => {} }
+let _deps = { listarConvites: async () => [], getLotados: () => [], navigate: () => {} }
 let _convites = []
 let _open = false
 
@@ -34,7 +36,8 @@ export function initNotificacoes(overrides) {
   refreshNotificacoes()
 }
 
-// Re-busca os convites e atualiza o badge (e o painel, se aberto).
+// Re-busca os convites e atualiza o badge (e o painel, se aberto). Os "lotados"
+// são lidos de forma síncrona do estado atual do app a cada cálculo.
 export async function refreshNotificacoes() {
   _convites = await _deps.listarConvites()
   _renderBadge()
@@ -49,20 +52,48 @@ function _salvarLidas(set) {
   try { localStorage.setItem(LS_KEY, JSON.stringify([...set])) } catch (_) {}
 }
 
-// ---- Cálculo dos atrasados ----
+// ---- Fonte 1: convites pendentes ----
 function _diasDesde(iso) {
   const d = new Date(iso)
   if (isNaN(d)) return 0
   return Math.floor((Date.now() - d.getTime()) / MS_DIA)
 }
-
-// Convites pendentes há >= DIAS_LIMITE dias (ordenados do mais antigo p/ o topo).
-function _atrasados() {
+function _convitesAtrasados() {
   return _convites
     .filter((c) => String(c.status || "").toLowerCase() === "pendente")
     .map((c) => ({ ...c, dias: _diasDesde(c.criadoEm) }))
     .filter((c) => c.dias >= DIAS_LIMITE)
     .sort((a, b) => b.dias - a.dias)
+    .map((c) => ({ key: "convite:" + c.token, kind: "convite", data: c }))
+}
+
+// ---- Fonte 2: inscrições lotadas ----
+function _lotados() {
+  const lista = (_deps.getLotados && _deps.getLotados()) || []
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+  const seen = new Set()
+  const out = []
+  for (const ev of lista) {
+    const vagas = Number(ev.vagas) || 0
+    const total = Number(ev.totalInscritos) || 0
+    if (!vagas || total < vagas) continue // ainda tem vaga (ou vagas desconhecidas)
+    // Ignora eventos que já passaram (inscrição não é mais relevante).
+    if (ev.date) { const d = new Date(ev.date + "T00:00:00"); if (!isNaN(d) && d < hoje) continue }
+    const id = ev.id || ev.fonte || ev.title || ""
+    if (seen.has(id)) continue
+    seen.add(id)
+    out.push({
+      key: "lotado:" + id,
+      kind: "lotado",
+      data: { title: ev.tituloCurto || ev.title || "Evento", total, vagas, date: ev.date || "" },
+    })
+  }
+  return out
+}
+
+// Lista unificada (lotados primeiro — mais acionáveis).
+function _notificacoes() {
+  return [..._lotados(), ..._convitesAtrasados()]
 }
 
 // ---- Badge ----
@@ -71,7 +102,7 @@ function _renderBadge() {
   const bell = document.getElementById("notifBell")
   if (!badge || !bell) return
   const lidas = _lidas()
-  const naoLidas = _atrasados().filter((c) => !lidas.has(c.token)).length
+  const naoLidas = _notificacoes().filter((n) => !lidas.has(n.key)).length
   if (naoLidas > 0) {
     badge.textContent = naoLidas > 9 ? "9+" : String(naoLidas)
     badge.hidden = false
@@ -94,7 +125,7 @@ function _abrir() {
   if (panel) panel.hidden = false
   // Abrir = marcar os alertas atuais como lidos (zera o badge).
   const lidas = _lidas()
-  _atrasados().forEach((c) => lidas.add(c.token))
+  _notificacoes().forEach((n) => lidas.add(n.key))
   _salvarLidas(lidas)
   _renderBadge()
 }
@@ -110,7 +141,7 @@ function _close() {
 function _renderPanel() {
   const panel = document.getElementById("notifPanel")
   if (!panel) return
-  const lista = _atrasados()
+  const lista = _notificacoes()
   panel.innerHTML = `
     <div class="notif__head">
       <strong><i class="fas fa-bell"></i> Notificações</strong>
@@ -120,7 +151,7 @@ function _renderPanel() {
       ${lista.length ? lista.map(_itemHtml).join("") : `
         <div class="notif__empty">
           <i class="fas fa-circle-check"></i>
-          <p>Nenhum convite pendente há mais de ${DIAS_LIMITE} dias.</p>
+          <p>Tudo em dia. Nenhum alerta no momento.</p>
         </div>`}
     </div>`
 
@@ -136,12 +167,31 @@ function _renderPanel() {
   panel.querySelectorAll("[data-goto]").forEach((b) =>
     b.addEventListener("click", () => {
       _close()
-      _deps.navigate("palestrantes-lista")
+      _deps.navigate(b.dataset.goto)
     })
   )
 }
 
-function _itemHtml(c) {
+function _itemHtml(n) {
+  return n.kind === "lotado" ? _itemLotadoHtml(n.data) : _itemConviteHtml(n.data)
+}
+
+function _itemLotadoHtml(d) {
+  const quando = d.date ? formatDateBR(String(d.date).slice(0, 10)) : ""
+  return `
+    <div class="notif-item">
+      <div class="notif-item__icon" style="background: var(--ind-warn-soft); color: var(--ind-warn);"><i class="fas fa-lock"></i></div>
+      <div class="notif-item__body">
+        <p class="notif-item__title"><b>${escapeHtml(d.title)}</b> atingiu as vagas — inscrições encerradas.</p>
+        <p class="notif-item__meta"><i class="fas fa-users"></i> <b>${d.total}/${d.vagas}</b> inscritos${quando ? ` · ${quando}` : ""}</p>
+        <div class="notif-item__actions">
+          <button type="button" class="notif-item__btn notif-item__btn--ghost" data-goto="eventos"><i class="fas fa-arrow-right"></i> Ver eventos</button>
+        </div>
+      </div>
+    </div>`
+}
+
+function _itemConviteHtml(c) {
   const nome = String(c.nome || "").trim()
   const quando = c.criadoEm ? formatDateBR(String(c.criadoEm).slice(0, 10)) : ""
   return `
@@ -152,7 +202,7 @@ function _itemHtml(c) {
         <p class="notif-item__meta"><i class="fas fa-clock"></i> Convite gerado há <b>${c.dias} dia${c.dias === 1 ? "" : "s"}</b>${quando ? ` · ${quando}` : ""}</p>
         <div class="notif-item__actions">
           <button type="button" class="notif-item__btn" data-copy="${escapeHtml(c.token)}"><i class="fas fa-copy"></i> Copiar link</button>
-          <button type="button" class="notif-item__btn notif-item__btn--ghost" data-goto><i class="fas fa-arrow-right"></i> Palestrantes</button>
+          <button type="button" class="notif-item__btn notif-item__btn--ghost" data-goto="palestrantes-lista"><i class="fas fa-arrow-right"></i> Palestrantes</button>
         </div>
       </div>
     </div>`

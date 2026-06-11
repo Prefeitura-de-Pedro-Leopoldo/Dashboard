@@ -189,7 +189,7 @@
 .pal-list-actions { display: inline-flex; align-items: center; gap: 8px; }
 .pal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
   gap: var(--space-5);
 }
 .pal-card {

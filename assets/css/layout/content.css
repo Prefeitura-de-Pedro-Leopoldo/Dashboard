@@ -13,6 +13,23 @@
   width: 100%;
 }
 
+/* ----------------------------------------------------------------
+   Ultra-wide: aproveita melhor a área útil sem esticar linhas de
+   leitura ao infinito. O conteúdo cresce em degraus controlados e
+   ganha um respiro lateral maior conforme a tela fica enorme.
+   ---------------------------------------------------------------- */
+@media (min-width: 1800px) {
+  .main { padding-inline: var(--space-10); }
+  .main-inner { max-width: 1600px; }
+}
+@media (min-width: 2200px) {
+  .main { padding-inline: var(--space-16); }
+  .main-inner { max-width: 1840px; }
+}
+@media (min-width: 2700px) {
+  .main-inner { max-width: 2080px; }
+}
+
 .view { display: none; }
 .view.is-active { display: block; animation: fadeIn var(--duration-slow) var(--ease-out); }
 @keyframes fadeIn {

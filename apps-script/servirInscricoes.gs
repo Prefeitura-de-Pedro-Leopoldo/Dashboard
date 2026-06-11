@@ -15,7 +15,9 @@
  * Vercel.
  *
  * Endpoints (GET):
- *   ?action=manifest&token=...            -> { ok, sheets:[{ folder, name, id }] }
+ *   ?action=manifest&token=...            -> { ok, sheets:[{ folder, name, id, total }] }
+ *        ("total" = nº de inscritos da planilha; usado pelo painel para avisar
+ *         "inscrições lotadas". É null se a planilha não pôde ser lida.)
  *   ?action=inscritos&token=...&path=<pasta do evento>
  *   ?action=inscritos&token=...&id=<sheetId>
  *        -> { ok, folder, sheetId, headers, total, inscritos:[{nome,email,dataInscricao}], atualizadoEm }
@@ -83,7 +85,11 @@ function _varrerPasta(folder, prefixo, out, depth) {
   while (files.hasNext()) {
     const f = files.next();
     if (f.getMimeType() === MimeType.GOOGLE_SHEETS && _ehInscricao(f.getName())) {
-      out.push({ folder: prefixo, name: f.getName(), id: f.getId() });
+      // total = nº de inscritos (para o painel avisar "lotado"). Se falhar a
+      // leitura de uma planilha, segue com total=null sem quebrar o manifesto.
+      var total = null;
+      try { total = _lerInscricao(f).total; } catch (e) { total = null; }
+      out.push({ folder: prefixo, name: f.getName(), id: f.getId(), total: total });
     }
   }
   const subs = folder.getFolders();

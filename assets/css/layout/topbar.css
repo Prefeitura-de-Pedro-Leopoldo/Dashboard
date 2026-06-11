@@ -30,6 +30,26 @@
   opacity: 0.35;
   pointer-events: none;
 }
+/* Botão hamburger do topbar — só aparece no mobile (abre a gaveta) */
+.topbar__menu {
+  display: none;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  box-shadow: var(--shadow-xs);
+  transition: var(--transition-fast);
+}
+.topbar__menu:hover {
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  background: var(--brand-soft-bg);
+}
 .topbar__title-wrap {
   min-width: 0;
   flex: 1;

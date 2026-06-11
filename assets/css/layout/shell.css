@@ -3,10 +3,12 @@
    ================================================================ */
 .app-shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  /* minmax(0, 1fr) na coluna de conteúdo: impede que filhos com min-content
+     largo (selects, tabelas, gráficos) estiquem a faixa além da viewport. */
+  grid-template-columns: 240px minmax(0, 1fr);
   min-height: 100vh;
   transition: grid-template-columns var(--duration-base) var(--ease-in-out);
   max-width: 100vw;
 }
-.app-shell.is-collapsed { grid-template-columns: 64px 1fr; }
+.app-shell.is-collapsed { grid-template-columns: 64px minmax(0, 1fr); }
 

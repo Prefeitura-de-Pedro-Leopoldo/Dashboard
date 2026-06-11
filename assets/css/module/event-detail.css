@@ -96,7 +96,7 @@
 /* Métricas auxiliares (turmas, secretarias, participantes) - pílulas compactas */
 .event-detail__subs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: var(--space-3);
 }
 
@@ -137,7 +137,7 @@
 }
 .event-detail__turmas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: var(--space-3);
 }
 .turma-row {
@@ -253,7 +253,7 @@
 .event-detail__modulos-sub .red { color: var(--ind-bad); }
 .event-detail__modulos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: var(--space-3);
 }
 

@@ -688,6 +688,14 @@
           position: static;
         }
       }
+      @media (max-width: 520px) {
+        header { padding: 12px 16px; gap: 12px; }
+        header h1 { font-size: 0.95rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        header h1 span { display: none; }
+        .logout { flex-shrink: 0; }
+        main { padding: 16px; gap: 16px; }
+        .form { padding: 16px; }
+      }
     </style>
   </head>
   <body>

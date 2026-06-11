@@ -1,50 +1,126 @@
 /* ================================================================
-   RESPONSIVE - sidebar sempre visivel (slim em mobile)
+   RESPONSIVE - sidebar
+   - >1024px ............ sidebar normal (expandida / colapsável)
+   - 768–1024px ......... rail slim só de ícones (toque direto)
+   - <=768px ............ gaveta off-canvas sobre o conteúdo (drawer)
    ================================================================ */
+
 @media (max-width: 1280px) {
-  .app-shell { grid-template-columns: 220px 1fr; }
+  .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .app-shell.is-collapsed { grid-template-columns: 64px minmax(0, 1fr); }
   .nav-link { font-size: 0.8125rem; padding: 7px 10px; }
 }
 
+/* Colapso genérico de grids (vale para todo o range <=1024).
+   Prefixo .app-shell eleva a especificidade p/ vencer o base de cards.css
+   (que é importado depois) independentemente da ordem de carga. */
 @media (max-width: 1024px) {
-  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .grid-3, .grid-2 { grid-template-columns: 1fr; }
-  .app-shell { grid-template-columns: 64px 1fr; }
-  .app-shell.is-mobile-open { grid-template-columns: 240px 1fr; }
-  .app-shell.is-mobile-open .sidebar__brand,
-  .app-shell.is-mobile-open .sidebar__group-label,
-  .app-shell.is-mobile-open .nav-link span,
-  .app-shell.is-mobile-open .sidebar__user,
-  .app-shell.is-mobile-open .sidebar__logout { display: flex; }
+  .app-shell .grid-3,
+  .app-shell .grid-2 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------- Faixa tablet: rail slim de ícones --------------- */
+@media (min-width: 768.02px) and (max-width: 1024px) {
+  .app-shell,
+  .app-shell.is-collapsed,
+  .app-shell.is-mobile-open { grid-template-columns: 64px minmax(0, 1fr); }
   .sidebar__brand, .sidebar__group-label, .nav-link span,
   .sidebar__user, .sidebar__logout, .nav-link__badge { display: none; }
   .nav-link.is-active::before { display: none; }
-  .nav-link.is-active {
-    background: var(--brand-primary);
-    color: #fff;
-  }
+  .nav-link.is-active { background: var(--brand-primary); color: #fff; }
   .nav-link.is-active i { color: #fff; }
   .sidebar__header { justify-content: center; padding: 0; }
   .sidebar__toggle { margin-left: 0; order: 0; }
-  .app-shell.is-mobile-open .sidebar__toggle { margin-left: auto; order: 2; }
   .sidebar__nav { padding: var(--space-3) 8px; }
   .nav-link { justify-content: center; padding: 10px 0; gap: 0; }
   .sidebar__footer { justify-content: center; padding: 10px 8px; }
 }
 
+/* ---------------- Mobile: gaveta off-canvas (drawer) ------------- */
 @media (max-width: 768px) {
   .main { padding: var(--space-4); }
   .kpi-grid { grid-template-columns: 1fr; }
-  .sidebar__header { height: 56px; }
   .topbar__sub { display: none; }
+
+  /* Conteúdo ocupa 100% — a gaveta sobrepõe, nunca empurra */
+  .app-shell,
+  .app-shell.is-collapsed,
+  .app-shell.is-mobile-open { grid-template-columns: minmax(0, 1fr); }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(284px, 86vw);
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform var(--duration-base) var(--ease-in-out);
+    z-index: 1100;
+    border-right: 1px solid var(--border-default);
+  }
+  .app-shell.is-mobile-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.45);
+  }
+
+  /* Backdrop escurece o conteúdo atrás da gaveta */
+  .app-shell.is-mobile-open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 15, 30, 0.5);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    z-index: 1090;
+    animation: shellBackdropIn var(--duration-fast) var(--ease-out);
+  }
+  @keyframes shellBackdropIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* A gaveta mostra a sidebar COMPLETA — anula o visual "rail" do .is-collapsed
+     (que é a classe padrão no shell). Os seletores espelham os de sidebar.css
+     com a mesma especificidade e vencem por ordem de carga. */
+  .app-shell.is-collapsed .sidebar__brand { display: flex; }
+  .app-shell.is-collapsed .nav-link span { display: block; }
+  .app-shell.is-collapsed .nav-link__badge { display: inline-flex; }
+  .app-shell.is-collapsed .sidebar__user { display: block; }
+  .app-shell.is-collapsed .sidebar__logout { display: grid; }
+  .app-shell.is-collapsed .sidebar__group-label {
+    display: block;
+    padding: var(--space-4) var(--space-3) var(--space-2);
+    text-align: left;
+    font-size: 0.6875rem;
+  }
+  .app-shell.is-collapsed .sidebar__group-label::after { content: none; }
+  .app-shell.is-collapsed .sidebar__header,
+  .sidebar__header { justify-content: flex-start; padding: 0 16px; }
+  .app-shell.is-collapsed .sidebar__toggle,
+  .sidebar__toggle { margin-left: auto; order: 2; }
+  .app-shell.is-collapsed .sidebar__nav { padding: var(--space-3); }
+  .app-shell.is-collapsed .nav-link {
+    justify-content: flex-start;
+    padding: 10px 12px;
+    gap: 12px;
+  }
+  .app-shell.is-collapsed .nav-link.is-active {
+    background: var(--brand-soft-bg);
+    color: var(--brand-primary);
+  }
+  .app-shell.is-collapsed .nav-link.is-active i { color: var(--brand-primary); }
+  .app-shell.is-collapsed .nav-link.is-active::before { display: block; }
+  .app-shell.is-collapsed .sidebar__footer { justify-content: flex-start; padding: 12px; }
+
+  /* O hamburger dentro da gaveta vira "fechar" (X) */
+  .app-shell.is-mobile-open .sidebar__toggle i::before { content: "\f00d"; }
+
+  /* Botão de menu no topbar (só existe no mobile) */
+  .topbar__menu { display: inline-grid; }
 }
 
 @media (max-width: 480px) {
-  .app-shell { grid-template-columns: 56px 1fr; }
   .sidebar__logo { width: 28px; height: 28px; font-size: 0.8125rem; }
-  .nav-link i { font-size: 0.8125rem; }
   .topbar { height: 64px; padding: 0 var(--space-3); }
-  .sidebar__header { height: 64px; }
   .main { padding: var(--space-3); }
 }
-

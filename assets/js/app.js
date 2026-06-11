@@ -363,7 +363,7 @@ const VIEW_TO_GROUP = (() => {
     getEventos: () => (state.data && state.data.eventos) || [],
     navigate
   })
-  initNotificacoes({ listarConvites, navigate })
+  initNotificacoes({ listarConvites, navigate, getLotados: () => state.inscricoesAbertas || [] })
   preloadTemplate()
   await reloadData()
 })()
@@ -459,13 +459,14 @@ function marcarAbertasPorData(eventos) {
 async function augmentInscricoesAbertas() {
   try {
     const cached = JSON.parse(sessionStorage.getItem("egov_insc_abertas") || "null")
-    if (Array.isArray(cached) && cached.length) { state.inscricoesAbertas = cached; _reaplicarComInscricoes() }
+    if (Array.isArray(cached) && cached.length) { state.inscricoesAbertas = cached; _reaplicarComInscricoes(); refreshNotificacoes() }
   } catch (_) {}
   try {
     const novos = await eventosComInscricaoAberta((state.dataRaw && state.dataRaw.eventos) || [])
     state.inscricoesAbertas = novos || []
     try { sessionStorage.setItem("egov_insc_abertas", JSON.stringify(novos || [])) } catch (_) {}
     _reaplicarComInscricoes()
+    refreshNotificacoes()
   } catch (_) {}
 }
 
@@ -517,9 +518,29 @@ function showDashboardSkeleton() {
 // ================ Chrome ================
 function setupSidebar() {
   const shell = document.getElementById("appShell")
+  const topbarMenu = document.getElementById("topbarMenu")
+  const mqMobile = window.matchMedia("(max-width: 768px)")
+
+  const syncAria = open => topbarMenu && topbarMenu.setAttribute("aria-expanded", open ? "true" : "false")
+  const openDrawer = () => {
+    shell.classList.add("is-mobile-open")
+    document.body.style.overflow = "hidden"
+    syncAria(true)
+  }
+  const closeDrawer = () => {
+    if (!shell.classList.contains("is-mobile-open")) return
+    shell.classList.remove("is-mobile-open")
+    document.body.style.overflow = ""
+    syncAria(false)
+  }
+  const toggleDrawer = () => (shell.classList.contains("is-mobile-open") ? closeDrawer() : openDrawer())
+  // Exposto p/ navegação fechar a gaveta ao trocar de view.
+  window.__closeSidebarDrawer = closeDrawer
+
+  // Hamburger DENTRO da sidebar: no mobile alterna a gaveta; no desktop colapsa.
   document.getElementById("sidebarToggle").addEventListener("click", () => {
-    if (window.matchMedia("(max-width: 768px)").matches) {
-      shell.classList.toggle("is-mobile-open")
+    if (mqMobile.matches) {
+      toggleDrawer()
     } else {
       shell.classList.toggle("is-collapsed")
       try {
@@ -527,6 +548,27 @@ function setupSidebar() {
       } catch (_) {}
     }
   })
+
+  // Hamburger no TOPBAR (só visível no mobile).
+  if (topbarMenu) topbarMenu.addEventListener("click", toggleDrawer)
+
+  // Clique no backdrop (fora da sidebar) fecha a gaveta.
+  shell.addEventListener("click", e => {
+    if (!shell.classList.contains("is-mobile-open")) return
+    if (e.target.closest(".sidebar") || e.target.closest("#topbarMenu")) return
+    closeDrawer()
+  })
+
+  // Esc fecha a gaveta.
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeDrawer()
+  })
+
+  // Voltar ao desktop garante gaveta fechada e scroll liberado.
+  const onMqChange = () => { if (!mqMobile.matches) closeDrawer() }
+  if (mqMobile.addEventListener) mqMobile.addEventListener("change", onMqChange)
+  else if (mqMobile.addListener) mqMobile.addListener(onMqChange)
+
   try {
     // Default: colapsada. Só mantém aberta se o usuário marcou explicitamente "0".
     const pref = localStorage.getItem("egov_sidebar_collapsed")
@@ -583,7 +625,8 @@ function navigate(view) {
   const grp = SIDEBAR_GROUPS.find(g => g.id === groupId)
   document.getElementById("topbarTitle").textContent = grp?.title || ""
   document.getElementById("topbarSub").textContent = grp?.subtitle || ""
-  document.getElementById("appShell").classList.remove("is-mobile-open")
+  if (window.__closeSidebarDrawer) window.__closeSidebarDrawer()
+  else document.getElementById("appShell").classList.remove("is-mobile-open")
   // Lembra última sub-aba escolhida por grupo (útil para o user voltar)
   state.groupTab = state.groupTab || {}
   if (groupId) state.groupTab[groupId] = view

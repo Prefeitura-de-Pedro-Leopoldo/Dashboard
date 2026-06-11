@@ -98,7 +98,9 @@ export async function eventosComInscricaoAberta(eventosExistentes) {
       status: "inscricoes-abertas",
       inscricaoAberta: true,
       cargaHoraria: m.cargaHoraria ?? null,
-      totalInscritos: 0, totalAprovados: 0, totalPresentes: 0, totalAusentes: 0, totalAptos: 0,
+      // total ao vivo vindo do manifesto (nº de inscritos). Permite o painel
+      // detectar "inscrições lotadas" (total >= vagas) sem buscar evento a evento.
+      totalInscritos: Number(s.total) || 0, totalAprovados: 0, totalPresentes: 0, totalAusentes: 0, totalAptos: 0,
       taxaPresenca: null, modulos: null,
       turmas: {}, turmasPresentes: {}, secretarias: {}, secretariasPresentes: {},
       timelineInscricoes: [], timelineCheckins: [],

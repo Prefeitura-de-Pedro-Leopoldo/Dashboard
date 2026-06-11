@@ -24,7 +24,9 @@ const SENDER_EMAIL      = 'egov@pedroleopoldo.mg.gov.br';
 const REPLY_TO          = 'egov@pedroleopoldo.mg.gov.br';
 // Copia oculta em todos os envios. Use virgula para varios destinatarios.
 // Ex.: 'egov@pedroleopoldo.mg.gov.br, registro@pedroleopoldo.mg.gov.br'
-const BCC_EMAIL         = 'fabiana.silva@pedroleopoldo.mg.gov.br';
+// Sem copia oculta nos CERTIFICADOS. (A Fabiana fica em copia apenas dos
+// LEMBRETES de evento — ver lembretesEventos.gs.)
+const BCC_EMAIL         = '';
 
 // Token compartilhado com o admin web. Troque por uma string longa aleatoria.
 // O HTML envia esse valor em cada POST; requisicoes sem ele sao rejeitadas.
