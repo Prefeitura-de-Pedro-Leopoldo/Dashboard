@@ -1,7 +1,7 @@
 {
   "id": "/dashboard",
-  "name": "EGov-PL · Painel Administrativo",
-  "short_name": "EGov-PL",
+  "name": "Escola de Governo",
+  "short_name": "Escola de Governo",
   "description": "Painel administrativo da Escola de Governo de Pedro Leopoldo: eventos, presença, certificados e indicadores de capacitação.",
   "lang": "pt-BR",
   "dir": "ltr",

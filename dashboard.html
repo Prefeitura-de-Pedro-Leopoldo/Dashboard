@@ -16,7 +16,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="EGov-PL" />
+    <meta name="apple-mobile-web-app-title" content="Escola de Governo" />
 
     <link rel="stylesheet" href="assets/css/main.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,6 +27,16 @@
     />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <script>
+      // Gate IMEDIATO (antes de pintar qualquer coisa): sem sessão → vai direto
+      // para o login, sem mostrar a abertura. Logado ("Manter conectado"
+      // incluso) → segue para a animação do capelo.
+      (function () {
+        try {
+          var s = sessionStorage.getItem("egov_admin_session") || localStorage.getItem("egov_admin_session");
+          if (!s) { location.replace("index.html"); return; }
+          if (!sessionStorage.getItem("egov_admin_session")) sessionStorage.setItem("egov_admin_session", s);
+        } catch (e) { location.replace("index.html"); }
+      })();
       (function () {
         try {
           var stored = localStorage.getItem("egovpl-theme");

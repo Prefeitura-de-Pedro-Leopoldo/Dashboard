@@ -19,8 +19,9 @@ export function haptic(pattern = 12) {
   try { if (navigator.vibrate) navigator.vibrate(pattern) } catch (_) {}
 }
 
-// Elementos que "comem" gestos horizontais/verticais próprios — swipe ignora.
-const SWIPE_IGNORE = "canvas, input, select, textarea, .table-scroll, .view-tabs, .turma-switch, .heatmap__grid, .srv-freq, [data-no-swipe]"
+// Elementos com gesto horizontal próprio (scroll/slider) — swipe ignora.
+// (canvas NÃO entra: deslizar sobre um gráfico deve trocar de aba normalmente.)
+const SWIPE_IGNORE = "input, select, textarea, .table-scroll, .view-tabs, .group-tabs, .turma-switch, .heatmap__grid, .srv-freq, .cert-typo-control__range, [data-no-swipe]"
 
 /* ================================================================
    EDGE-SWIPE da gaveta (segue o dedo)
@@ -70,7 +71,7 @@ export function initDrawerGestures({ sidebar, isOpen, open, close }) {
     else if (tracking.wasOpen && dx < 0) setDrag(Math.max(-w, dx))
   }, { passive: true })
 
-  document.addEventListener("touchend", () => {
+  const finishDrawer = () => {
     if (!tracking) { return }
     const tr = tracking
     tracking = null
@@ -85,7 +86,9 @@ export function initDrawerGestures({ sidebar, isOpen, open, close }) {
       const shut = dx < -w * 0.3 || tr.vx < -0.45
       if (shut) { close(); haptic(8) }
     }
-  }, { passive: true })
+  }
+  document.addEventListener("touchend", finishDrawer, { passive: true })
+  document.addEventListener("touchcancel", finishDrawer, { passive: true })
 }
 
 /* ================================================================
@@ -94,6 +97,13 @@ export function initDrawerGestures({ sidebar, isOpen, open, close }) {
 export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
   const main = document.getElementById("mainContent")
   if (!main) return
+
+  // ESSENCIAL para o swipe funcionar em celular de verdade: sem isso, ao
+  // detectar movimento o Chrome assume o gesto para o scroll da página e
+  // dispara touchcancel — o swipe nunca completa. pan-y deixa o scroll
+  // vertical nativo e entrega os gestos horizontais para nós.
+  main.style.touchAction = "pan-y pinch-zoom"
+
   let st = null
 
   main.addEventListener("touchstart", (e) => {
@@ -101,18 +111,25 @@ export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
     if (e.target.closest(SWIPE_IGNORE)) return
     const t = e.touches[0]
     if (t.clientX <= 26) return // borda é da gaveta
-    st = { x: t.clientX, y: t.clientY, t: performance.now() }
+    st = { x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY, t: performance.now() }
   }, { passive: true })
 
-  main.addEventListener("touchend", (e) => {
+  // Rastreia a última posição: se o navegador cancelar o toque (scroll),
+  // ainda sabemos até onde o dedo foi.
+  main.addEventListener("touchmove", (e) => {
+    if (!st || e.touches.length !== 1) return
+    st.lx = e.touches[0].clientX
+    st.ly = e.touches[0].clientY
+  }, { passive: true })
+
+  const finish = () => {
     if (!st) return
     const s = st; st = null
-    const t = e.changedTouches[0]
-    const dx = t.clientX - s.x
-    const dy = t.clientY - s.y
+    const dx = s.lx - s.x
+    const dy = s.ly - s.y
     const dt = performance.now() - s.t
-    // Gesto: rápido, horizontal, deslocamento relevante
-    if (Math.abs(dx) < 64 || Math.abs(dx) < Math.abs(dy) * 2 || dt > 600) return
+    // Gesto: horizontal, deslocamento relevante, sem demorar demais
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.4 || dt > 800) return
 
     const tabs = getTabs()
     if (!tabs || tabs.length < 2) return
@@ -130,7 +147,10 @@ export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
       setTimeout(() => inner.classList.remove("swipe-in-left", "swipe-in-right"), 340)
     }
     goTo(tabs[next])
-  }, { passive: true })
+  }
+
+  main.addEventListener("touchend", finish, { passive: true })
+  main.addEventListener("touchcancel", finish, { passive: true })
 }
 
 /* ================================================================
