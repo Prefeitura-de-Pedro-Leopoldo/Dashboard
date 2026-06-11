@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-06-10T15:33:26.631Z",
+  "geradoEm": "2026-06-11T18:45:26.667Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "eventos": [
     {
@@ -3179,7 +3179,7 @@
           "dataInscricao": null
         }
       ],
-      "vagas": 40,
+      "vagas": 60,
       "taxaOcupacao": 46.2,
       "fonte": "ciclo-de-debates-pl-por-elas-2026-05/turma 1 e 2/participantes.xlsx",
       "grupo": null
@@ -5195,16 +5195,46 @@
       "taxaOcupacao": 0,
       "fonte": "gestao-inovacao-presencial-2026-06/participantes.xlsx",
       "grupo": null
+    },
+    {
+      "id": "introducao-a-contabilidade-publica",
+      "title": "Introdução à Contabilidade Pública",
+      "cargaHoraria": 3,
+      "date": "2026-06-18",
+      "dateFim": null,
+      "dateRaw": "Data: 18/06/2026 14h",
+      "time": "14h",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU",
+      "city": "Pedro Leopoldo",
+      "status": "agendado",
+      "totalInscritos": 0,
+      "totalAprovados": 0,
+      "totalPresentes": 0,
+      "totalAusentes": 0,
+      "totalAptos": 0,
+      "taxaPresenca": 0,
+      "modulos": null,
+      "turmas": {},
+      "turmasPresentes": {},
+      "secretarias": {},
+      "secretariasPresentes": {},
+      "timelineInscricoes": [],
+      "timelineCheckins": [],
+      "participantes": [],
+      "vagas": 40,
+      "taxaOcupacao": 0,
+      "fonte": "introducao-a-contabilidade-publica-2026-06/participantes.xlsx",
+      "grupo": null
     }
   ],
   "resumo": {
-    "totalEventos": 9,
+    "totalEventos": 10,
     "eventosRealizados": 8,
-    "eventosAgendados": 1,
+    "eventosAgendados": 2,
     "totalInscritos": 257,
     "totalPresentes": 199,
     "totalAusentes": 58,
-    "totalVagas": 318,
+    "totalVagas": 378,
     "taxaPresencaGlobal": 77.4,
     "taxaOcupacaoGlobal": 77.4,
     "rankingSecretarias": {
