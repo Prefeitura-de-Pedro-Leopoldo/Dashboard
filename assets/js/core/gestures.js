@@ -14,14 +14,44 @@
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
 const isMobile = () => window.matchMedia("(max-width: 768px)").matches
 
-/** Vibração curta (no-op onde não suportado). */
+/** Vibração curta (no-op onde não suportado). Só vibra após o usuário já ter
+ *  interagido com a página — evita o warning de Intervention do Chrome
+ *  ("Blocked call to navigator.vibrate"). */
 export function haptic(pattern = 12) {
-  try { if (navigator.vibrate) navigator.vibrate(pattern) } catch (_) {}
+  try {
+    if (!navigator.vibrate) return
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return
+    navigator.vibrate(pattern)
+  } catch (_) {}
 }
 
-// Elementos com gesto horizontal próprio (scroll/slider) — swipe ignora.
-// (canvas NÃO entra: deslizar sobre um gráfico deve trocar de aba normalmente.)
-const SWIPE_IGNORE = "input, select, textarea, .table-scroll, .view-tabs, .group-tabs, .turma-switch, .heatmap__grid, .srv-freq, .cert-typo-control__range, [data-no-swipe]"
+// Controles com gesto próprio — o swipe nunca rouba o toque deles.
+const SWIPE_IGNORE = "input, select, textarea, .cert-typo-control__range, [data-no-swipe]"
+
+// O alvo (ou um ancestral até stopAt) tem scroll horizontal REAL?
+// Detecção dinâmica: tabela/aba que CABE na tela libera o swipe; só quem
+// de fato rola para o lado (heatmap, barra de abas estourada) consome o gesto.
+function _scrollsX(el, stopAt) {
+  for (let n = el; n && n !== stopAt && n !== document.body; n = n.parentElement) {
+    if (n.nodeType !== 1) break
+    const cs = getComputedStyle(n)
+    if ((cs.overflowX === "auto" || cs.overflowX === "scroll") && n.scrollWidth > n.clientWidth + 4) return true
+  }
+  return false
+}
+
+// Algum ancestral rolável na vertical já está rolado (scrollTop > 0)?
+// Usado pelo pull-to-refresh para não disparar enquanto uma lista interna rola.
+function _scrolledYAncestor(el) {
+  for (let n = el; n && n !== document.body; n = n.parentElement) {
+    if (n.nodeType !== 1) break
+    if (n.scrollTop > 0) {
+      const cs = getComputedStyle(n)
+      if (cs.overflowY === "auto" || cs.overflowY === "scroll") return true
+    }
+  }
+  return false
+}
 
 /* ================================================================
    EDGE-SWIPE da gaveta (segue o dedo)
@@ -94,21 +124,35 @@ export function initDrawerGestures({ sidebar, isOpen, open, close }) {
 /* ================================================================
    SWIPE entre sub-abas (conteúdo desliza)
    ================================================================ */
-export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
-  const main = document.getElementById("mainContent")
-  if (!main) return
+// Áreas que NÃO participam do swipe de abas (têm gestos/fluxos próprios).
+const SWIPE_OUTSIDE = ".sidebar, .topbar, .app-modal__overlay, .pal-modal__overlay, .notif-panel, .servidor-perfil-overlay, .splash, .group-tabs"
 
+export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
   // ESSENCIAL para o swipe funcionar em celular de verdade: sem isso, ao
   // detectar movimento o Chrome assume o gesto para o scroll da página e
   // dispara touchcancel — o swipe nunca completa. pan-y deixa o scroll
   // vertical nativo e entrega os gestos horizontais para nós.
-  main.style.touchAction = "pan-y pinch-zoom"
+  // No BODY (não só no conteúdo): em telas curtas o dedo cai na área vazia
+  // abaixo do conteúdo, e o gesto precisa funcionar lá também.
+  document.body.style.touchAction = "pan-y pinch-zoom"
 
   let st = null
 
-  main.addEventListener("touchstart", (e) => {
+  // Listeners no DOCUMENT: telas curtas têm o alvo do toque fora do
+  // container do conteúdo (área vazia do <main>), e o swipe deve pegar.
+  document.addEventListener("touchstart", (e) => {
     if (!isMobile() || e.touches.length !== 1) return
-    if (e.target.closest(SWIPE_IGNORE)) return
+    // Gaveta aberta: o gesto horizontal pertence a ela (fechar), não às abas.
+    if (document.getElementById("appShell")?.classList.contains("is-mobile-open")) return
+    if (e.target.closest && e.target.closest(SWIPE_OUTSIDE)) return
+    // Controles só bloqueiam o swipe quando o gesto horizontal é DELES:
+    // slider (range) sempre; input/textarea apenas se estiver em edição
+    // (focado — arrastar seleciona texto). Checkbox/select/campo sem foco
+    // não têm gesto horizontal — o swipe passa (telas de filtro funcionam).
+    const ctl = e.target.closest && e.target.closest("input, textarea")
+    if (ctl && (ctl.matches('input[type="range"]') || ctl === document.activeElement)) return
+    if (e.target.closest && e.target.closest(".cert-typo-control__range, [data-no-swipe]")) return
+    if (_scrollsX(e.target, document.body)) return // elemento rola p/ o lado de verdade
     const t = e.touches[0]
     if (t.clientX <= 26) return // borda é da gaveta
     st = { x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY, t: performance.now() }
@@ -116,7 +160,7 @@ export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
 
   // Rastreia a última posição: se o navegador cancelar o toque (scroll),
   // ainda sabemos até onde o dedo foi.
-  main.addEventListener("touchmove", (e) => {
+  document.addEventListener("touchmove", (e) => {
     if (!st || e.touches.length !== 1) return
     st.lx = e.touches[0].clientX
     st.ly = e.touches[0].clientY
@@ -149,8 +193,8 @@ export function initSwipeTabs({ getTabs, getCurrent, goTo }) {
     goTo(tabs[next])
   }
 
-  main.addEventListener("touchend", finish, { passive: true })
-  main.addEventListener("touchcancel", finish, { passive: true })
+  document.addEventListener("touchend", finish, { passive: true })
+  document.addEventListener("touchcancel", finish, { passive: true })
 }
 
 /* ================================================================
@@ -191,6 +235,7 @@ export function initPullToRefresh({ onRefresh }) {
     const scroller = document.scrollingElement || document.documentElement
     if (scroller.scrollTop > 0) return
     if (e.target.closest(SWIPE_IGNORE + ", .sidebar, .app-modal, .pal-modal, .notif-panel, .servidor-perfil-overlay")) return
+    if (_scrolledYAncestor(e.target)) return // lista interna ainda rolando
     st = { y: e.touches[0].clientY, pulling: false }
   }, { passive: true })
 

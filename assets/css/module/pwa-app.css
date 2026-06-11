@@ -11,6 +11,10 @@
 
 html { -webkit-tap-highlight-color: transparent; }
 
+/* Impede o gesto de "voltar/avançar" do navegador no deslize horizontal —
+   senão o swipe para a direita tira o usuário do app (volta no histórico). */
+html, body { overscroll-behavior-x: none; }
+
 /* Desativa o pull-to-refresh NATIVO do Chrome (usamos o nosso, com a marca) */
 @media (hover: none) and (pointer: coarse) {
   body { overscroll-behavior-y: contain; }

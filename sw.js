@@ -6,13 +6,16 @@
  *  - /api/* ................... só rede (dados vivos); fallback JSON offline
  *  - eventos-data.json ........ network-first com fallback ao cache (dados
  *                               "stale" ainda são úteis offline)
- *  - estáticos same-origin .... stale-while-revalidate (css/js/img/fontes)
+ *  - JS/CSS do painel ......... NETWORK-FIRST com fallback ao cache: deploy
+ *                               novo vale na hora (SWR aqui fazia o app rodar
+ *                               código velho até a 2ª visita)
+ *  - imagens/fontes próprias .. stale-while-revalidate
  *  - CDNs (jsdelivr etc.) ..... stale-while-revalidate em cache separado
  *
  * Versione o VERSION a cada mudança relevante de shell para invalidar caches.
  */
 
-const VERSION = "egov-pwa-v1";
+const VERSION = "egov-pwa-v2";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 const CDN_CACHE = `${VERSION}-cdn`;
@@ -104,9 +107,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Estáticos same-origin e CDNs: stale-while-revalidate.
+  // Código do painel (JS/CSS same-origin): network-first. Garante que um
+  // deploy novo passe a valer imediatamente; o cache é só fallback offline.
+  const isAppCode = url.origin === self.location.origin &&
+    /\.(css|js|mjs)$/.test(url.pathname);
+  if (isAppCode) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        try {
+          const res = await fetch(req);
+          if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+          return res;
+        } catch (_) {
+          const cached = await cache.match(req);
+          return cached || new Response("", { status: 504 });
+        }
+      })
+    );
+    return;
+  }
+
+  // Demais estáticos same-origin (imagens/fontes/json) e CDNs: SWR.
   const isStatic = url.origin === self.location.origin &&
-    /\.(css|js|mjs|png|jpg|jpeg|svg|webp|ico|woff2?|json|webmanifest)$/.test(url.pathname);
+    /\.(png|jpg|jpeg|svg|webp|ico|woff2?|json|webmanifest)$/.test(url.pathname);
   const isCdn = /(?:jsdelivr\.net|cloudflare\.com|googleapis\.com|gstatic\.com)$/.test(url.hostname);
 
   if (isStatic || isCdn) {
