@@ -366,7 +366,11 @@ function hideSplash() {
     first = !sessionStorage.getItem("egov_splash_seen")
     sessionStorage.setItem("egov_splash_seen", "1")
   } catch (_) {}
-  const minMs = reduced ? 0 : (standalone || first) ? 2450 : 700
+  // Abertura completa (capelo assenta → brilho → título → instituição →
+  // saudação → barra) leva ~3.75s. No app instalado / 1ª visita deixamos a
+  // cena terminar com um respiro — a abertura é o ponto alto do app.
+  // Em recargas na mesma sessão, sai rápido para não atrapalhar o uso.
+  const minMs = reduced ? 0 : (standalone || first) ? 4300 : 900
   const wait = Math.max(0, minMs - (performance.now() - _splashT0))
   setTimeout(() => {
     el.classList.add("is-hiding")
@@ -381,7 +385,7 @@ function hideSplash() {
   if (welcome) {
     const primeiro = String(userData.name || "").trim().split(/\s+/)[0]
     welcome.innerHTML = primeiro ? `Bem-vindo de volta, <b>${escapeHtml(primeiro)}</b>` : "Preparando seu painel…"
-    setTimeout(() => welcome.classList.add("is-on"), 1250)
+    setTimeout(() => welcome.classList.add("is-on"), 2100)
   }
 
   setupSidebar()

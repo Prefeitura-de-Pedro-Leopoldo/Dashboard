@@ -234,21 +234,22 @@ function inscTableHtml(insc, atualizadoEm) {
   if (!insc.length) {
     return `<div class="cell-empty">Nenhuma inscrição ainda. Quando o formulário receber respostas, elas aparecem aqui.</div>`
   }
+  // Nome + e-mail empilhados na mesma célula: legível no celular (sem coluna
+  // extra espremendo) e mais escaneável no desktop.
   const rows = insc
     .map(
       (p, i) => `
       <tr>
         <td class="cell-num">${i + 1}</td>
-        <td class="cell-name">${escapeHtml(p.nome || "")}</td>
-        <td>${escapeHtml(p.email || "-")}</td>
-        <td class="cell-num">${dataHoraBR(p.dataInscricao)}</td>
+        <td class="cell-name">${escapeHtml(p.nome || "")}${p.email ? `<span class="cell-sub">${escapeHtml(p.email)}</span>` : ""}</td>
+        <td class="cell-num cell-when">${dataHoraBR(p.dataInscricao)}</td>
       </tr>`
     )
     .join("")
   return `
     <div class="table-scroll">
       <table class="data">
-        <thead><tr><th style="width:48px">#</th><th>Nome</th><th>E-mail</th><th style="width:160px">Inscrito em</th></tr></thead>
+        <thead><tr><th style="width:42px">#</th><th>Participante</th><th class="cell-when">Inscrito em</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -495,13 +496,12 @@ function presPessoasTabela(list, vazio) {
   const rows = list.map((p, i) => `
     <tr>
       <td class="cell-num">${i + 1}</td>
-      <td class="cell-name">${escapeHtml(p.nome || "")}</td>
-      <td>${escapeHtml(p.email || "-")}</td>
+      <td class="cell-name">${escapeHtml(p.nome || "")}${p.email ? `<span class="cell-sub">${escapeHtml(p.email)}</span>` : ""}</td>
     </tr>`).join("")
   return `
     <div class="table-scroll">
       <table class="data">
-        <thead><tr><th style="width:48px">#</th><th>Nome</th><th>E-mail</th></tr></thead>
+        <thead><tr><th style="width:42px">#</th><th>Participante</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`

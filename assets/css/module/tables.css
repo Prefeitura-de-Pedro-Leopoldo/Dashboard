@@ -95,6 +95,26 @@ table.data tbody tr:last-child td { border-bottom: 0; }
   cursor: help;
 }
 
+/* Linha secundária dentro da célula (e-mail sob o nome) — evita coluna extra
+   espremendo a tabela no celular e melhora o escaneamento no desktop. */
+.cell-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-regular);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+/* Coluna de data/hora: uma linha no desktop; no celular quebra em duas
+   (data em cima, hora embaixo) para não roubar espaço do nome. */
+.cell-when { white-space: nowrap; width: 150px; }
+@media (max-width: 640px) {
+  .cell-when { white-space: normal; width: 86px; min-width: 86px; }
+}
+
 /* Página Secretarias: gráfico e ranking lado a lado, alturas idênticas. */
 .secretarias-grid { align-items: stretch; }
 .secretarias-grid > .card {
