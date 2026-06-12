@@ -33,9 +33,9 @@ const progressClass = (v) => {
 
 const OCUP_MOTIVO =
   "Capacidade não informada para este evento. Adicione no docs/eventos/manual.json para habilitar.";
-// Ocupação só fica indisponível quando não há presença nem ausência registradas.
+// Ocupação = Inscritos / Vagas: fica indisponível quando não há vagas informadas.
 const OCUP_SEM_DADOS =
-  "Sem presença/ausência registrada ainda para este evento.";
+  "Vagas não informadas para este evento.";
 
 // Helper: renderiza valor de vagas (ou N/A com tooltip)
 const renderVagas = (ev, inline = false) => {
@@ -146,7 +146,7 @@ export function renderKPIs(resumo, eventos = []) {
       <div class="kpi__icon"><i class="fas fa-chart-pie"></i></div>
       <div class="kpi__label">Ocupação</div>
       <div class="kpi__value">${ocupTxt}</div>
-      <div class="kpi__delta">Presentes vs ausentes</div>
+      <div class="kpi__delta">Inscritos vs vagas oferecidas</div>
     </div>
   `;
 }
@@ -251,8 +251,8 @@ export function renderCourseCard(group) {
   const aus = base ? (base.totalAusentes || 0) : evs.reduce((s, e) => s + (e.totalAusentes || 0), 0);
   const vagas = base ? (base.vagas || 0) : evs.reduce((s, e) => s + (e.vagas || 0), 0);
   const tx = insc ? Math.round((pres / insc) * 1000) / 10 : null;
-  // Ocupação = Presentes / (Presentes + Ausentes).
-  const ocup = (pres + aus) > 0 ? Math.round((pres / (pres + aus)) * 1000) / 10 : null;
+  // Ocupação = Inscritos / Vagas oferecidas.
+  const ocup = vagas > 0 ? Math.round((insc / vagas) * 1000) / 10 : null;
   const realizados = evs.filter((e) => e.status === "realizado").length;
 
   const rows = evs.map((e) => {

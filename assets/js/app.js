@@ -4389,9 +4389,9 @@ function setupAutoReportEventPicker() {
 function renderArEventSummary(p) {
   if (!p) return ""
   const taxa = p.totalInscritos ? ((p.totalPresentes / p.totalInscritos) * 100).toFixed(1) + "%" : "-"
-  // Ocupação = Presentes / (Presentes + Ausentes), igual ao resto do painel.
-  const ocupBase = (p.totalPresentes || 0) + (p.totalAusentes || 0)
-  const ocup = ocupBase > 0 ? ((p.totalPresentes / ocupBase) * 100).toFixed(1) + "%" : "-"
+  // Ocupação = Inscritos / Capacidade — quanto da capacidade foi preenchido.
+  const cap = Number(p.capacidade) || 0
+  const ocup = cap > 0 ? ((p.totalInscritos / cap) * 100).toFixed(1) + "%" : "-"
   return `
     <div class="ar-event-card">
       <div class="ar-event-card__title">${escapeHtml(p.evento)}</div>

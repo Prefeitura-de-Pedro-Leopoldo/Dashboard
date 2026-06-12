@@ -2,10 +2,11 @@
  * metrics.js - funcoes puras de calculo de metricas.
  *
  * Capacidade ("vagas") vem do enriquecimento manual em
- * assets/docs/relatorios/eventos-meta.json (campo `vagas` por evento) e é
- * exibida como informação, mas NÃO entra na ocupação.
- * Ocupação = Presentes / (Presentes + Ausentes): mede a efetividade de
- * comparecimento. Sem presença/ausência registrada, retorna null (UI "N/A").
+ * assets/docs/relatorios/eventos-meta.json (campo `vagas` por evento).
+ * Ocupação = Inscritos / Vagas: mede quanto das vagas oferecidas foi
+ * preenchido. Sem vagas informadas, retorna null (UI "N/A").
+ * Taxa de presença = Presentes / Inscritos: dos inscritos, quantos
+ * compareceram (fizeram check-in).
  */
 
 export const totalInscricoes = (ev) => ev.totalInscritos ?? 0;
@@ -23,15 +24,13 @@ export const taxaPresenca = (ev) => {
   return Math.round(((ev.totalPresentes ?? 0) / t) * 1000) / 10;
 };
 
-// Ocupação = Presentes / (Presentes + Ausentes). Mede quanto da audiência
-// efetiva (quem confirmou presença ou faltou) de fato compareceu — NÃO usa
-// vagas/inscritos. Sem presença nem ausência registradas, retorna null.
+// Ocupação = Inscritos / Vagas oferecidas. Mede quanto da capacidade foi
+// preenchido. Sem vagas informadas (ou 0), retorna null (UI "N/A").
 export const taxaOcupacao = (ev) => {
-  const pres = ev.totalPresentes ?? 0;
-  const aus = ev.totalAusentes ?? Math.max(0, (ev.totalInscritos ?? 0) - pres);
-  const base = pres + aus;
-  if (base <= 0) return null;
-  return Math.round((pres / base) * 1000) / 10;
+  const vagas = ev.vagas ?? 0;
+  if (vagas <= 0) return null;
+  const insc = ev.totalInscritos ?? 0;
+  return Math.round((insc / vagas) * 1000) / 10;
 };
 
 export const inscricoesPorEvento = (eventos) =>
@@ -148,8 +147,8 @@ export const consolidarPorGrupo = (eventos) => {
       g.taxaPresenca = g.totalInscritos
         ? Math.round((g.totalPresentes / g.totalInscritos) * 1000) / 10
         : null;
-      g.taxaOcupacao = (g.totalPresentes + g.totalAusentes) > 0
-        ? Math.round((g.totalPresentes / (g.totalPresentes + g.totalAusentes)) * 1000) / 10
+      g.taxaOcupacao = g.vagas > 0
+        ? Math.round((g.totalInscritos / g.vagas) * 1000) / 10
         : null;
     }
   }
@@ -255,8 +254,9 @@ export function dividirPorTurma(ev) {
       totalInscritos, totalAprovados: totalInscritos, totalPresentes,
       totalAusentes: totalInscritos - totalPresentes, totalAptos: totalPresentes,
       taxaPresenca: totalInscritos ? Math.round((totalPresentes / totalInscritos) * 1000) / 10 : null,
-      taxaOcupacao: (totalPresentes + (totalInscritos - totalPresentes)) > 0
-        ? Math.round((totalPresentes / totalInscritos) * 1000) / 10 : null,
+      // Subturma não tem vagas próprias → ocupação indefinida.
+      vagas: null,
+      taxaOcupacao: null,
       modulos: null,
       turmas: { [val]: totalInscritos },
       turmasPresentes: { [val]: totalPresentes },
@@ -412,10 +412,6 @@ export const resumoGlobal = (eventos) => {
   // Inscritos de TODOS os eventos (inclui agendados, com inscrições já abertas),
   // para casar com as vagas oferecidas, que também contam todos os eventos.
   const totInscGeral = eventos.reduce((s, e) => s + totalInscricoes(e), 0);
-  const totAus = realizados.reduce(
-    (s, e) => s + (e.totalAusentes ?? Math.max(0, totalInscricoes(e) - totalPresentes(e))),
-    0
-  );
   return {
     totalEventos: eventos.length,
     eventosRealizados: realizados.length,
@@ -425,9 +421,11 @@ export const resumoGlobal = (eventos) => {
     totalPresentes: totPres,
     totalAusentes: totInsc - totPres,
     totalVagas: totVagas || null,
+    // Presença: dos inscritos em eventos realizados, quantos compareceram.
     taxaPresencaGlobal: totInsc ? Math.round((totPres / totInsc) * 1000) / 10 : null,
-    taxaOcupacaoGlobal: (totPres + totAus) > 0
-      ? Math.round((totPres / (totPres + totAus)) * 1000) / 10
+    // Ocupação: inscritos (todos os eventos) sobre as vagas oferecidas (todos).
+    taxaOcupacaoGlobal: totVagas > 0
+      ? Math.round((totInscGeral / totVagas) * 1000) / 10
       : null,
   };
 };

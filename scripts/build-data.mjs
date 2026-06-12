@@ -460,9 +460,9 @@ export function buildEvento(arquivo, meta, participantes) {
   const status = totalPresentes > 0 || dataPassou ? "realizado" : "agendado";
 
   const vagas = meta.vagas ?? totalInscritos;
-  // Ocupação = Presentes / (Presentes + Ausentes) — efetividade de comparecimento.
-  const taxaOcupacao = (totalPresentes + totalAusentes) > 0
-    ? Math.round((totalPresentes / (totalPresentes + totalAusentes)) * 1000) / 10
+  // Ocupação = Inscritos / Vagas oferecidas — quanto da capacidade foi preenchido.
+  const taxaOcupacao = vagas > 0
+    ? Math.round((totalInscritos / vagas) * 1000) / 10
     : 0;
 
   return {
@@ -507,8 +507,9 @@ export function buildResumo(eventos) {
   const totalVagas = eventos.reduce((s, e) => s + (e.vagas || 0), 0);
   const taxaPresencaGlobal = totalInscritos
     ? Math.round((totalPresentes / totalInscritos) * 1000) / 10 : 0;
-  const taxaOcupacaoGlobal = (totalPresentes + totalAusentes) > 0
-    ? Math.round((totalPresentes / (totalPresentes + totalAusentes)) * 1000) / 10 : 0;
+  // Ocupação = Inscritos / Vagas oferecidas.
+  const taxaOcupacaoGlobal = totalVagas > 0
+    ? Math.round((totalInscritos / totalVagas) * 1000) / 10 : 0;
 
   const ranking = {};
   for (const e of eventos) {
