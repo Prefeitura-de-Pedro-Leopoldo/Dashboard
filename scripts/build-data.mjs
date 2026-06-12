@@ -450,6 +450,15 @@ export function buildEvento(arquivo, meta, participantes) {
   }
   const timelineCheckins = Object.entries(tlChk).sort((a, b) => a[0].localeCompare(b[0]));
 
+  // Status: um evento com data futura é "agendado" mesmo que já tenha
+  // inscritos (inscrições abertas). Só vira "realizado" quando a data chega
+  // (hoje/passado) e houve inscritos. Sem data, cai na regra antiga.
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dataEv = meta.date ? new Date(meta.date + "T00:00:00") : null;
+  const futuro = dataEv && !isNaN(dataEv) && dataEv > hoje;
+  const status = !futuro && totalInscritos > 0 ? "realizado" : "agendado";
+
   const vagas = meta.vagas ?? totalInscritos;
   // Ocupação = Presentes / (Presentes + Ausentes) — efetividade de comparecimento.
   const taxaOcupacao = (totalPresentes + totalAusentes) > 0
@@ -466,7 +475,7 @@ export function buildEvento(arquivo, meta, participantes) {
     time: meta.time || "",
     local: meta.local || "",
     city: meta.city || "",
-    status: totalInscritos > 0 ? "realizado" : "agendado",
+    status,
     totalInscritos,
     totalAprovados: totalInscritos,
     totalPresentes,
