@@ -99,16 +99,17 @@ function normalize(raw) {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const eventos = (raw.eventos || []).map((e) => {
-    // "Realizado" = o evento já aconteceu: tem PRESENÇA registrada
-    // (totalPresentes > 0) OU a data de início já passou. Caso contrário é
-    // "agendado" (evento futuro, mesmo com inscrições abertas).
-    // Usa a presença como sinal primário para NÃO depender da data vir
-    // preenchida na fonte ao vivo — é a autoridade final sobre o status e
-    // evita o "0 agendados" reaparecer quando o ao vivo carrega.
+    // Status (autoridade final, vale p/ estático e ao vivo):
+    //  - data FUTURA  → "agendado" (ainda vai acontecer, mesmo que a planilha
+    //    já traga inscritos/presença pré-marcada);
+    //  - caso contrário → "realizado" se houve inscritos/presença, senão "agendado".
     const d = e.date ? new Date(e.date + "T00:00:00") : null;
-    const dataPassou = d && !isNaN(d) && d < hoje;
-    const temPresenca = (e.totalPresentes || 0) > 0;
-    const status = temPresenca || dataPassou ? "realizado" : "agendado";
+    const futuro = d && !isNaN(d) && d > hoje;
+    const status = futuro
+      ? "agendado"
+      : (e.totalPresentes || 0) > 0 || (e.totalInscritos || 0) > 0
+        ? "realizado"
+        : "agendado";
     return {
       ...e,
       title: e.title || "(sem título)",

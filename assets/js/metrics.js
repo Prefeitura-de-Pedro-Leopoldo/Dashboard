@@ -235,6 +235,9 @@ export function dividirPorTurma(ev) {
   const vals = [...new Set(parts.map((p) => String(p.turma || "").trim()).filter(Boolean))];
   if (vals.length < 2) return null;
   const baseTitulo = (ev.grupo && ev.grupo.titulo) ? ev.grupo.titulo : ev.title;
+  // Vagas do evento distribuídas igualmente entre as turmas (ex.: 60 vagas / 2
+  // turmas = 30 por turma). Sem vagas no evento → turma fica sem vagas.
+  const vagasTurma = ev.vagas ? Math.round(ev.vagas / vals.length) : null;
   return vals.map((val) => {
     const ps = parts.filter((p) => String(p.turma || "").trim() === val);
     const pres = ps.filter((p) => p.presente);
@@ -254,9 +257,8 @@ export function dividirPorTurma(ev) {
       totalInscritos, totalAprovados: totalInscritos, totalPresentes,
       totalAusentes: totalInscritos - totalPresentes, totalAptos: totalPresentes,
       taxaPresenca: totalInscritos ? Math.round((totalPresentes / totalInscritos) * 1000) / 10 : null,
-      // Subturma não tem vagas próprias → ocupação indefinida.
-      vagas: null,
-      taxaOcupacao: null,
+      vagas: vagasTurma,
+      taxaOcupacao: vagasTurma ? Math.round((totalInscritos / vagasTurma) * 1000) / 10 : null,
       modulos: null,
       turmas: { [val]: totalInscritos },
       turmasPresentes: { [val]: totalPresentes },
@@ -264,7 +266,6 @@ export function dividirPorTurma(ev) {
       secretariasPresentes: _talo(pres, "secretaria"),
       timelineInscricoes: Object.entries(tlInsc).sort((a, b) => a[0].localeCompare(b[0])),
       timelineCheckins: [],
-      vagas: null,
     };
   });
 }

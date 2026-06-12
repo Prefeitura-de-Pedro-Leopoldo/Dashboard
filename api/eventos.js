@@ -91,8 +91,20 @@ export default async function handler(req, res) {
         const evento = processarArquivo(buf, arquivo, metaEntry);
         if (evento) eventos.push(evento);
       } catch (err) {
-        // Cabeçalho não reconhecido = não é lista de participantes; pula.
-        if (!/Cabeçalho não reconhecido/.test(err.message)) {
+        // Planilha sem cabeçalho de participantes. Caso comum: lista de
+        // inscrição de um evento FUTURO ainda vazia (sem a coluna "Nome").
+        // Se há metadata do evento, registra como evento AGENDADO (0 inscritos)
+        // a partir do metadata, em vez de sumir do painel.
+        const semCabecalho = /Cabeçalho não (reconhecido|encontrado)/.test(err.message);
+        if (semCabecalho && meta[arquivo]) {
+          try {
+            const defaults = {
+              id: slugify(arquivo.replace(/\.xlsx$/i, "").replace(/\//g, "-")),
+              title: arquivo.replace(/\.xlsx$/i, "").replace(/\//g, " · "),
+            };
+            eventos.push(buildEvento(arquivo, { ...defaults, ...metaEntry }, []));
+          } catch (_) { /* ignora */ }
+        } else if (!semCabecalho) {
           console.error(`[eventos] ${arquivo}: ${err.message}`);
         }
       }
