@@ -113,6 +113,8 @@ export function renderKPIs(resumo, eventos = []) {
       : resumo.taxaOcupacaoGlobal + "<small>%</small>";
   const presFmt = fmt(resumo.totalPresentes);
   const inscFmt = fmt(resumo.totalInscritos);
+  // KPI "Inscritos" usa o total geral (inclui agendados) para casar com as vagas.
+  const inscGeralFmt = fmt(resumo.totalInscritosGeral ?? resumo.totalInscritos);
   return `
     <div class="kpi kpi--hero">
       ${renderGauge(resumo.taxaPresencaGlobal)}
@@ -137,7 +139,7 @@ export function renderKPIs(resumo, eventos = []) {
     <div class="kpi kpi--accent">
       <div class="kpi__icon"><i class="fas fa-user-plus"></i></div>
       <div class="kpi__label">Inscritos</div>
-      <div class="kpi__value">${inscFmt}</div>
+      <div class="kpi__value">${inscGeralFmt}</div>
       <div class="kpi__delta">${vagasInfo}</div>
     </div>
     <div class="kpi kpi--warn">

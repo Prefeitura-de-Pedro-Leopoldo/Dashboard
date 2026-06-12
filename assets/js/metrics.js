@@ -409,6 +409,9 @@ export const resumoGlobal = (eventos) => {
   const totInsc = realizados.reduce((s, e) => s + totalInscricoes(e), 0);
   const totPres = realizados.reduce((s, e) => s + totalPresentes(e), 0);
   const totVagas = eventos.reduce((s, e) => s + (e.vagas || 0), 0);
+  // Inscritos de TODOS os eventos (inclui agendados, com inscrições já abertas),
+  // para casar com as vagas oferecidas, que também contam todos os eventos.
+  const totInscGeral = eventos.reduce((s, e) => s + totalInscricoes(e), 0);
   const totAus = realizados.reduce(
     (s, e) => s + (e.totalAusentes ?? Math.max(0, totalInscricoes(e) - totalPresentes(e))),
     0
@@ -418,6 +421,7 @@ export const resumoGlobal = (eventos) => {
     eventosRealizados: realizados.length,
     eventosAgendados: eventos.filter((e) => e.status === "agendado").length,
     totalInscritos: totInsc,
+    totalInscritosGeral: totInscGeral,
     totalPresentes: totPres,
     totalAusentes: totInsc - totPres,
     totalVagas: totVagas || null,
