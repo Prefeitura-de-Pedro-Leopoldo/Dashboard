@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-06-12T17:08:19.797Z",
+  "geradoEm": "2026-06-12T17:21:23.301Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "eventos": [
     {
@@ -5517,7 +5517,7 @@
       "participantes": [],
       "vagas": 40,
       "taxaOcupacao": 0,
-      "fonte": "inteligencia-emocional-2026-06/participantes.xlsx",
+      "fonte": "inteligencia-emocional-2025-06/participantes.xlsx",
       "grupo": null
     },
     {
@@ -5547,7 +5547,7 @@
       "participantes": [],
       "vagas": 40,
       "taxaOcupacao": 0,
-      "fonte": "elaboracao-estudo-tecnico-preliminar-2026-06/participantes.xlsx",
+      "fonte": "elaboracao-de-estudo-tecnico-preliminar-2026-06/participantes.xlsx",
       "grupo": null
     }
   ],
