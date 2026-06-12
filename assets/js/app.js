@@ -26,6 +26,8 @@ import {
   lineTimeline,
   lineEvolucaoEventos,
   barModulosPresenca,
+  barSatisfacaoMedias,
+  barSatisfacaoDist,
   shortenOrg,
   destroyAll
 } from "./charts.js"
@@ -523,12 +525,28 @@ function pastaDeEvento(ev) {
 // estático ou só no ao vivo não "pisca e some" entre as duas fontes.
 function _baseComInscricoes(rawEventos) {
   const reais = rawEventos || []
+  // Indexa os sintéticos (inscrições abertas) por pasta.
+  const inscPorPasta = new Map()
+  for (const s of state.inscricoesAbertas || []) {
+    const f = pastaDeEvento(s)
+    if (f) inscPorPasta.set(f, s)
+  }
+  // Evento real ainda SEM lista de presença (futuro/vazio) herda a contagem de
+  // inscritos ao vivo do formulário de inscrição, se houver — assim o card não
+  // mostra 0 enquanto as inscrições estão abertas (a planilha de presença só é
+  // preenchida quando o evento ocorre).
+  const reaisEnriquecidos = reais.map((ev) => {
+    if ((ev.totalInscritos || 0) > 0 || (ev.totalPresentes || 0) > 0) return ev
+    const s = inscPorPasta.get(pastaDeEvento(ev))
+    const n = (s && Number(s.totalInscritos)) || 0
+    return n > 0 ? { ...ev, totalInscritos: n, totalAprovados: n } : ev
+  })
   const pastasReais = new Set(reais.map(pastaDeEvento).filter(Boolean))
   const sinteticos = (state.inscricoesAbertas || []).filter((s) => {
     const f = pastaDeEvento(s)
     return f && !pastasReais.has(f)
   })
-  return marcarAbertasPorData(dedupEventos(reais.concat(sinteticos)))
+  return marcarAbertasPorData(dedupEventos(reaisEnriquecidos.concat(sinteticos)))
 }
 
 // Um evento REAL (com participantes.xlsx) cuja data ainda está no futuro e que
@@ -1099,15 +1117,19 @@ function renderEventBlock(ev) {
   //  - qualquer evento ENCERRADO/realizado (turma, consolidado ou standalone)
   //    → só as análises (Resumo, Distribuições, Participantes).
   const aberta = !!ev.inscricaoAberta
+  const temSat = !aberta && ev.satisfacao && Array.isArray(ev.satisfacao.indicadores) && ev.satisfacao.indicadores.length > 0
   const tabIds = aberta
     ? ["inscricoes", "encontros", "presenca"]
-    : ["resumo", "distribuicoes", "participantes"]
+    : temSat
+      ? ["resumo", "distribuicoes", "satisfacao", "participantes"]
+      : ["resumo", "distribuicoes", "participantes"]
   let active = getActiveTab(tabsKey, tabIds[0])
   if (!tabIds.includes(active)) active = tabIds[0]
 
   const tabDefs = {
     resumo: { id: "resumo", label: "Resumo & Insights", icon: "fa-circle-info" },
     distribuicoes: { id: "distribuicoes", label: "Distribuições", icon: "fa-chart-pie" },
+    satisfacao: { id: "satisfacao", label: "Satisfação", icon: "fa-face-smile", badge: temSat ? ev.satisfacao.totalRespostas : undefined },
     participantes: { id: "participantes", label: "Participantes", icon: "fa-users", badge: (ev.participantes || []).length },
     inscricoes: { id: "inscricoes", label: "Inscrições", icon: "fa-user-plus" },
     encontros: { id: "encontros", label: "Encontros & Lembretes", icon: "fa-bell" },
@@ -1174,6 +1196,29 @@ function renderEventBlock(ev) {
       </div>
     </div>` : ""}
 
+    ${tabIds.includes("satisfacao") ? `<div class="view-tabs__panel" data-tab-panel="satisfacao" ${active === "satisfacao" ? "" : "hidden"}>
+      <div class="card sat-summary">
+        <div class="sat-summary__score">
+          <span class="sat-summary__value">${temSat ? ev.satisfacao.mediaGeral.toFixed(2) : "—"}</span>
+          <span class="sat-summary__max">de 5,0</span>
+        </div>
+        <div class="sat-summary__info">
+          <h3>Satisfação geral</h3>
+          <p>Média dos ${temSat ? ev.satisfacao.indicadores.length : 0} indicadores · <b>${temSat ? ev.satisfacao.totalRespostas : 0}</b> resposta(s) da pesquisa pós-evento.</p>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card__header"><div><h3>Média por indicador</h3><p>Nota média (1 a 5) de cada dimensão avaliada.</p></div></div>
+          <div class="chart-wrap lg"><canvas id="chartSatMedias"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card__header"><div><h3>Distribuição das notas</h3><p>Quantas pessoas deram cada nota, por indicador.</p></div></div>
+          <div class="chart-wrap lg"><canvas id="chartSatDist"></canvas></div>
+        </div>
+      </div>
+    </div>` : ""}
+
     ${tabIds.includes("participantes") ? `<div class="view-tabs__panel" data-tab-panel="participantes" ${active === "participantes" ? "" : "hidden"}>
       <div class="grid-2 participantes-grid">
         <div class="table-wrap">
@@ -1237,6 +1282,9 @@ function renderEventBlock(ev) {
     )
     barSecretarias("chartEvEvasao", evasaoPorSecretariaEvento(ev), { datasetLabel: "Faltas", unitLabel: "ausência(s)" })
     lineTimeline("chartEvTimeline", ev.timelineInscricoes || [], "Inscrições no dia")
+  } else if (active === "satisfacao" && ev.satisfacao) {
+    barSatisfacaoMedias("chartSatMedias", ev.satisfacao.indicadores)
+    barSatisfacaoDist("chartSatDist", ev.satisfacao.indicadores)
   }
 }
 

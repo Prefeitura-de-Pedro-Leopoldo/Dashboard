@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-06-11T18:45:26.667Z",
+  "geradoEm": "2026-06-12T16:43:27.709Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "eventos": [
     {
@@ -1516,7 +1516,7 @@
         }
       ],
       "vagas": 80,
-      "taxaOcupacao": 83.5,
+      "taxaOcupacao": 98.8,
       "fonte": "workshop-sei-2026-04/participantes.xlsx",
       "grupo": null
     },
@@ -2402,9 +2402,75 @@
         }
       ],
       "vagas": 40,
-      "taxaOcupacao": 76.3,
+      "taxaOcupacao": 95,
       "fonte": "fundamentos-gestao-publica-2026-05/turma 1/participantes.xlsx",
-      "grupo": null
+      "grupo": null,
+      "satisfacao": {
+        "totalRespostas": 19,
+        "mediaGeral": 4.91,
+        "indicadores": [
+          {
+            "label": "Organização do evento",
+            "media": 4.95,
+            "n": 19,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 1,
+              "5": 18
+            }
+          },
+          {
+            "label": "Qualidade do conteúdo",
+            "media": 4.95,
+            "n": 19,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 1,
+              "5": 18
+            }
+          },
+          {
+            "label": "Domínio do(a) palestrante sobre o tema",
+            "media": 5,
+            "n": 19,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 19
+            }
+          },
+          {
+            "label": "Aplicabilidade do conteúdo para sua rotina",
+            "media": 4.89,
+            "n": 19,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 2,
+              "5": 17
+            }
+          },
+          {
+            "label": "Local/estrutura (se presencial)",
+            "media": 4.74,
+            "n": 19,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 5,
+              "5": 14
+            }
+          }
+        ]
+      }
     },
     {
       "id": "ciclo-de-debates-pl-por-elas",
@@ -3180,9 +3246,75 @@
         }
       ],
       "vagas": 60,
-      "taxaOcupacao": 46.2,
+      "taxaOcupacao": 65,
       "fonte": "ciclo-de-debates-pl-por-elas-2026-05/turma 1 e 2/participantes.xlsx",
-      "grupo": null
+      "grupo": null,
+      "satisfacao": {
+        "totalRespostas": 18,
+        "mediaGeral": 4.92,
+        "indicadores": [
+          {
+            "label": "Organização do evento",
+            "media": 5,
+            "n": 18,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 18
+            }
+          },
+          {
+            "label": "Qualidade do conteúdo",
+            "media": 5,
+            "n": 18,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 18
+            }
+          },
+          {
+            "label": "Domínio do(a) palestrante sobre o tema",
+            "media": 5,
+            "n": 18,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 18
+            }
+          },
+          {
+            "label": "Aplicabilidade do conteúdo para sua rotina",
+            "media": 4.94,
+            "n": 18,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 1,
+              "5": 17
+            }
+          },
+          {
+            "label": "Local/estrutura (se presencial)",
+            "media": 4.67,
+            "n": 18,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 6,
+              "5": 12
+            }
+          }
+        ]
+      }
     },
     {
       "id": "elaboracao-do-mapa-de-gerenciamento-de-risco-1-turma",
@@ -3398,7 +3530,7 @@
         }
       ],
       "vagas": 12,
-      "taxaOcupacao": 100,
+      "taxaOcupacao": 75,
       "fonte": "mapa-gerenciamento-risco-2026-05/turma 1/participantes.xlsx",
       "grupo": {
         "id": "mapa-gerenciamento-risco-2026-05",
@@ -3537,7 +3669,7 @@
         }
       ],
       "vagas": 12,
-      "taxaOcupacao": 100,
+      "taxaOcupacao": 41.7,
       "fonte": "mapa-gerenciamento-risco-2026-05/turma 2/participantes.xlsx",
       "grupo": {
         "id": "mapa-gerenciamento-risco-2026-05",
@@ -4183,9 +4315,75 @@
         }
       ],
       "vagas": 40,
-      "taxaOcupacao": 93.8,
+      "taxaOcupacao": 80,
       "fonte": "comunicacao-que-aproxima-2026-05/participantes.xlsx",
-      "grupo": null
+      "grupo": null,
+      "satisfacao": {
+        "totalRespostas": 8,
+        "mediaGeral": 4.78,
+        "indicadores": [
+          {
+            "label": "Organização do evento",
+            "media": 4.88,
+            "n": 8,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 1,
+              "5": 7
+            }
+          },
+          {
+            "label": "Qualidade do conteúdo",
+            "media": 4.75,
+            "n": 8,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 2,
+              "5": 6
+            }
+          },
+          {
+            "label": "Domínio do(a) palestrante sobre o tema",
+            "media": 5,
+            "n": 8,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 8
+            }
+          },
+          {
+            "label": "Aplicabilidade do conteúdo para sua rotina",
+            "media": 4.75,
+            "n": 8,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 2,
+              "5": 6
+            }
+          },
+          {
+            "label": "Local/estrutura (se presencial)",
+            "media": 4.5,
+            "n": 8,
+            "dist": {
+              "1": 0,
+              "2": 0,
+              "3": 1,
+              "4": 2,
+              "5": 5
+            }
+          }
+        ]
+      }
     },
     {
       "id": "gestao-para-resultados",
@@ -5162,9 +5360,75 @@
         }
       ],
       "vagas": 50,
-      "taxaOcupacao": 74.5,
+      "taxaOcupacao": 102,
       "fonte": "gestao-para-resultados-2026-05/turma 1/participantes.xlsx",
-      "grupo": null
+      "grupo": null,
+      "satisfacao": {
+        "totalRespostas": 28,
+        "mediaGeral": 4.82,
+        "indicadores": [
+          {
+            "label": "Organização do evento",
+            "media": 4.82,
+            "n": 28,
+            "dist": {
+              "1": 0,
+              "2": 1,
+              "3": 0,
+              "4": 2,
+              "5": 25
+            }
+          },
+          {
+            "label": "Qualidade do conteúdo",
+            "media": 4.86,
+            "n": 28,
+            "dist": {
+              "1": 1,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 27
+            }
+          },
+          {
+            "label": "Domínio do(a) palestrante sobre o tema",
+            "media": 4.86,
+            "n": 28,
+            "dist": {
+              "1": 1,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 27
+            }
+          },
+          {
+            "label": "Aplicabilidade do conteúdo para sua rotina",
+            "media": 4.86,
+            "n": 28,
+            "dist": {
+              "1": 1,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 27
+            }
+          },
+          {
+            "label": "Local/estrutura (se presencial)",
+            "media": 4.68,
+            "n": 28,
+            "dist": {
+              "1": 0,
+              "2": 1,
+              "3": 0,
+              "4": 6,
+              "5": 21
+            }
+          }
+        ]
+      }
     },
     {
       "id": "gestao-da-inovacao-no-setor-publico",
@@ -5234,9 +5498,9 @@
     "totalInscritos": 257,
     "totalPresentes": 199,
     "totalAusentes": 58,
-    "totalVagas": 378,
+    "totalVagas": 383,
     "taxaPresencaGlobal": 77.4,
-    "taxaOcupacaoGlobal": 77.4,
+    "taxaOcupacaoGlobal": 67.1,
     "rankingSecretarias": {
       "Secretaria Municipal de Gestão e Finanças": 117,
       "Secretaria Municipal de Educação": 50,

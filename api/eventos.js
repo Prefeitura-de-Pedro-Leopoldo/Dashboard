@@ -22,6 +22,7 @@ import {
   buildResumo,
   slugify,
 } from "../scripts/build-data.mjs";
+import { parseSatisfacaoFromBuffer } from "../scripts/satisfacao.mjs";
 
 const WEBAPP_URL = process.env.RELATORIOS_WEBAPP_URL || "";
 const TOKEN = process.env.RELATORIOS_TOKEN || "";
@@ -68,14 +69,35 @@ export default async function handler(req, res) {
       .map((f) => ({ ...f, rel: relativo(f.path) }))
       .filter((f) => ehParticipantes(f.rel));
 
-    // Baixa todos os arquivos em paralelo.
-    const buffers = await Promise.all(
-      arquivos.map((f) =>
-        getJson(`${WEBAPP_URL}?action=file&token=${encodeURIComponent(TOKEN)}&id=${encodeURIComponent(f.id)}`)
-          .then((d) => (d && d.ok && d.base64 ? Buffer.from(d.base64, "base64") : null))
-          .catch(() => null)
-      )
-    );
+    // Pesquisas de satisfação: ficam na MESMA pasta da lista de participantes.
+    const satArquivos = (manifest.files || [])
+      .map((f) => ({ ...f, rel: relativo(f.path) }))
+      .filter((f) => ehSatisfacao(f.rel));
+
+    const baixar = (f) =>
+      getJson(`${WEBAPP_URL}?action=file&token=${encodeURIComponent(TOKEN)}&id=${encodeURIComponent(f.id)}`)
+        .then((d) => (d && d.ok && d.base64 ? Buffer.from(d.base64, "base64") : null))
+        .catch(() => null);
+
+    // Baixa participantes + satisfação em paralelo.
+    const [buffers, satBuffers] = await Promise.all([
+      Promise.all(arquivos.map(baixar)),
+      Promise.all(satArquivos.map(baixar)),
+    ]);
+
+    // Mapa pasta → satisfação já parseada.
+    const dirDe = (rel) => rel.replace(/\/[^/]*$/, "");
+    const satPorPasta = new Map();
+    for (let i = 0; i < satArquivos.length; i++) {
+      if (!satBuffers[i]) continue;
+      const s = parseSatisfacaoFromBuffer(satBuffers[i]);
+      if (s) satPorPasta.set(dirDe(satArquivos[i].rel), s);
+    }
+    const anexarSat = (evento, arquivo) => {
+      const s = satPorPasta.get(dirDe(arquivo));
+      if (s && evento) evento.satisfacao = s;
+      return evento;
+    };
 
     const eventos = [];
     for (let i = 0; i < arquivos.length; i++) {
@@ -89,7 +111,7 @@ export default async function handler(req, res) {
       if (metaEntry.ignore) continue;
       try {
         const evento = processarArquivo(buf, arquivo, metaEntry);
-        if (evento) eventos.push(evento);
+        if (evento) eventos.push(anexarSat(evento, arquivo));
       } catch (err) {
         // Planilha sem cabeçalho de participantes. Caso comum: lista de
         // inscrição de um evento FUTURO ainda vazia (sem a coluna "Nome").
@@ -102,7 +124,7 @@ export default async function handler(req, res) {
               id: slugify(arquivo.replace(/\.xlsx$/i, "").replace(/\//g, "-")),
               title: arquivo.replace(/\.xlsx$/i, "").replace(/\//g, " · "),
             };
-            eventos.push(buildEvento(arquivo, { ...defaults, ...metaEntry }, []));
+            eventos.push(anexarSat(buildEvento(arquivo, { ...defaults, ...metaEntry }, []), arquivo));
           } catch (_) { /* ignora */ }
         } else if (!semCabecalho) {
           console.error(`[eventos] ${arquivo}: ${err.message}`);
@@ -175,6 +197,12 @@ function ehParticipantes(rel) {
   if (base.startsWith("~$")) return false;
   if (base.startsWith("satisfacao") || base.startsWith("pesquisa")) return false;
   return true;
+}
+
+function ehSatisfacao(rel) {
+  const base = rel.split("/").pop().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (!base.endsWith(".xlsx") || base.startsWith("~$")) return false;
+  return base.startsWith("satisfacao") || base.startsWith("pesquisa");
 }
 
 async function getJson(url) {

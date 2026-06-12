@@ -154,7 +154,9 @@ export function renderKPIs(resumo, eventos = []) {
 // ================ Event card ================
 
 export function renderEventCard(ev) {
-  const tx = taxaPresenca(ev);
+  // Evento agendado ainda não ocorreu → presença não se aplica (N/A), mesmo
+  // que já tenha inscritos (inscrições abertas).
+  const tx = ev.status === "agendado" ? null : taxaPresenca(ev);
   const statusLabel = ev.status === "agendado" ? "Agendado" : "Realizado";
   const statusClass = ev.status === "agendado" ? "agendado" : tx !== null && tx < 60 ? "atencao" : "realizado";
   const tone = ev.status === "agendado"

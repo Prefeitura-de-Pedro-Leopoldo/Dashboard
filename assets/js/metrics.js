@@ -92,6 +92,8 @@ export const consolidarPorGrupo = (eventos) => {
     }
     const g = byGroup.get(gid);
     g._turmas.push(ev);
+    // Satisfação: usa a da primeira turma que tiver pesquisa respondida.
+    if (ev.satisfacao && !g.satisfacao) g.satisfacao = ev.satisfacao;
     g.totalInscritos += ev.totalInscritos || 0;
     g.totalAprovados += ev.totalAprovados || 0;
     g.totalPresentes += ev.totalPresentes || 0;

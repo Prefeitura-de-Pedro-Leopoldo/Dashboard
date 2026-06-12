@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import XLSX from "xlsx";
+import { parseSatisfacaoFromBuffer } from "./satisfacao.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -560,9 +561,32 @@ function listarPlanilhas(dir) {
   return resultado.sort();
 }
 
+// Mapa pasta(rel) → caminho absoluto do satisfacao/pesquisa .xlsx daquela pasta.
+// A pesquisa fica na MESMA pasta da lista de participantes do evento.
+function mapaSatisfacao(dir) {
+  const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const out = new Map();
+  const walk = (sub) => {
+    const full = path.join(dir, sub);
+    for (const ent of fs.readdirSync(full, { withFileTypes: true })) {
+      if (ent.name.startsWith(".") || ent.name === "_originais") continue;
+      const rel = sub ? `${sub}/${ent.name}` : ent.name;
+      if (ent.isDirectory()) { walk(rel); continue; }
+      const base = norm(ent.name);
+      if (!base.endsWith(".xlsx") || base.startsWith("~$")) continue;
+      if (base.startsWith("satisfacao") || base.startsWith("pesquisa")) {
+        out.set(sub.replace(/\\/g, "/"), path.join(dir, rel));
+      }
+    }
+  };
+  walk("");
+  return out;
+}
+
 function main() {
   const meta = JSON.parse(fs.readFileSync(META_PATH, "utf-8")).eventos || {};
   const arquivos = listarPlanilhas(RELATORIOS_DIR);
+  const satPorPasta = mapaSatisfacao(RELATORIOS_DIR);
 
   if (!arquivos.length) {
     console.warn(`[build-data] Nenhuma planilha em ${RELATORIOS_DIR}.`);
@@ -589,7 +613,14 @@ function main() {
         console.warn(`[build-data] ⚠ Sem metadata para "${arquivo}". Usando defaults derivados do nome do arquivo. Adicione uma entrada em eventos-meta.json.`);
       }
       const participantes = parsePlanilha(filePath);
-      eventos.push(buildEvento(arquivo, eventoMeta, participantes));
+      const evento = buildEvento(arquivo, eventoMeta, participantes);
+      // Anexa a pesquisa de satisfação da mesma pasta, se houver.
+      const satPath = satPorPasta.get(path.dirname(arquivo).replace(/\\/g, "/"));
+      if (satPath) {
+        const sat = parseSatisfacaoFromBuffer(fs.readFileSync(satPath));
+        if (sat) evento.satisfacao = sat;
+      }
+      eventos.push(evento);
       console.log(`[build-data] ✓ ${arquivo} → ${participantes.length} participantes (${eventoMeta.id})`);
     } catch (err) {
       // Cabeçalho não reconhecido = arquivo não é lista de participantes

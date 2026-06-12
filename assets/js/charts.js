@@ -1583,3 +1583,113 @@ export function barModulosPresenca(id, modulos) {
     },
   }, isEmpty, "Sem dados por módulo.");
 }
+
+// ============ SATISFAÇÃO (pesquisa pós-evento, notas 1–5) ============
+// Cor por nota média: ≥4.5 bom (azul), ≥3.5 atenção (laranja), <3.5 ruim (vermelho).
+function _corNota(media) {
+  if (media >= 4.5) return PALETTE.good;
+  if (media >= 3.5) return PALETTE.orange;
+  return PALETTE.red;
+}
+
+// Média (0–5) por indicador — barra horizontal colorida pela nota.
+export function barSatisfacaoMedias(id, indicadores) {
+  const inds = (indicadores || []).slice();
+  const isEmpty = inds.length === 0;
+  return _mount(id, {
+    type: "bar",
+    data: {
+      labels: inds.map((x) => x.label),
+      datasets: [{
+        label: "Média",
+        data: inds.map((x) => x.media),
+        backgroundColor: (c) => {
+          const base = _corNota(inds[c.dataIndex]?.media ?? 0);
+          return c.chart.chartArea ? hGradient(c.chart.ctx, c.chart.chartArea, base) : base;
+        },
+        hoverBackgroundColor: (c) => {
+          const base = _corNota(inds[c.dataIndex]?.media ?? 0);
+          return c.chart.chartArea ? hGradient(c.chart.ctx, c.chart.chartArea, base, { darkenStart: 0, lightenEnd: 0.22 }) : base;
+        },
+        maxBarThickness: 30, borderRadius: 8,
+      }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { right: 48, top: 8, bottom: 8 } },
+      interaction: { mode: "nearest", axis: "y", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart", delay: (c) => (c.type === "data" && c.mode === "default" ? c.dataIndex * 60 : 0) },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => inds[items[0].dataIndex]?.label || "",
+            label: (ctx) => ` Média ${ctx.parsed.x.toFixed(2)} de 5 · ${inds[ctx.dataIndex]?.n || 0} resposta(s)`,
+          },
+        },
+        barDataLabels: { enabled: true, suffix: "", format: (v) => v.toFixed(2) },
+        barHoverGrow: { enabled: true, grow: 5, radius: 8, glow: "rgba(48,99,173,0.32)" },
+      },
+      scales: {
+        x: { display: false, beginAtZero: true, max: 5, grid: { display: false }, border: { display: false } },
+        y: { grid: { display: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11, weight: "600" }, padding: 10, autoSkip: false, crossAlign: "far" } },
+      },
+    },
+    plugins: [barShadowPlugin, barDataLabelsPlugin, barHoverGrowPlugin],
+  }, isEmpty, "Sem respostas de satisfação.");
+}
+
+// Distribuição das notas (1–5) por indicador — barras empilhadas horizontais.
+export function barSatisfacaoDist(id, indicadores) {
+  const inds = (indicadores || []).slice();
+  const isEmpty = inds.length === 0;
+  const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface-card").trim() || "#fff";
+  // 5 (melhor) → 1 (pior): azul → vermelho.
+  const notas = [
+    { nota: 5, cor: PALETTE.good },
+    { nota: 4, cor: PALETTE.green },
+    { nota: 3, cor: PALETTE.amber },
+    { nota: 2, cor: PALETTE.orange },
+    { nota: 1, cor: PALETTE.red },
+  ];
+  const datasets = notas.map((nx) => ({
+    label: `Nota ${nx.nota}`,
+    data: inds.map((x) => x.dist?.[nx.nota] || 0),
+    backgroundColor: nx.cor,
+    maxBarThickness: 30,
+    stack: "notas",
+    borderWidth: 1.5,
+    borderColor: surface,
+  }));
+  return _mount(id, {
+    type: "bar",
+    data: { labels: inds.map((x) => x.label), datasets },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { right: 16, top: 8, bottom: 8 } },
+      interaction: { mode: "nearest", axis: "y", intersect: false },
+      animation: { duration: 900, easing: "easeOutQuart" },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            title: (items) => inds[items[0].dataIndex]?.label || "",
+            label: (ctx) => {
+              const total = ctx.chart.data.datasets.reduce((a, d) => a + (d.data[ctx.dataIndex] || 0), 0);
+              const pct = total ? ((ctx.parsed.x / total) * 100).toFixed(0) : 0;
+              return ` ${ctx.dataset.label}: ${ctx.parsed.x} (${pct}%)`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { stacked: true, beginAtZero: true, grid: { color: PALETTE.grid, drawTicks: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11 }, precision: 0 } },
+        y: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11, weight: "600" }, padding: 8, crossAlign: "far" } },
+      },
+    },
+  }, isEmpty, "Sem respostas de satisfação.");
+}

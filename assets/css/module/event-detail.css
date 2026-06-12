@@ -465,3 +465,45 @@
   font-variant-numeric: tabular-nums;
 }
 
+
+/* ============ Aba Satisfação ============ */
+.sat-summary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.sat-summary__score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 16px;
+  background: var(--ind-good-soft);
+  color: var(--ind-good-text, var(--ind-good));
+  white-space: nowrap;
+}
+.sat-summary__value {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.sat-summary__max {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  opacity: 0.8;
+}
+.sat-summary__info h3 {
+  margin: 0 0 2px;
+  font-size: var(--fs-lg);
+  color: var(--text-primary);
+}
+.sat-summary__info p {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+@media (max-width: 540px) {
+  .sat-summary { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
