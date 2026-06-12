@@ -389,25 +389,10 @@ html { -webkit-tap-highlight-color: transparent; }
 @keyframes ptrSpin { to { transform: rotate(360deg); } }
 
 /* ----------------------------------------------------------------
-   TILT 3D + GLARE nos cards (desktop, ponteiro fino)
+   TILT 3D nos cards (desktop, ponteiro fino)
    ---------------------------------------------------------------- */
 [data-tilt] {
   will-change: transform;
-}
-[data-tilt]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(420px circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.16), transparent 44%);
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  pointer-events: none;
-  z-index: 3;
-}
-[data-tilt]:hover::after { opacity: 1; }
-[data-theme="dark"] [data-tilt]::after {
-  background: radial-gradient(420px circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.08), transparent 44%);
 }
 
 /* ----------------------------------------------------------------
