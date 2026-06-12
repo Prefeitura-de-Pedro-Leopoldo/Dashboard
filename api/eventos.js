@@ -132,6 +132,21 @@ export default async function handler(req, res) {
       }
     }
 
+    // Eventos PLACEHOLDER: declarados no meta com `placeholder:true` e ainda SEM
+    // planilha no Drive. Emite como agendado vazio para já aparecerem no painel
+    // (a contagem de inscritos vem do formulário de inscrição, quando aberto).
+    const arquivosSet = new Set(arquivos.map((f) => f.rel));
+    for (const [chave, m] of Object.entries(meta)) {
+      if (!m || !m.placeholder || m.ignore || arquivosSet.has(chave)) continue;
+      try {
+        const defaults = {
+          id: slugify(chave.replace(/\.xlsx$/i, "").replace(/\//g, "-")),
+          title: chave.replace(/\.xlsx$/i, "").replace(/\//g, " · "),
+        };
+        eventos.push(anexarSat(buildEvento(chave, { ...defaults, ...m }, []), chave));
+      } catch (_) { /* ignora */ }
+    }
+
     // Ordena por data asc (sem data ao final) - igual ao build.
     eventos.sort((a, b) => {
       if (a.date && b.date) return a.date.localeCompare(b.date);

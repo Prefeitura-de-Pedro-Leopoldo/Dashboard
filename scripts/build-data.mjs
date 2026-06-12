@@ -633,6 +633,22 @@ function main() {
       console.error(`[build-data] ✗ ${arquivo}: ${err.message}`);
     }
   }
+
+  // Eventos PLACEHOLDER: declarados no eventos-meta.json com `placeholder:true` e
+  // ainda SEM planilha (pasta/Drive não criados). Emite como agendado vazio para
+  // já aparecerem no painel. Quando a planilha real surgir na mesma chave, ela
+  // tem precedência e o placeholder é ignorado.
+  const arquivosSet = new Set(arquivos);
+  for (const [chave, m] of Object.entries(meta)) {
+    if (!m || !m.placeholder || m.ignore || arquivosSet.has(chave)) continue;
+    const defaults = {
+      id: slugify(chave.replace(/\.xlsx$/i, "").replace(/\//g, "-")),
+      title: chave.replace(/\.xlsx$/i, "").replace(/\//g, " · "),
+    };
+    eventos.push(buildEvento(chave, { ...defaults, ...m }, []));
+    console.log(`[build-data] ➕ placeholder agendado: ${m.title || chave}`);
+  }
+
   if (erros.length) {
     console.error(`\n[build-data] Falhou em ${erros.length} planilha(s). Corrija o formato antes de publicar.`);
     process.exit(1);
@@ -658,11 +674,14 @@ function main() {
   const manifest = {
     geradoEm: new Date().toISOString(),
     fonte: "assets/docs/relatorios/**/*.xlsx",
-    planilhas: eventos.map((e) => ({
-      id: e.id,
-      arquivo: e.fonte,
-      titulo: (meta[e.fonte] && meta[e.fonte].tituloCurto) || e.title,
-    })),
+    // Placeholders (sem planilha real) não entram no manifest de arquivos.
+    planilhas: eventos
+      .filter((e) => !(meta[e.fonte] && meta[e.fonte].placeholder))
+      .map((e) => ({
+        id: e.id,
+        arquivo: e.fonte,
+        titulo: (meta[e.fonte] && meta[e.fonte].tituloCurto) || e.title,
+      })),
   };
   fs.writeFileSync(OUT_MANIFEST, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
   console.log(`[build-data] manifest.json escrito (${manifest.planilhas.length} planilhas).`);

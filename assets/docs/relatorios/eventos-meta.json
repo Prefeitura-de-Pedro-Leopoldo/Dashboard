@@ -164,6 +164,34 @@
       "city": "Pedro Leopoldo",
       "vagas": 30,
       "grupo": null
+    },
+    "inteligencia-emocional-2026-06/participantes.xlsx": {
+      "id": "inteligencia-emocional",
+      "placeholder": true,
+      "cargaHoraria": 3,
+      "title": "Inteligência Emocional",
+      "tituloCurto": "Inteligência Emocional",
+      "date": "2026-06-23",
+      "dateRaw": "Data: 23/06/2026 09h30",
+      "time": "09h30",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU",
+      "city": "Pedro Leopoldo",
+      "vagas": 40,
+      "grupo": null
+    },
+    "elaboracao-estudo-tecnico-preliminar-2026-06/participantes.xlsx": {
+      "id": "elaboracao-de-estudo-tecnico-preliminar",
+      "placeholder": true,
+      "cargaHoraria": 3,
+      "title": "Elaboração de Estudo Técnico Preliminar",
+      "tituloCurto": "Elaboração de Estudo Técnico Preliminar",
+      "date": "2026-06-25",
+      "dateRaw": "Data: 25/06/2026 09h30",
+      "time": "09h30",
+      "local": "Local: Centro de Artes e Esportes Unificado - CEU",
+      "city": "Pedro Leopoldo",
+      "vagas": 40,
+      "grupo": null
     }
   }
 }
