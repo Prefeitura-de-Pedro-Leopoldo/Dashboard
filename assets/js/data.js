@@ -95,20 +95,34 @@ function _sig(d) {
  * eventos sem inscritos ou com campos ausentes.
  */
 function normalize(raw) {
-  const eventos = (raw.eventos || []).map((e) => ({
-    ...e,
-    title: e.title || "(sem título)",
-    secretarias: e.secretarias || {},
-    turmas: e.turmas || {},
-    participantes: e.participantes || [],
-    timelineInscricoes: e.timelineInscricoes || [],
-    timelineCheckins: e.timelineCheckins || [],
-    totalInscritos: e.totalInscritos || 0,
-    totalPresentes: e.totalPresentes || 0,
-    totalAusentes: e.totalAusentes || 0,
-    taxaPresenca: e.taxaPresenca,
-    status: e.status || (e.totalInscritos > 0 ? "realizado" : "agendado"),
-  }));
+  // Referência "hoje" (meia-noite local) para classificar por data.
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const eventos = (raw.eventos || []).map((e) => {
+    // Evento com data futura é SEMPRE "agendado", mesmo já tendo inscritos
+    // (inscrições abertas). Só vira "realizado" quando a data chega (hoje/passado).
+    // Esta é a autoridade final sobre o status, valendo para dados estáticos e
+    // ao vivo — evita o "0 agendados" reaparecer quando o ao vivo carrega.
+    const d = e.date ? new Date(e.date + "T00:00:00") : null;
+    const futuro = d && !isNaN(d) && d > hoje;
+    const status = futuro
+      ? "agendado"
+      : e.status || (e.totalInscritos > 0 ? "realizado" : "agendado");
+    return {
+      ...e,
+      title: e.title || "(sem título)",
+      secretarias: e.secretarias || {},
+      turmas: e.turmas || {},
+      participantes: e.participantes || [],
+      timelineInscricoes: e.timelineInscricoes || [],
+      timelineCheckins: e.timelineCheckins || [],
+      totalInscritos: e.totalInscritos || 0,
+      totalPresentes: e.totalPresentes || 0,
+      totalAusentes: e.totalAusentes || 0,
+      taxaPresenca: e.taxaPresenca,
+      status,
+    };
+  });
   return { ...raw, eventos, resumo: raw.resumo || {} };
 }
 
