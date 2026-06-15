@@ -4489,10 +4489,7 @@ function drawCertificateInto(canvas, fields) {
     c.textAlign = "center"
     c.textBaseline = "middle"
     c.font = `600 ${fs}px ${fontFamily}`
-    c.lineWidth = Math.max(2, fs * 0.18)
-    c.strokeStyle = "rgba(255,255,255,0.85)"
-    c.strokeText(codigo, cx, cy)
-    c.fillStyle = "#161f36"
+    c.fillStyle = "#ffffff"
     c.fillText(codigo, cx, cy)
     c.restore()
 

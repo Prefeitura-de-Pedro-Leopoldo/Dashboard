@@ -224,9 +224,104 @@
       }
       .theme-toggle:hover { color: var(--brand-primary); transform: rotate(15deg); }
       [data-theme="dark"] .icon-sun, [data-theme="light"] .icon-moon { display: none; }
+
+      /* ===== Splash de abertura com o capelo (igual cadastro de palestrante) ===== */
+      .intro-splash {
+        position: fixed; inset: 0; z-index: 60;
+        display: grid; place-items: center; padding: 24px;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -10%, rgba(48, 99, 173, 0.22), transparent 60%),
+          radial-gradient(ellipse 60% 50% at 50% 0%, rgba(77, 173, 51, 0.12), transparent 55%), var(--surface-bg);
+        transition: opacity 0.55s ease, transform 0.7s cubic-bezier(0.65, 0, 0.25, 1), visibility 0.55s;
+      }
+      .intro-splash.is-hiding { opacity: 0; transform: translateY(-26px); visibility: hidden; }
+      .intro { text-align: center; max-width: 90vw; }
+      .grad-scene { width: 260px; height: 220px; margin: 0 auto; perspective: 900px; display: grid; place-items: center; }
+      .grad-cap { position: relative; transform-style: preserve-3d; opacity: 0; animation: capIn 1.5s cubic-bezier(0.2, 0.8, 0.25, 1) forwards, capFloat 4.6s 1.55s ease-in-out infinite; }
+      .grad-cap__board { position: relative; width: 164px; height: 164px; transform-style: preserve-3d; transform: rotateX(58deg) rotateZ(45deg); }
+      .board__face { position: absolute; top: 50%; left: 50%; }
+      .board__top, .board__bottom { width: 164px; height: 164px; border-radius: 16px; }
+      .board__top { transform: translate(-50%, -50%) translateZ(7px); background: linear-gradient(135deg, #3f6cb0 0%, #21477e 42%, #0e2546 100%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07); overflow: hidden; }
+      .board__top::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 46%); }
+      .board__trim { position: absolute; inset: 6px; border-radius: 12px; pointer-events: none; border: 1.5px solid rgba(77, 173, 51, 0.92); box-shadow: 0 0 5px rgba(77, 173, 51, 0.4); }
+      .board__bottom { transform: translate(-50%, -50%) translateZ(-7px) rotateY(180deg); background: linear-gradient(135deg, #0c2244, #060e1c); }
+      .board__edge { background: linear-gradient(#173357, #0a1c38); }
+      .board__edge--n { width: 164px; height: 14px; transform: translate(-50%, -50%) rotateX(90deg) translateZ(82px); }
+      .board__edge--s { width: 164px; height: 14px; transform: translate(-50%, -50%) rotateX(-90deg) translateZ(82px); }
+      .board__edge--e { width: 14px; height: 164px; transform: translate(-50%, -50%) rotateY(90deg) translateZ(82px); }
+      .board__edge--w { width: 14px; height: 164px; transform: translate(-50%, -50%) rotateY(-90deg) translateZ(82px); }
+      .board__shine { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+      .board__shine::before { content: ""; position: absolute; top: -25%; bottom: -25%; left: -160%; width: 55%; transform: skewX(-22deg); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent); animation: capShine 1.15s cubic-bezier(0.5, 0, 0.3, 1) 1.5s 1; }
+      @keyframes capShine { from { left: -160%; } to { left: 175%; } }
+      .grad-cap__button { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; border-radius: 50%; transform: translate(-50%, -50%) translateZ(9px); background: radial-gradient(circle at 34% 30%, #4274c0, #16294d); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+      .grad-cap__base { position: absolute; left: 50%; top: 50%; z-index: -1; width: 108px; height: 56px; transform: translate(-50%, 16px) translateZ(6px); border-radius: 12px 12px 30px 30px / 14px 14px 42px 42px; background: linear-gradient(180deg, #294f86 0%, #173a6e 38%, #0d2247 78%, #08193400 100%), linear-gradient(180deg, #294f86, #0d2247); box-shadow: inset 0 7px 10px -7px rgba(255, 255, 255, 0.2), 0 14px 20px -10px rgba(0, 0, 0, 0.5); }
+      .grad-cap__base::before { content: ""; position: absolute; left: 50%; top: 4px; width: 98px; height: 13px; transform: translateX(-50%); border-radius: 50%; background: linear-gradient(180deg, #3a619a, #1c3f74); box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.28); }
+      .grad-cap__base::after { content: ""; position: absolute; left: 50%; bottom: -4px; width: 80px; height: 16px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #0a1d3c 40%, #06122700 72%), radial-gradient(ellipse, rgba(0, 0, 0, 0.5), transparent 74%); }
+      .grad-cap__tassel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 0) translateZ(12px); }
+      .grad-cap__swing { transform-origin: top center; animation: tasselSwing 3s ease-in-out infinite; display: flex; flex-direction: column; align-items: center; }
+      .grad-cap__string { width: 3.5px; height: 78px; border-radius: 3px; background: linear-gradient(#f0cf73, #c8941f); }
+      .grad-cap__knot { width: 11px; height: 11px; border-radius: 50%; margin-top: -1px; background: radial-gradient(circle at 35% 30%, #f7da82, #c8941f); }
+      .grad-cap__fringe { width: 20px; height: 34px; margin-top: -1px; border-radius: 3px 3px 8px 8px; background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px), linear-gradient(180deg, #f0cf73 0%, #d8a52e 55%, #b9851a 100%); box-shadow: inset 0 -4px 5px rgba(0, 0, 0, 0.25), 0 3px 5px -2px rgba(0, 0, 0, 0.3); }
+      .grad-shadow { width: 150px; height: 24px; margin: 4px auto 0; border-radius: 50%; background: radial-gradient(ellipse, rgba(14, 32, 64, 0.32), transparent 70%); filter: blur(3px); opacity: 0; animation: shadowIn 0.8s ease 1.2s forwards, shadowPulse 4.6s 1.55s ease-in-out infinite; }
+      .intro__eyebrow { margin: 14px 0 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand-primary); opacity: 0; transform: translateY(10px); animation: introUp 0.65s ease 1.55s forwards; }
+      .intro__title { margin: 6px 0 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.4rem, 5vw, 1.9rem); letter-spacing: -0.01em; color: var(--text-primary); opacity: 0; transform: translateY(12px); animation: introUp 0.7s ease 1.68s forwards; }
+      .intro__welcome { margin: 12px 0 0; font-size: clamp(1rem, 3.6vw, 1.18rem); line-height: 1.4; color: var(--text-secondary); opacity: 0; transform: translateY(10px); }
+      .intro__welcome b { color: var(--brand-primary); font-weight: 700; }
+      .intro__welcome.is-on { animation: introUp 0.6s ease forwards; }
+      .intro__bar { width: 190px; max-width: 70vw; height: 4px; margin: 22px auto 0; border-radius: 4px; background: var(--border-default); overflow: hidden; opacity: 0; animation: introUp 0.5s ease 2.05s forwards; }
+      .intro__bar span { display: block; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--green-500), var(--blue-600)); animation: introBar 1.1s cubic-bezier(0.6, 0.1, 0.2, 1) 2.15s forwards; }
+      @keyframes capIn { 0% { opacity: 0; transform: translateY(-140px) rotateY(-200deg) scale(0.5); } 55% { opacity: 1; transform: translateY(10px) rotateY(0deg) scale(1.06); } 72% { transform: translateY(-6px) rotateY(8deg) scale(0.99); } 100% { opacity: 1; transform: translateY(0) rotateY(0) scale(1); } }
+      @keyframes capFloat { 0% { transform: translateY(0) rotateY(0deg); } 25% { transform: translateY(-8px) rotateY(22deg); } 50% { transform: translateY(-11px) rotateY(0deg); } 75% { transform: translateY(-8px) rotateY(-22deg); } 100% { transform: translateY(0) rotateY(0deg); } }
+      @keyframes tasselSwing { 0%, 100% { transform: rotate(9deg); } 50% { transform: rotate(-9deg); } }
+      @keyframes shadowIn { to { opacity: 1; } }
+      @keyframes shadowPulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(0.84); opacity: 0.55; } }
+      @keyframes introUp { to { opacity: 1; transform: translateY(0); } }
+      @keyframes introBar { to { width: 100%; } }
+      .val-shell.pending { opacity: 0; }
+      .val-shell.revealed { animation: revealUp 0.6s ease forwards; }
+      @keyframes revealUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) {
+        .grad-cap, .grad-cap__swing, .board__shine::before, .grad-shadow { animation: none !important; opacity: 1 !important; }
+        .intro__eyebrow, .intro__title, .intro__bar { animation: none !important; opacity: 1 !important; transform: none !important; }
+      }
     </style>
   </head>
   <body>
+    <!-- Splash de abertura (capelo) enquanto valida o certificado do QR -->
+    <div class="intro-splash" id="introSplash" aria-hidden="true">
+      <div class="intro">
+        <div class="grad-scene" aria-hidden="true">
+          <div class="grad-cap">
+            <div class="grad-cap__base"></div>
+            <div class="grad-cap__board">
+              <div class="board__face board__bottom"></div>
+              <div class="board__face board__edge board__edge--n"></div>
+              <div class="board__face board__edge board__edge--s"></div>
+              <div class="board__face board__edge board__edge--e"></div>
+              <div class="board__face board__edge board__edge--w"></div>
+              <div class="board__face board__top">
+                <div class="board__trim"></div>
+                <div class="board__shine"></div>
+              </div>
+              <span class="grad-cap__button"></span>
+            </div>
+            <div class="grad-cap__tassel">
+              <div class="grad-cap__swing">
+                <span class="grad-cap__string"></span>
+                <span class="grad-cap__knot"></span>
+                <span class="grad-cap__fringe"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grad-shadow"></div>
+        </div>
+        <p class="intro__eyebrow">Escola de Governo · Pedro Leopoldo</p>
+        <p class="intro__title">Validação de Certificado</p>
+        <p class="intro__welcome" id="introWelcome"></p>
+        <div class="intro__bar"><span></span></div>
+      </div>
+    </div>
+
     <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
       <i class="fas fa-sun icon-sun" aria-hidden="true"></i>
       <i class="fas fa-moon icon-moon" aria-hidden="true"></i>
@@ -327,7 +422,7 @@
           </form>
 
           <div class="back-site">
-            <a href="/"><i class="fas fa-arrow-left"></i> Ir para a Escola de Governo</a>
+            <a href="https://intranet.pedroleopoldo.mg.gov.br/egov/"><i class="fas fa-arrow-left"></i> Ir para a Escola de Governo</a>
           </div>
         </div>
       </main>
@@ -345,25 +440,72 @@
         return m ? decodeURIComponent(m[1]) : v;
       };
 
-      async function validar(codigo) {
-        if (!codigo) return;
-        show("stLoading");
+      // Consulta a API e devolve { valido, cert? }.
+      async function fetchValidacao(codigo) {
         try {
           const resp = await fetch(`/api/certificado?codigo=${encodeURIComponent(codigo)}`);
           const j = await resp.json();
-          if (j && j.ok && j.valido && j.cert) {
-            $("fNome").textContent = j.cert.nome || "-";
-            $("fCurso").textContent = j.cert.curso || "-";
-            const carga = String(j.cert.carga || "").trim();
-            $("fCarga").textContent = carga ? `${carga} hora(s)` : "-";
-            $("fData").textContent = j.cert.data || "-";
-            show("stOk");
-          } else {
-            show("stBad");
-          }
-        } catch (_) {
+          if (j && j.ok && j.valido && j.cert) return { valido: true, cert: j.cert };
+        } catch (_) {}
+        return { valido: false };
+      }
+
+      function mostrarResultado(r) {
+        if (r.valido && r.cert) {
+          $("fNome").textContent = r.cert.nome || "-";
+          $("fCurso").textContent = r.cert.curso || "-";
+          const carga = String(r.cert.carga || "").trim();
+          $("fCarga").textContent = carga ? `${carga} hora(s)` : "-";
+          $("fData").textContent = r.cert.data || "-";
+          show("stOk");
+        } else {
           show("stBad");
         }
+      }
+
+      // Validação manual (campo): loading simples + resultado, sem o splash.
+      async function validar(codigo) {
+        if (!codigo) return;
+        show("stLoading");
+        mostrarResultado(await fetchValidacao(codigo));
+      }
+
+      // ---- Splash do capelo (ao abrir via QR com ?c=token) ----
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const BASE_ANIM = reduceMotion ? 0 : 1850;
+      const WELCOME_HOLD = reduceMotion ? 0 : 1000;
+      const wait = (ms) => new Promise((r) => setTimeout(r, Math.max(0, ms)));
+
+      function mostrarBoasVindas(nome) {
+        const el = $("introWelcome");
+        if (!el) return;
+        const primeiro = String(nome || "").trim().split(/\s+/)[0];
+        if (primeiro) { el.innerHTML = "Seja bem-vindo(a), <b></b>!"; el.querySelector("b").textContent = primeiro; }
+        else el.textContent = "Certificado verificado.";
+        el.classList.add("is-on");
+      }
+      function hideSplash() {
+        const sp = $("introSplash");
+        if (!sp) return;
+        sp.classList.add("is-hiding");
+        setTimeout(() => sp.remove(), 650);
+      }
+      function revealShell() {
+        const sh = document.querySelector(".val-shell");
+        sh.classList.remove("pending");
+        sh.classList.add("revealed");
+      }
+      // Valida em paralelo ao capelo; ao terminar os dois, revela o resultado.
+      async function abrirComSplash(codigo) {
+        document.querySelector(".val-shell").classList.add("pending");
+        const validacao = fetchValidacao(codigo);
+        await wait(BASE_ANIM);
+        const r = await validacao;
+        mostrarResultado(r);
+        if (r.valido && r.cert) mostrarBoasVindas(r.cert.nome);
+        await wait(WELCOME_HOLD);
+        hideSplash();
+        revealShell();
       }
 
       $("codeForm").addEventListener("submit", (e) => {
@@ -375,7 +517,11 @@
       const inicial = getParam("c") || getParam("codigo");
       if (inicial) {
         $("codeInput").value = inicial;
-        validar(inicial);
+        abrirComSplash(inicial);
+      } else {
+        // Sem código (acesso direto): remove o splash e mostra o formulário.
+        const sp = $("introSplash");
+        if (sp) sp.remove();
       }
 
       // Theme toggle
