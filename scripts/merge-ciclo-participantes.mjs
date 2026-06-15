@@ -57,8 +57,23 @@ const rowsT = XLSX.utils.sheet_to_json(sheetT, { defval: "" });
 const wbS = XLSX.readFile(SOURCE, { cellDates: true });
 const rowsS = XLSX.utils.sheet_to_json(wbS.Sheets[wbS.SheetNames[0]], { defval: "" });
 
+// Tokens normalizados de um nome (sem acento/maiúsculas).
+const tokensNome = (s) => norm(s).split(" ").filter(Boolean);
+
+// Mesma pessoa com alta confiança: o nome mais curto está INTEIRAMENTE contido
+// no mais longo, ambos com >=2 tokens (nome + sobrenome). Cobre quem assinou com
+// uma forma mais curta/longa do nome (ex.: "Giovana Evangelista" x "Giovana
+// Evangelista Diniz"); "Maria" sozinho NÃO casa com qualquer Maria.
+function mesmoNome(a, b) {
+  if (a.length < 2 || b.length < 2) return false;
+  const [menor, maior] = a.length <= b.length ? [a, b] : [b, a];
+  const setMaior = new Set(maior);
+  return menor.every((t) => setMaior.has(t));
+}
+
 const emailsT = new Set(rowsT.map((r) => norm(r.Email)).filter(Boolean));
 const nomesT = new Set(rowsT.map((r) => norm(r.Nome)).filter(Boolean));
+const tokensT = [...nomesT].map(tokensNome).filter((t) => t.length);
 
 const novos = [];
 const naoMapeadas = new Set();
@@ -66,11 +81,16 @@ for (const r of rowsS) {
   const full = `${String(r.Nome || "").trim()} ${String(r.Sobrenome || "").trim()}`.trim();
   const email = norm(r.Email);
   const nome = norm(full);
-  const jaExiste = (email && emailsT.has(email)) || (nome && nomesT.has(nome));
+  const tks = tokensNome(full);
+  const jaExiste =
+    (email && emailsT.has(email)) ||
+    (nome && nomesT.has(nome)) ||
+    (tks.length >= 2 && tokensT.some((t) => mesmoNome(tks, t)));
   if (jaExiste) continue;
   // evita duplicar dentro da própria origem
   if (email) emailsT.add(email);
   if (nome) nomesT.add(nome);
+  if (tks.length) tokensT.push(tks);
 
   const sec = secretariaCanonica(r.Secretaria);
   if (sec === r.Secretaria && !/^Secretaria|^Gabinete|^Controladoria|^Chefia/.test(sec)) naoMapeadas.add(r.Secretaria);

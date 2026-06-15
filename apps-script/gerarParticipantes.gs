@@ -13,6 +13,11 @@
  *   - Check-in = "Sim"  se a pessoa da Inscrição aparece na Presentes casando
  *     por E-MAIL **ou** por NOME (sem acento/maiúsculas). Basta um dos dois bater
  *     (cobre quem se inscreveu com e-mail diferente, ou erro de digitação).
+ *   - O NOME casa por igualdade exata OU, como fallback, quando o nome mais
+ *     curto está INTEIRAMENTE contido no mais longo (>=2 tokens em comum) — cobre
+ *     quem assinou o check-in com e-mail diferente E uma forma mais curta/longa do
+ *     nome (ex.: inscrição "Giovana Evangelista Diniz" x check-in "Giovana
+ *     Evangelista").
  *   - Check-in = "Não"  caso contrário.
  *   - "Data de check-in" = carimbo (mais antigo) da pessoa na planilha Presentes.
  *
@@ -92,7 +97,9 @@ function _processar(forcar) {
     // Eventos que JÁ têm um participantes.xlsx COM DADOS (reais) não são regerados
     // — só geramos para os que estão sem arquivo ou com o placeholder vazio (o
     // arquivo só-cabeçalho criado para o evento aparecer na Visão Geral).
-    if (existente && _temDados(existente)) { pulados++; continue; }
+    // Em modo `forcar` (gerarParticipantesAgora), regera mesmo os que já têm dados
+    // — necessário para reprocessar a presença com regras de casamento novas.
+    if (!forcar && existente && _temDados(existente)) { pulados++; continue; }
 
     const pres = _acharArquivo(folder, _ehPresente);
     if (!pres) { Logger.log('— %s: sem planilha "Presentes" (pulado).', rel); pulados++; continue; }
@@ -188,12 +195,13 @@ function _gerarUm(folder, inscFile, presFile, existente) {
 }
 
 // Constrói índices de presença a partir da planilha Presentes.
-// Retorna { byEmail: {normEmail: Date}, byName: {normNome: Date} } com o carimbo
-// mais antigo de cada pessoa.
+// Retorna { byEmail: {normEmail: Date}, byName: {normNome: Date}, nameEntries:
+// [{tokens, carimbo}] } com o carimbo mais antigo de cada pessoa. `nameEntries`
+// alimenta o fallback de nome aproximado (_mesmoNome).
 function _indicePresenca(presFile) {
   const dados = _lerValores(presFile);
-  const byEmail = {}, byName = {};
-  if (!dados.values.length) return { byEmail: byEmail, byName: byName };
+  const byEmail = {}, byName = {}, nameEntries = [];
+  if (!dados.values.length) return { byEmail: byEmail, byName: byName, nameEntries: nameEntries };
 
   const headers = dados.values[0].map(function (h) { return String(h).trim(); });
   const idx = _detectarColunas(headers);
@@ -206,9 +214,13 @@ function _indicePresenca(presFile) {
     const carimbo = idx.data >= 0 ? _comoData(row[idx.data]) : null;
 
     if (email) _guardarMaisAntigo(byEmail, _norm(email), carimbo);
-    if (nome)  _guardarMaisAntigo(byName,  _norm(nome),  carimbo);
+    if (nome) {
+      _guardarMaisAntigo(byName, _norm(nome), carimbo);
+      const tokens = _tokensNome(nome);
+      if (tokens.length) nameEntries.push({ tokens: tokens, carimbo: carimbo });
+    }
   }
-  return { byEmail: byEmail, byName: byName };
+  return { byEmail: byEmail, byName: byName, nameEntries: nameEntries };
 }
 
 // Presença de uma pessoa: bate por e-mail OU por nome. Devolve o carimbo (Date)
@@ -222,7 +234,38 @@ function _checkinDe(presIdx, nome, email) {
   if (kn && Object.prototype.hasOwnProperty.call(presIdx.byName, kn)) {
     return presIdx.byName[kn] || _SENTINELA_PRESENTE;
   }
+  // Fallback: nome aproximado (e-mail diferente + forma mais curta/longa do nome).
+  if (kn) {
+    const tks = _tokensNome(nome);
+    const entries = presIdx.nameEntries || [];
+    for (let i = 0; i < entries.length; i++) {
+      if (_mesmoNome(tks, entries[i].tokens)) {
+        return entries[i].carimbo || _SENTINELA_PRESENTE;
+      }
+    }
+  }
   return null;
+}
+
+// Tokens normalizados (sem acento/maiúsculas) de um nome.
+function _tokensNome(nome) {
+  return _norm(nome).split(' ').filter(function (t) { return !!t; });
+}
+
+// Diz se dois nomes são, com alta confiança, a MESMA pessoa: o conjunto de tokens
+// do nome mais curto está INTEIRAMENTE contido no mais longo, e ambos têm pelo
+// menos 2 tokens (nome + sobrenome). Assim "Giovana Evangelista" casa com
+// "Giovana Evangelista Diniz", mas "Maria" sozinho não casa com qualquer Maria.
+function _mesmoNome(a, b) {
+  if (!a || !b || a.length < 2 || b.length < 2) return false;
+  const menor = a.length <= b.length ? a : b;
+  const maior = a.length <= b.length ? b : a;
+  const setMaior = {};
+  for (let i = 0; i < maior.length; i++) setMaior[maior[i]] = true;
+  for (let j = 0; j < menor.length; j++) {
+    if (!setMaior[menor[j]]) return false; // menor precisa estar TODO contido
+  }
+  return true;
 }
 
 // Presente mas sem carimbo legível (Presentes sem coluna de data/hora). Marca
