@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Validar Certificado · Escola de Governo</title>
+    <meta name="description" content="Confira a autenticidade de um certificado emitido pela Escola de Governo de Pedro Leopoldo." />
+    <link rel="icon" href="assets/img/favicon/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon/favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#3063ad" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Escola de Governo" />
+    <link rel="stylesheet" href="assets/css/base/_variables.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("egovpl-theme");
+          var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        font-family: var(--font-sans);
+        background: var(--surface-bg);
+        color: var(--text-primary);
+        overflow: hidden;
+      }
+
+      /* ===== Layout split (igual ao login) ===== */
+      .val-shell {
+        display: grid;
+        grid-template-columns: 1.05fr 1fr;
+        min-height: 100vh;
+        position: relative;
+      }
+      @media (max-width: 960px) {
+        .val-shell { grid-template-columns: 1fr; }
+        .val-shell .brand-panel { display: none; }
+        body { overflow: auto; }
+        .val-shell { min-height: 100dvh; }
+        .form-mobile-brand { display: flex !important; }
+      }
+
+      /* ===== Painel de marca ===== */
+      .brand-panel {
+        position: relative;
+        background:
+          radial-gradient(ellipse at top right, rgba(77, 173, 51, 0.25), transparent 55%),
+          radial-gradient(ellipse at bottom left, rgba(48, 99, 173, 0.4), transparent 60%),
+          linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 45%, var(--blue-800) 100%);
+        color: #fff;
+        padding: clamp(40px, 5vw, 64px);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+      }
+      .brand-panel::before, .brand-panel::after {
+        content: ""; position: absolute; border-radius: 50%; pointer-events: none;
+      }
+      .brand-panel::before {
+        width: 520px; height: 520px; right: -180px; top: -180px;
+        background: radial-gradient(circle, rgba(77, 173, 51, 0.18), transparent 70%);
+      }
+      .brand-panel::after {
+        width: 380px; height: 380px; left: -120px; bottom: -120px;
+        background: radial-gradient(circle, rgba(110, 155, 214, 0.20), transparent 70%);
+      }
+      .brand-panel__grid {
+        position: absolute; inset: 0;
+        background-image:
+          linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+        background-size: 56px 56px;
+        mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+        -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+      }
+      .brand-panel__top, .brand-panel__mid, .brand-panel__bot { position: relative; z-index: 1; }
+
+      .brand-mark { display: flex; align-items: center; gap: 14px; font-family: var(--font-display); }
+      .brand-mark__logo {
+        width: 52px; height: 52px; border-radius: 14px;
+        background: linear-gradient(135deg, var(--green-500), var(--green-700));
+        display: grid; place-items: center; font-size: 1.4rem; font-weight: 800;
+        box-shadow: 0 12px 32px -8px rgba(77, 173, 51, 0.55), inset 0 1px 0 rgba(255,255,255,0.25);
+        letter-spacing: -0.02em;
+      }
+      .brand-mark__text { line-height: 1.15; }
+      .brand-mark__text strong { display: block; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+      .brand-mark__text span {
+        display: block; font-family: var(--font-sans); font-size: 0.78rem;
+        color: rgba(255,255,255,0.7); letter-spacing: 0.04em; text-transform: uppercase;
+      }
+
+      .brand-headline {
+        font-family: var(--font-display); font-weight: 600;
+        font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1.1; letter-spacing: -0.02em;
+        margin: 0 0 18px; max-width: 20ch;
+      }
+      .brand-headline em {
+        font-style: normal;
+        background: linear-gradient(90deg, var(--green-300), var(--green-500));
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .brand-sub { font-size: 1.02rem; line-height: 1.6; color: rgba(255,255,255,0.78); max-width: 44ch; margin: 0; }
+
+      .brand-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; max-width: 460px; }
+      .brand-stat {
+        padding: 16px 18px; border-radius: 14px;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); backdrop-filter: blur(8px);
+      }
+      .brand-stat strong {
+        display: block; font-family: var(--font-display); font-size: 1.4rem; font-weight: 700;
+        color: #fff; line-height: 1; margin-bottom: 8px;
+      }
+      .brand-stat span { font-size: 0.72rem; color: rgba(255,255,255,0.62); letter-spacing: 0.04em; text-transform: uppercase; }
+
+      .brand-footer {
+        font-size: 0.82rem; color: rgba(255,255,255,0.55);
+        display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+      }
+      .brand-footer i { margin-right: 6px; opacity: 0.8; }
+
+      /* ===== Painel de conteúdo ===== */
+      .form-panel { display: grid; place-items: center; padding: clamp(28px, 4vw, 56px); position: relative; overflow-y: auto; }
+      .form-wrap { width: 100%; max-width: 440px; }
+
+      .form-mobile-brand { display: none; align-items: center; gap: 12px; margin-bottom: 28px; }
+      .form-mobile-brand__logo {
+        width: 44px; height: 44px; border-radius: 12px;
+        background: linear-gradient(135deg, var(--blue-700), var(--blue-600));
+        display: grid; place-items: center; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 1.2rem;
+      }
+      .form-mobile-brand strong { font-family: var(--font-display); font-size: 1.05rem; }
+      .form-mobile-brand span { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; }
+
+      .form-title { font-family: var(--font-display); font-weight: 600; font-size: 1.75rem; letter-spacing: -0.015em; color: var(--text-primary); margin: 0 0 8px; }
+      .form-subtitle { margin: 0 0 28px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+      /* ===== Estados do resultado ===== */
+      .state { display: none; }
+      .state.is-on { display: block; animation: fade .35s ease; }
+      @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+      .badge {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; margin-bottom: 22px;
+      }
+      .badge--ok { background: rgba(77, 173, 51, 0.13); color: var(--green-700, #2f8f3e); }
+      .badge--bad { background: rgba(192, 57, 43, 0.10); color: var(--red, #c0392b); }
+      .badge i { font-size: 1.05rem; }
+
+      .cfields { display: grid; gap: 14px; }
+      .cfield { display: grid; gap: 3px; padding-bottom: 13px; border-bottom: 1px dashed var(--border-default); }
+      .cfield:last-child { border-bottom: 0; padding-bottom: 0; }
+      .cfield span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
+      .cfield b { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+      .cfield--name b { font-family: var(--font-display); font-size: 1.4rem; line-height: 1.2; }
+      .welcome { margin: 0 0 2px; color: var(--text-muted); font-size: 0.95rem; font-weight: 600; }
+      .welcome-name { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; line-height: 1.2; color: var(--text-primary); margin: 0 0 22px; }
+
+      .vspinner {
+        width: 40px; height: 40px; border-radius: 50%;
+        border: 4px solid var(--border-default); border-top-color: var(--brand-primary);
+        animation: spin .8s linear infinite; margin: 12px auto;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .muted-hint { color: var(--text-muted); font-size: 0.9rem; line-height: 1.55; margin: 0; }
+
+      .divider { margin: 26px 0 18px; border: 0; border-top: 1px solid var(--border-default); }
+
+      /* ===== Form manual ===== */
+      .field label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+      .input-wrap { position: relative; }
+      .input-wrap > i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-faint); font-size: 0.95rem; pointer-events: none; transition: color .18s ease; }
+      input[type="text"] {
+        width: 100%; height: 50px; padding: 0 16px 0 46px;
+        border: 1.5px solid var(--border-default); border-radius: 12px;
+        font-size: 0.95rem; font-family: inherit; background: var(--surface-card); color: var(--text-primary);
+        transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+      }
+      input::placeholder { color: var(--text-faint); }
+      input:hover { border-color: var(--gray-300); }
+      input:focus { outline: none; border-color: var(--brand-primary); box-shadow: 0 0 0 4px rgba(48, 99, 173, 0.14); }
+      .input-wrap:focus-within > i { color: var(--brand-primary); }
+      [data-theme="dark"] input[type="text"] { background: var(--surface-muted); }
+
+      form { display: grid; gap: 16px; }
+      button[type="submit"] {
+        height: 52px; background: linear-gradient(135deg, var(--blue-700), var(--blue-600)); color: #fff;
+        border: 0; border-radius: 12px; font-weight: 600; font-family: inherit; font-size: 0.98rem; letter-spacing: 0.01em;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        box-shadow: 0 10px 24px -10px rgba(48, 99, 173, 0.55);
+        transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+      }
+      button[type="submit"]:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(48, 99, 173, 0.65); filter: brightness(1.05); }
+      button[type="submit"]:active { transform: translateY(0); }
+
+      .back-site { margin-top: 22px; text-align: center; font-size: 0.88rem; }
+      .back-site a { color: var(--text-muted); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: color .18s ease; }
+      .back-site a:hover { color: var(--brand-primary); }
+
+      .theme-toggle {
+        position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 12px;
+        background: var(--surface-card); border: 1px solid var(--border-default); color: var(--text-secondary);
+        cursor: pointer; display: grid; place-items: center; box-shadow: var(--shadow-sm); z-index: 10;
+        transition: color .18s ease, transform .18s ease;
+      }
+      .theme-toggle:hover { color: var(--brand-primary); transform: rotate(15deg); }
+      [data-theme="dark"] .icon-sun, [data-theme="light"] .icon-moon { display: none; }
+    </style>
+  </head>
+  <body>
+    <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
+      <i class="fas fa-sun icon-sun" aria-hidden="true"></i>
+      <i class="fas fa-moon icon-moon" aria-hidden="true"></i>
+    </button>
+
+    <div class="val-shell">
+      <!-- Painel de marca -->
+      <aside class="brand-panel" aria-hidden="true">
+        <div class="brand-panel__grid"></div>
+
+        <div class="brand-panel__top">
+          <div class="brand-mark">
+            <div class="brand-mark__logo">E</div>
+            <div class="brand-mark__text">
+              <strong>Escola de Governo</strong>
+              <span>Pedro Leopoldo · MG</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="brand-panel__mid">
+          <h2 class="brand-headline">
+            Autenticidade que se pode <em>verificar</em>.
+          </h2>
+          <p class="brand-sub">
+            Esta página confirma se um certificado foi realmente emitido pela
+            Escola de Governo de Pedro Leopoldo, com assinatura digital à prova
+            de adulteração.
+          </p>
+
+          <div class="brand-stats">
+            <div class="brand-stat"><strong><i class="fas fa-shield-halved"></i></strong><span>Assinatura digital</span></div>
+            <div class="brand-stat"><strong><i class="fas fa-fingerprint"></i></strong><span>Anti-fraude</span></div>
+            <div class="brand-stat"><strong><i class="fas fa-bolt"></i></strong><span>Na hora</span></div>
+          </div>
+        </div>
+
+        <div class="brand-panel__bot brand-footer">
+          <span><i class="fas fa-certificate"></i> Verificação pública de certificados</span>
+          <span>v1.0</span>
+        </div>
+      </aside>
+
+      <!-- Painel de conteúdo -->
+      <main class="form-panel">
+        <div class="form-wrap">
+          <div class="form-mobile-brand">
+            <div class="form-mobile-brand__logo">E</div>
+            <div>
+              <strong>Escola de Governo</strong>
+              <span>Pedro Leopoldo · MG</span>
+            </div>
+          </div>
+
+          <h1 class="form-title">Validação de Certificado</h1>
+          <p class="form-subtitle">Confirme a autenticidade de um certificado emitido pela Escola de Governo.</p>
+
+          <!-- Carregando -->
+          <div class="state" id="stLoading">
+            <div class="vspinner"></div>
+            <p class="muted-hint" style="text-align:center">Verificando o código…</p>
+          </div>
+
+          <!-- Válido -->
+          <div class="state" id="stOk">
+            <div class="badge badge--ok"><i class="fas fa-circle-check"></i> Certificado autêntico</div>
+            <p class="welcome">Bem vindo(a),</p>
+            <h2 class="welcome-name" id="fNome">-</h2>
+            <div class="cfields">
+              <div class="cfield"><span>Curso / Capacitação</span><b id="fCurso">-</b></div>
+              <div class="cfield"><span>Carga horária</span><b id="fCarga">-</b></div>
+              <div class="cfield"><span>Realização</span><b id="fData">-</b></div>
+            </div>
+          </div>
+
+          <!-- Inválido -->
+          <div class="state" id="stBad">
+            <div class="badge badge--bad"><i class="fas fa-circle-xmark"></i> Não foi possível validar</div>
+            <p class="muted-hint">
+              O código informado não corresponde a um certificado emitido por esta
+              Escola de Governo, ou foi adulterado. Confira se o código está completo.
+              Em caso de dúvida, procure a Diretoria de Gestão de Pessoas.
+            </p>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- Entrada manual -->
+          <form id="codeForm" autocomplete="off" novalidate>
+            <div class="field">
+              <label for="codeInput">Validar pelo link do certificado</label>
+              <div class="input-wrap">
+                <i class="fas fa-link" aria-hidden="true"></i>
+                <input type="text" id="codeInput" placeholder="Cole o link que está no certificado ou no QR" />
+              </div>
+            </div>
+            <button type="submit"><i class="fas fa-magnifying-glass"></i> Validar</button>
+          </form>
+
+          <div class="back-site">
+            <a href="/"><i class="fas fa-arrow-left"></i> Ir para a Escola de Governo</a>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const show = (id) => ["stLoading", "stOk", "stBad"].forEach((s) => $(s).classList.toggle("is-on", s === id));
+      const getParam = (name) => new URLSearchParams(location.search).get(name);
+      // Aceita tanto o link completo (extrai o c=) quanto um código colado direto.
+      const extrairCodigo = (v) => {
+        v = String(v || "").trim();
+        if (!v) return "";
+        const m = v.match(/[?&]c=([^&\s]+)/);
+        return m ? decodeURIComponent(m[1]) : v;
+      };
+
+      async function validar(codigo) {
+        if (!codigo) return;
+        show("stLoading");
+        try {
+          const resp = await fetch(`/api/certificado?codigo=${encodeURIComponent(codigo)}`);
+          const j = await resp.json();
+          if (j && j.ok && j.valido && j.cert) {
+            $("fNome").textContent = j.cert.nome || "-";
+            $("fCurso").textContent = j.cert.curso || "-";
+            const carga = String(j.cert.carga || "").trim();
+            $("fCarga").textContent = carga ? `${carga} hora(s)` : "-";
+            $("fData").textContent = j.cert.data || "-";
+            show("stOk");
+          } else {
+            show("stBad");
+          }
+        } catch (_) {
+          show("stBad");
+        }
+      }
+
+      $("codeForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        validar(extrairCodigo($("codeInput").value));
+      });
+
+      // Lê ?c= (usado no QR) ou ?codigo= da URL.
+      const inicial = getParam("c") || getParam("codigo");
+      if (inicial) {
+        $("codeInput").value = inicial;
+        validar(inicial);
+      }
+
+      // Theme toggle
+      $("themeToggle").addEventListener("click", () => {
+        const cur = document.documentElement.getAttribute("data-theme") || "light";
+        const next = cur === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("egovpl-theme", next); } catch (_) {}
+      });
+
+      // PWA: registra o service worker
+      if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+        window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => {}); });
+      }
+    </script>
+  </body>
+</html>

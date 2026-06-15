@@ -47,12 +47,7 @@ import {
   turmaLabel
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
-import {
-  chaveServidor,
-  agregarServidores,
-  classificarVinculo,
-  taxaRetencao
-} from "./servidores.js"
+import { chaveServidor, agregarServidores, classificarVinculo, taxaRetencao } from "./servidores.js"
 import { initPalestrantes, renderLista as renderPalestrantesLista, listarConvites } from "./palestrantes.js"
 import { initNotificacoes, refreshNotificacoes } from "./notificacoes.js"
 import { renderInscricoes, renderEncontros, renderPresenca, eventosComInscricaoAberta } from "./lembretes.js"
@@ -127,32 +122,32 @@ const _clonePos = p => JSON.parse(JSON.stringify(p))
 // >>> EDITE AQUI as coordenadas padrao dos modelos 3, 4 e 5 (uma alteracao vale para os tres) <<<
 // Modelos 3 e 4 compartilham as mesmas coordenadas; Modelo 5 e independente.
 const _sharedPos34 = {
-  nome:  { x: 0.54,                y: 0.34 },
-  curso: { x: 0.5272700357660243,  y: 0.3856354675895818 },
-  dia:   { x: 0.4979363214822313,  y: 0.42712126362578806 },
-  mes:   { x: 0.6479741791378472,  y: 0.42729721333734916 },
-  ano:   { x: 0.8353478642086691,  y: 0.42600634241979934 },
-  carga: { x: 0.37565280289548464, y: 0.47071931574988013 },
+  nome: { x: 0.54, y: 0.34 },
+  curso: { x: 0.5272700357660243, y: 0.3856354675895818 },
+  dia: { x: 0.4979363214822313, y: 0.42712126362578806 },
+  mes: { x: 0.6479741791378472, y: 0.42729721333734916 },
+  ano: { x: 0.8353478642086691, y: 0.42600634241979934 },
+  carga: { x: 0.37565280289548464, y: 0.47071931574988013 }
 }
 const _defaultPos5 = {
-  nome:  { x: 0.54,                y: 0.34 },
-  curso: { x: 0.4684721285621191,  y: 0.38492365818360647 },
-  dia:   { x: 0.4459021454308956,  y: 0.4316981909541735 },
-  mes:   { x: 0.5930339846944069,  y: 0.4285587736287913 },
-  ano:   { x: 0.778617745248111,   y: 0.4286175667908371 },
-  carga: { x: 0.3220714047502807,  y: 0.4720777756471362 },
+  nome: { x: 0.54, y: 0.34 },
+  curso: { x: 0.4684721285621191, y: 0.38492365818360647 },
+  dia: { x: 0.4459021454308956, y: 0.4316981909541735 },
+  mes: { x: 0.5930339846944069, y: 0.4285587736287913 },
+  ano: { x: 0.778617745248111, y: 0.4286175667908371 },
+  carga: { x: 0.3220714047502807, y: 0.4720777756471362 }
 }
 
 // >>> EDITE AQUI os defaults dos modelos 1 e 2 (cada um e independente) <<<
 const _defaultPos1 = {
-  nome:  { x: 0.5456536189424821, y: 0.3422426758031584 },
+  nome: { x: 0.5456536189424821, y: 0.3422426758031584 },
   curso: { x: 0.4048601791151441, y: 0.38428588946490144 },
-  dia:   { x: 0.371, y: 0.431 },
-  mes:   { x: 0.55,  y: 0.431 },
-  ano:   { x: 0.715, y: 0.431 },
-  carga: { x: 0.26,  y: 0.475 },
-};
-const _defaultPos2 = _clonePos(CERT_POS_DEFAULT);
+  dia: { x: 0.371, y: 0.431 },
+  mes: { x: 0.55, y: 0.431 },
+  ano: { x: 0.715, y: 0.431 },
+  carga: { x: 0.26, y: 0.475 }
+}
+const _defaultPos2 = _clonePos(CERT_POS_DEFAULT)
 
 // Modelo 6 - específico para cursos com 2 datas. Tem POSIÇÃO PRÓPRIA para
 // dia2 (diferente de dia), então cada dia aparece em um lugar distinto na
@@ -161,12 +156,12 @@ const _defaultPos2 = _clonePos(CERT_POS_DEFAULT);
 // Coordenadas iniciais derivadas de um ajuste manual prévio do modelo 6
 // (refeito pelo usuário via arrasta-e-solta e exportado do localStorage).
 const _defaultPos6 = {
-  nome:  { x: 0.5329486307975467,  y: 0.3428822877224162  },
-  curso: { x: 0.4053636787545341,  y: 0.38252836385487154 },
-  dia:   { x: 0.3584795910867044,  y: 0.4272828888296249  },
-  dia2:  { x: 0.4411716953437269,  y: 0.43021866521000807 },
-  mes:   { x: 0.6222967175035481,  y: 0.4283340015035414  },
-  ano:   { x: 0.7792784289227523,  y: 0.4272828888296249  },
+  nome: { x: 0.5329486307975467, y: 0.3428822877224162 },
+  curso: { x: 0.4053636787545341, y: 0.38252836385487154 },
+  dia: { x: 0.3584795910867044, y: 0.4272828888296249 },
+  dia2: { x: 0.4411716953437269, y: 0.43021866521000807 },
+  mes: { x: 0.6222967175035481, y: 0.4283340015035414 },
+  ano: { x: 0.7792784289227523, y: 0.4272828888296249 },
   carga: { x: 0.32287374625640497, y: 0.46964218392418033 }
 }
 
@@ -179,6 +174,10 @@ const CERT_POS_BY_TEMPLATE = {
   "modelo-6": _defaultPos6
 }
 
+// Posição (fração 0-1) do CENTRO do código de validação impresso no rodapé.
+// Mesma posição para todos os modelos (ajustada via /cert-preview).
+const CERT_CODE_POS = { x: 0.742, y: 0.986 }
+
 // Escalas manuais de fonte por campo e por modelo. 1.0 = tamanho base.
 // Campos suportados: nome, curso, dia, mes, ano, carga. Persistido no
 // localStorage. Modelos 3 e 4 compartilham (edição em um aplica nos dois).
@@ -190,7 +189,9 @@ const CERT_TEMPLATE_IDS = ["modelo-1", "modelo-2", "modelo-3", "modelo-4", "mode
 const CERT_FIELD_SCALES = {}
 CERT_SCALE_FIELDS.forEach(f => {
   CERT_FIELD_SCALES[f] = {}
-  CERT_TEMPLATE_IDS.forEach(t => { CERT_FIELD_SCALES[f][t] = CERT_SCALE_DEFAULT })
+  CERT_TEMPLATE_IDS.forEach(t => {
+    CERT_FIELD_SCALES[f][t] = CERT_SCALE_DEFAULT
+  })
 })
 function getFieldScale(tplId, field) {
   const v = CERT_FIELD_SCALES[field] && CERT_FIELD_SCALES[field][tplId]
@@ -215,7 +216,7 @@ function formatCertData(f) {
   if (!f) return ""
   const d1 = f.certDia
   const d2 = f.certDia2
-  const dias = d1 && d2 ? `${d1} e ${d2}` : (d1 || "")
+  const dias = d1 && d2 ? `${d1} e ${d2}` : d1 || ""
   const partes = [dias, f.certMes, f.certAno].filter(Boolean)
   return partes.join(" / ")
 }
@@ -281,80 +282,84 @@ function getCertPos(templateId) {
 }
 
 const VIEW_TITLES = {
-  dashboard:     ["Visão Geral",                "Resumo executivo, gráficos consolidados e insights estratégicos."],
-  eventos:       ["Eventos",                    "Detalhamento operacional e demográfico de cada evento."],
-  comparar:      ["Comparar Eventos",           "Compare dois ou mais eventos lado a lado."],
-  participantes: ["Participantes",              "Busca e filtros sobre todos os inscritos."],
-  servidores:    ["Servidores em Destaque",     "Lista completa de servidores ordenada por participação."],
-  faltas:        ["Faltas Recorrentes",         "Quem inscreve e falta com frequência."],
-  cargos:        ["Cargos",                     "Distribuição da capacitação por cargo."],
-  secretarias:   ["Secretarias",                "Ranking e participação por pasta."],
-  relatorios:    ["Relatórios",                 "Filtros, KPIs do recorte e exportação."],
-  autoreport:    ["Auto-Relatório de Satisfação","Geração automática do PDF no padrão institucional."],
-  certificados:  ["Certificados",               "Emita certificados em lote a partir do check-in."],
-  qrcode:        ["QR Code",                    "Gere QR Codes em alta resolução para divulgação."]
+  dashboard: ["Visão Geral", "Resumo executivo, gráficos consolidados e insights estratégicos."],
+  eventos: ["Eventos", "Detalhamento operacional e demográfico de cada evento."],
+  comparar: ["Comparar Eventos", "Compare dois ou mais eventos lado a lado."],
+  participantes: ["Participantes", "Busca e filtros sobre todos os inscritos."],
+  servidores: ["Servidores em Destaque", "Lista completa de servidores ordenada por participação."],
+  faltas: ["Faltas Recorrentes", "Quem inscreve e falta com frequência."],
+  cargos: ["Cargos", "Distribuição da capacitação por cargo."],
+  secretarias: ["Secretarias", "Ranking e participação por pasta."],
+  relatorios: ["Relatórios", "Filtros, KPIs do recorte e exportação."],
+  autoreport: ["Auto-Relatório de Satisfação", "Geração automática do PDF no padrão institucional."],
+  certificados: ["Certificados", "Emita certificados em lote a partir do check-in."],
+  qrcode: ["QR Code", "Gere QR Codes em alta resolução para divulgação."]
 }
 
 // Grupos da sidebar. `title` e `subtitle` alimentam o topbar - ficam fixos
 // enquanto o usuário navega entre as sub-abas (padrão consistente como em
 // Visão Geral).
 const SIDEBAR_GROUPS = [
-  { id: "visao",
+  {
+    id: "visao",
     label: "Visão Geral",
     title: "Visão Geral",
     subtitle: "Resumo executivo, gráficos consolidados e insights estratégicos.",
     defaultView: "dashboard",
     tabs: null /* dashboard já tem tabs internas (Resumo/Gráficos/Insights) */
   },
-  { id: "eventos",
+  {
+    id: "eventos",
     label: "Eventos",
     title: "Eventos",
     subtitle: "Análise individual, comparação e detalhamento operacional.",
     defaultView: "eventos",
     tabs: [
-      { view: "eventos",  label: "Análise individual", icon: "fa-magnifying-glass-chart" },
-      { view: "comparar", label: "Comparar",           icon: "fa-scale-balanced" }
+      { view: "eventos", label: "Análise individual", icon: "fa-magnifying-glass-chart" },
+      { view: "comparar", label: "Comparar", icon: "fa-scale-balanced" }
     ]
   },
-  { id: "pessoas",
+  {
+    id: "pessoas",
     label: "Secretarias",
     title: "Secretarias",
     subtitle: "Demografia da capacitação por secretaria, servidor, cargo e perfil.",
     defaultView: "secretarias",
     tabs: [
-      { view: "secretarias",   label: "Secretarias",         icon: "fa-building-columns" },
-      { view: "servidores",    label: "Servidores destaque", icon: "fa-medal" },
-      { view: "faltas",        label: "Faltas recorrentes",  icon: "fa-user-xmark" },
-      { view: "participantes", label: "Participantes",       icon: "fa-users" }
+      { view: "secretarias", label: "Secretarias", icon: "fa-building-columns" },
+      { view: "servidores", label: "Servidores destaque", icon: "fa-medal" },
+      { view: "faltas", label: "Faltas recorrentes", icon: "fa-user-xmark" },
+      { view: "participantes", label: "Participantes", icon: "fa-users" }
     ]
   },
-  { id: "palestrantes",
+  {
+    id: "palestrantes",
     label: "Palestrantes",
     title: "Palestrantes",
     subtitle: "Cadastro de palestrantes: eixo temático, curso ministrado, mini bio e foto.",
     defaultView: "palestrantes-lista",
-    tabs: [
-      { view: "palestrantes-lista",    label: "Galeria",   icon: "fa-users-rectangle" }
-    ]
+    tabs: [{ view: "palestrantes-lista", label: "Galeria", icon: "fa-users-rectangle" }]
   },
-  { id: "docs",
+  {
+    id: "docs",
     label: "Relatórios",
     title: "Relatórios",
     subtitle: "Documentação consolidada e geração automática de relatórios.",
     defaultView: "relatorios",
     tabs: [
-      { view: "relatorios", label: "Relatórios",     icon: "fa-file-lines" },
+      { view: "relatorios", label: "Relatórios", icon: "fa-file-lines" },
       { view: "autoreport", label: "Auto-Relatório", icon: "fa-file-pdf" }
     ]
   },
-  { id: "ops",
+  {
+    id: "ops",
     label: "Certificados e QR Code",
     title: "Certificados e QR Code",
     subtitle: "Emissão em lote a partir do check-in e ferramentas auxiliares.",
     defaultView: "certificados",
     tabs: [
       { view: "certificados", label: "Certificados", icon: "fa-award" },
-      { view: "qrcode",       label: "QR Code",      icon: "fa-qrcode" }
+      { view: "qrcode", label: "QR Code", icon: "fa-qrcode" }
     ]
   }
 ]
@@ -362,7 +367,10 @@ const SIDEBAR_GROUPS = [
 const VIEW_TO_GROUP = (() => {
   const out = {}
   for (const g of SIDEBAR_GROUPS) {
-    if (g.tabs) g.tabs.forEach(t => { out[t.view] = g.id })
+    if (g.tabs)
+      g.tabs.forEach(t => {
+        out[t.view] = g.id
+      })
     else out[g.defaultView] = g.id
   }
   return out
@@ -379,7 +387,10 @@ function hideSplash() {
   const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
   // Site (navegador/desktop): a abertura é exclusiva do app instalado — o
   // splash nem pintou (classe no-splash no <html>); só remove do DOM.
-  if (!standalone) { el.remove(); return }
+  if (!standalone) {
+    el.remove()
+    return
+  }
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
   // App instalado: a cena completa (capelo assenta → brilho → título →
   // instituição → saudação → barra, ~3.75s) roda em TODA abertura, com um
@@ -397,7 +408,9 @@ function hideSplash() {
   // Saudação no splash (nome da sessão), no mesmo espírito do convite.
   const welcome = document.getElementById("splashWelcome")
   if (welcome) {
-    const primeiro = String(userData.name || "").trim().split(/\s+/)[0]
+    const primeiro = String(userData.name || "")
+      .trim()
+      .split(/\s+/)[0]
     welcome.innerHTML = primeiro ? `Bem-vindo de volta, <b>${escapeHtml(primeiro)}</b>` : "Preparando seu painel…"
     setTimeout(() => welcome.classList.add("is-on"), 2100)
   }
@@ -419,12 +432,15 @@ function hideSplash() {
   initRipple()
   initTilt()
   initPullToRefresh({
-    onRefresh: async () => { await reloadData({ force: true }); refreshNotificacoes() },
+    onRefresh: async () => {
+      await reloadData({ force: true })
+      refreshNotificacoes()
+    }
   })
   initSwipeTabs({
     getTabs: () => _swipeTabsCtx()?.tabs || [],
     getCurrent: () => _swipeTabsCtx()?.cur,
-    goTo: (t) => _swipeTabsCtx()?.go(t),
+    goTo: t => _swipeTabsCtx()?.go(t)
   })
 
   // Service worker (PWA): cache do shell + dados offline.
@@ -457,7 +473,7 @@ function _swipeTabsCtx() {
       return {
         tabs: btns.map(b => b.dataset.tab),
         cur: nav.querySelector(".view-tab.is-active")?.dataset.tab,
-        go: id => nav.querySelector(`[data-tab="${id}"]`)?.click(),
+        go: id => nav.querySelector(`[data-tab="${id}"]`)?.click()
       }
     }
   }
@@ -469,10 +485,12 @@ async function reloadData(opts = {}) {
   // Loader (capelo) sobre o conteúdo enquanto os dados não chegam. Com atraso
   // de revelação: carregamento rápido (estático local) não chega a exibir.
   // Na atualização forçada (botão), mostra logo (revealMs baixo).
-  const hideLoader = showCover(document.getElementById("mainContent"),
+  const hideLoader = showCover(
+    document.getElementById("mainContent"),
     opts.force ? "Atualizando informações…" : "Carregando informações…",
-    opts.force ? 0 : 200)
-  const applyData = (raw) => {
+    opts.force ? 0 : 200
+  )
+  const applyData = raw => {
     state.dataRaw = raw
     // Junta inscrições abertas (sintéticos), remove duplicatas de estático antigo,
     // infere grupo pela pasta (turmas/módulos) e consolida em cards de curso.
@@ -481,7 +499,7 @@ async function reloadData(opts = {}) {
     renderAll()
   }
   try {
-    const raw = await loadData((live) => applyData(live), opts)
+    const raw = await loadData(live => applyData(live), opts)
     applyData(raw)
     hideLoader()
     hideSplash()
@@ -535,14 +553,14 @@ function _baseComInscricoes(rawEventos) {
   // inscritos ao vivo do formulário de inscrição, se houver — assim o card não
   // mostra 0 enquanto as inscrições estão abertas (a planilha de presença só é
   // preenchida quando o evento ocorre).
-  const reaisEnriquecidos = reais.map((ev) => {
+  const reaisEnriquecidos = reais.map(ev => {
     if ((ev.totalInscritos || 0) > 0 || (ev.totalPresentes || 0) > 0) return ev
     const s = inscPorPasta.get(pastaDeEvento(ev))
     const n = (s && Number(s.totalInscritos)) || 0
     return n > 0 ? { ...ev, totalInscritos: n, totalAprovados: n } : ev
   })
   const pastasReais = new Set(reais.map(pastaDeEvento).filter(Boolean))
-  const sinteticos = (state.inscricoesAbertas || []).filter((s) => {
+  const sinteticos = (state.inscricoesAbertas || []).filter(s => {
     const f = pastaDeEvento(s)
     return f && !pastasReais.has(f)
   })
@@ -555,8 +573,9 @@ function _baseComInscricoes(rawEventos) {
 // como `inscricaoAberta` para exibir as abas Inscrições/Encontros/Presença
 // (em vez das abas de análise), preservando título/data do eventos-meta.json.
 function marcarAbertasPorData(eventos) {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
-  return (eventos || []).map((ev) => {
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  return (eventos || []).map(ev => {
     if (ev.inscricaoAberta) return ev
     const d = ev.date ? new Date(ev.date + "T00:00:00") : null
     const futuro = d && !isNaN(d) && d >= hoje
@@ -573,12 +592,18 @@ function marcarAbertasPorData(eventos) {
 async function augmentInscricoesAbertas() {
   try {
     const cached = JSON.parse(sessionStorage.getItem("egov_insc_abertas") || "null")
-    if (Array.isArray(cached) && cached.length) { state.inscricoesAbertas = cached; _reaplicarComInscricoes(); refreshNotificacoes() }
+    if (Array.isArray(cached) && cached.length) {
+      state.inscricoesAbertas = cached
+      _reaplicarComInscricoes()
+      refreshNotificacoes()
+    }
   } catch (_) {}
   try {
     const novos = await eventosComInscricaoAberta((state.dataRaw && state.dataRaw.eventos) || [])
     state.inscricoesAbertas = novos || []
-    try { sessionStorage.setItem("egov_insc_abertas", JSON.stringify(novos || [])) } catch (_) {}
+    try {
+      sessionStorage.setItem("egov_insc_abertas", JSON.stringify(novos || []))
+    } catch (_) {}
     _reaplicarComInscricoes()
     refreshNotificacoes()
   } catch (_) {}
@@ -679,7 +704,9 @@ function setupSidebar() {
   })
 
   // Voltar ao desktop garante gaveta fechada e scroll liberado.
-  const onMqChange = () => { if (!mqMobile.matches) closeDrawer() }
+  const onMqChange = () => {
+    if (!mqMobile.matches) closeDrawer()
+  }
   if (mqMobile.addEventListener) mqMobile.addEventListener("change", onMqChange)
   else if (mqMobile.addListener) mqMobile.addListener(onMqChange)
 
@@ -689,7 +716,7 @@ function setupSidebar() {
     sidebar: shell.querySelector(".sidebar"),
     isOpen: () => shell.classList.contains("is-mobile-open"),
     open: openDrawer,
-    close: closeDrawer,
+    close: closeDrawer
   })
 
   try {
@@ -707,10 +734,15 @@ function setupUserChrome() {
   document.getElementById("avatarLetter").textContent = (userData.email || "?")[0].toUpperCase()
   document.getElementById("logoutBtn").addEventListener("click", () => {
     sessionStorage.removeItem("egov_admin_session")
-    try { localStorage.removeItem("egov_admin_session") } catch (_) {}
+    try {
+      localStorage.removeItem("egov_admin_session")
+    } catch (_) {}
     window.location.replace("index.html")
   })
-  document.getElementById("refreshBtn").addEventListener("click", () => { reloadData({ force: true }); refreshNotificacoes() })
+  document.getElementById("refreshBtn").addEventListener("click", () => {
+    reloadData({ force: true })
+    refreshNotificacoes()
+  })
 }
 
 function setupThemeToggle() {
@@ -771,12 +803,16 @@ function renderGroupTabs(groupId) {
   }
   host.innerHTML = `
     <nav class="group-tabs" role="tablist" aria-label="${escapeHtml(grp.label)}">
-      ${grp.tabs.map(t => `
+      ${grp.tabs
+        .map(
+          t => `
         <button type="button" class="group-tab ${state.view === t.view ? "is-active" : ""}" data-group-tab="${t.view}" role="tab" aria-selected="${state.view === t.view}">
           ${t.icon ? `<i class="fas ${t.icon}"></i>` : ""}
           <span>${escapeHtml(t.label)}</span>
         </button>
-      `).join("")}
+      `
+        )
+        .join("")}
     </nav>
   `
   host.querySelectorAll("[data-group-tab]").forEach(btn => {
@@ -907,19 +943,25 @@ function renderDashboard() {
   }
   // "Ativo" = inscrição aberta OU ainda acontecendo (data de início já passou e
   // a data-fim — último encontro — ainda não passou). Esses vêm no topo da lista.
-  const hojeMs = (() => { const h = new Date(); h.setHours(0, 0, 0, 0); return h.getTime() })()
+  const hojeMs = (() => {
+    const h = new Date()
+    h.setHours(0, 0, 0, 0)
+    return h.getTime()
+  })()
   const eventoAtivo = e => {
-    const cands = (e._turmas && e._turmas.length) ? e._turmas : [e]
+    const cands = e._turmas && e._turmas.length ? e._turmas : [e]
     return cands.some(c => {
       if (c.inscricaoAberta) return true
-      const ini = parseDateSafe(c.date), fim = parseDateSafe(c.dateFim)
+      const ini = parseDateSafe(c.date),
+        fim = parseDateSafe(c.dateFim)
       return ini && fim && ini <= hojeMs && hojeMs <= fim
     })
   }
   const gruposEventos = agruparEventos(eventos)
     .slice()
     .sort((a, b) => {
-      const aA = a.eventos.some(eventoAtivo), bA = b.eventos.some(eventoAtivo)
+      const aA = a.eventos.some(eventoAtivo),
+        bA = b.eventos.some(eventoAtivo)
       if (aA !== bA) return aA ? -1 : 1 // ativos (abertos/acontecendo) primeiro
       const da = Math.max(0, ...a.eventos.map(e => parseDateSafe(e.date)))
       const db = Math.max(0, ...b.eventos.map(e => parseDateSafe(e.date)))
@@ -1061,27 +1103,36 @@ function renderViewEventos() {
       }
     }
   }
-  if (!topEv) { topEv = eventos[0]; state.selectedEventId = topEv.id; state.selectedTurmaId = null }
+  if (!topEv) {
+    topEv = eventos[0]
+    state.selectedEventId = topEv.id
+    state.selectedTurmaId = null
+  }
 
   // Turmas do evento (subpastas + divisão por coluna + inscrição aberta).
   const turmasList = turmasExpandidas(topEv)
   const turmas = turmasList.length > 1 ? turmasList : null
-  const turmaSel = turmas ? (turmas.find(t => t.id === state.selectedTurmaId) || null) : null
+  const turmaSel = turmas ? turmas.find(t => t.id === state.selectedTurmaId) || null : null
   const alvo = turmaSel || topEv
 
   // Dropdown: UMA opção por evento.
-  const optionsHtml = eventos.map(e =>
-    `<option value="${e.id}" ${e.id === state.selectedEventId ? "selected" : ""}>${escapeHtml(e.title)}${e.date ? " (" + formatDateBR(e.date) + ")" : ""}</option>`
-  ).join("")
+  const optionsHtml = eventos
+    .map(
+      e =>
+        `<option value="${e.id}" ${e.id === state.selectedEventId ? "selected" : ""}>${escapeHtml(e.title)}${e.date ? " (" + formatDateBR(e.date) + ")" : ""}</option>`
+    )
+    .join("")
 
   // Seletor de turma (só para eventos com turmas): Consolidado + cada turma.
   const pill = (id, label, ativo, open) =>
     `<button type="button" class="turma-pill${ativo ? " is-active" : ""}${open ? " is-open" : ""}" data-turma="${escapeHtml(id)}">${escapeHtml(label)}</button>`
-  const subSelector = turmas ? `
+  const subSelector = turmas
+    ? `
     <div class="turma-switch" role="tablist" aria-label="Selecionar turma">
       ${pill("", "Consolidado", !turmaSel, false)}
       ${turmas.map(t => pill(t.id, turmaLabel(t), !!(turmaSel && turmaSel.id === t.id), !!t.inscricaoAberta)).join("")}
-    </div>` : ""
+    </div>`
+    : ""
 
   const view = document.getElementById("view-eventos")
   view.innerHTML = `
@@ -1101,10 +1152,12 @@ function renderViewEventos() {
     state.selectedTurmaId = null // volta ao consolidado ao trocar de evento
     renderViewEventos()
   })
-  view.querySelectorAll(".turma-pill").forEach(b => b.addEventListener("click", () => {
-    state.selectedTurmaId = b.dataset.turma || null
-    renderViewEventos()
-  }))
+  view.querySelectorAll(".turma-pill").forEach(b =>
+    b.addEventListener("click", () => {
+      state.selectedTurmaId = b.dataset.turma || null
+      renderViewEventos()
+    })
+  )
   if (alvo) renderEventBlock(alvo)
 }
 
@@ -1133,12 +1186,11 @@ function renderEventBlock(ev) {
     participantes: { id: "participantes", label: "Participantes", icon: "fa-users", badge: (ev.participantes || []).length },
     inscricoes: { id: "inscricoes", label: "Inscrições", icon: "fa-user-plus" },
     encontros: { id: "encontros", label: "Encontros & Lembretes", icon: "fa-bell" },
-    presenca: { id: "presenca", label: "Presença", icon: "fa-clipboard-check" },
+    presenca: { id: "presenca", label: "Presença", icon: "fa-clipboard-check" }
   }
 
   // Cabeçalho: turma aberta tem um banner próprio (sem KPIs de presença).
-  const turmaTxt = ev.grupo && ev.grupo.turma != null ? `Turma ${ev.grupo.turma}`
-    : ev.grupo && ev.grupo.modulo != null ? `Módulo ${ev.grupo.modulo}` : ""
+  const turmaTxt = ev.grupo && ev.grupo.turma != null ? `Turma ${ev.grupo.turma}` : ev.grupo && ev.grupo.modulo != null ? `Módulo ${ev.grupo.modulo}` : ""
   const headerHtml = aberta
     ? `<section class="event-detail event-detail--aberta" data-tone="scheduled">
         <header class="event-detail__head">
@@ -1155,16 +1207,25 @@ function renderEventBlock(ev) {
 
   block.innerHTML = `
     ${headerHtml}
-    ${renderTabsNav(tabsKey, tabIds.map(id => tabDefs[id]))}
+    ${renderTabsNav(
+      tabsKey,
+      tabIds.map(id => tabDefs[id])
+    )}
 
-    ${tabIds.includes("resumo") ? `<div class="view-tabs__panel" data-tab-panel="resumo" ${active === "resumo" ? "" : "hidden"}>
+    ${
+      tabIds.includes("resumo")
+        ? `<div class="view-tabs__panel" data-tab-panel="resumo" ${active === "resumo" ? "" : "hidden"}>
       <div class="card">
         <div class="card__header"><div><h3>Observações automáticas</h3><p>Insights deste evento.</p></div></div>
         <div class="insights-grid" style="grid-template-columns:1fr;" id="evInsights"></div>
       </div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
 
-    ${tabIds.includes("distribuicoes") ? `<div class="view-tabs__panel" data-tab-panel="distribuicoes" ${active === "distribuicoes" ? "" : "hidden"}>
+    ${
+      tabIds.includes("distribuicoes")
+        ? `<div class="view-tabs__panel" data-tab-panel="distribuicoes" ${active === "distribuicoes" ? "" : "hidden"}>
       <!-- Linha 1: Top Participação + Top Evasão deste evento -->
       <div class="grid-2">
         <div class="card">
@@ -1194,12 +1255,16 @@ function renderEventBlock(ev) {
         <div class="card__header"><div><h3>Curva de inscrições</h3><p>Inscrições por dia até o evento.</p></div></div>
         <div class="chart-wrap lg"><canvas id="chartEvTimeline"></canvas></div>
       </div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
 
-    ${tabIds.includes("satisfacao") ? `<div class="view-tabs__panel" data-tab-panel="satisfacao" ${active === "satisfacao" ? "" : "hidden"}>
+    ${
+      tabIds.includes("satisfacao")
+        ? `<div class="view-tabs__panel" data-tab-panel="satisfacao" ${active === "satisfacao" ? "" : "hidden"}>
       <div class="card sat-summary">
         <div class="sat-summary__score">
-          <span class="sat-summary__value">${temSat ? ev.satisfacao.mediaGeral.toFixed(2) : "—"}</span>
+          <span class="sat-summary__value">${temSat ? ev.satisfacao.mediaGeral.toFixed(2) : "-"}</span>
           <span class="sat-summary__max">de 5,0</span>
         </div>
         <div class="sat-summary__info">
@@ -1217,9 +1282,13 @@ function renderEventBlock(ev) {
           <div class="chart-wrap lg"><canvas id="chartSatDist"></canvas></div>
         </div>
       </div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
 
-    ${tabIds.includes("participantes") ? `<div class="view-tabs__panel" data-tab-panel="participantes" ${active === "participantes" ? "" : "hidden"}>
+    ${
+      tabIds.includes("participantes")
+        ? `<div class="view-tabs__panel" data-tab-panel="participantes" ${active === "participantes" ? "" : "hidden"}>
       <div class="grid-2 participantes-grid">
         <div class="table-wrap">
           <div class="table-wrap__head">
@@ -1237,19 +1306,33 @@ function renderEventBlock(ev) {
           <div id="evFaltouTable"></div>
         </div>
       </div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
 
-    ${tabIds.includes("inscricoes") ? `<div class="view-tabs__panel" data-tab-panel="inscricoes" ${active === "inscricoes" ? "" : "hidden"}>
+    ${
+      tabIds.includes("inscricoes")
+        ? `<div class="view-tabs__panel" data-tab-panel="inscricoes" ${active === "inscricoes" ? "" : "hidden"}>
       <div id="lembInscPanel"></div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
 
-    ${tabIds.includes("encontros") ? `<div class="view-tabs__panel" data-tab-panel="encontros" ${active === "encontros" ? "" : "hidden"}>
+    ${
+      tabIds.includes("encontros")
+        ? `<div class="view-tabs__panel" data-tab-panel="encontros" ${active === "encontros" ? "" : "hidden"}>
       <div id="lembEncPanel"></div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
 
-    ${tabIds.includes("presenca") ? `<div class="view-tabs__panel" data-tab-panel="presenca" ${active === "presenca" ? "" : "hidden"}>
+    ${
+      tabIds.includes("presenca")
+        ? `<div class="view-tabs__panel" data-tab-panel="presenca" ${active === "presenca" ? "" : "hidden"}>
       <div id="lembPresPanel"></div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
   `
 
   wireTabs(tabsKey, () => renderEventBlock(ev))
@@ -1287,7 +1370,6 @@ function renderEventBlock(ev) {
     barSatisfacaoDist("chartSatDist", ev.satisfacao.indicadores)
   }
 }
-
 
 // ================ PARTICIPANTES ================
 function renderViewParticipantes() {
@@ -1410,7 +1492,9 @@ function computeFaltasRecorrentes(data, months) {
     .sort((a, b) => b.faltas - a.faltas || b.taxaAbsenteismo - a.taxaAbsenteismo)
 }
 
-function renderViewFaltas() { renderFaltasRecorrentes() }
+function renderViewFaltas() {
+  renderFaltasRecorrentes()
+}
 
 function renderFaltasRecorrentes() {
   const months = state.faltasWindow || 3
@@ -1579,9 +1663,7 @@ function renderInsightsTab() {
     .filter(s => s.totalPresentes >= 1)
     .sort((a, b) => b.totalPresentes - a.totalPresentes || (a.nome || "").localeCompare(b.nome || "", "pt-BR"))
   const maxPresentes = ordenados.length ? ordenados[0].totalPresentes : 0
-  const topServidores = ordenados
-    .filter(s => s.totalPresentes === maxPresentes)
-    .map(s => ({ ...s, rank: 1 }))
+  const topServidores = ordenados.filter(s => s.totalPresentes === maxPresentes).map(s => ({ ...s, rank: 1 }))
 
   host.innerHTML = `
     <div class="insights-board">
@@ -1614,16 +1696,18 @@ function renderInsightsTab() {
           <div class="funil">
             ${[
               { label: "Vagas oferecidas", value: tCap, base: tCap, color: "var(--blue-700,#1B2A4E)" },
-              { label: "Inscritos",        value: tIns, base: tCap, color: "var(--blue-500,#3B5BA5)" },
-              { label: "Presentes",        value: tPres, base: tCap, color: "var(--ind-good-light,#6E9BD6)" }
-            ].map(f => {
-              const pct = f.base ? Math.min(100, (f.value / f.base) * 100) : 0
-              return `
+              { label: "Inscritos", value: tIns, base: tCap, color: "var(--blue-500,#3B5BA5)" },
+              { label: "Presentes", value: tPres, base: tCap, color: "var(--ind-good-light,#6E9BD6)" }
+            ]
+              .map(f => {
+                const pct = f.base ? Math.min(100, (f.value / f.base) * 100) : 0
+                return `
                 <div class="funil__row">
                   <div class="funil__label"><span>${f.label}</span><b>${f.value}</b></div>
                   <div class="funil__bar"><span style="width:${pct.toFixed(1)}%; background:${f.color};"></span></div>
                 </div>`
-            }).join("")}
+              })
+              .join("")}
           </div>
           <div class="funil__caption">
             ${tIns ? `Taxa de presença geral: <b>${((tPres / tIns) * 100).toFixed(1).replace(".", ",")}%</b>` : "Sem inscrições no recorte."} ·
@@ -1646,16 +1730,12 @@ function renderInsightsTab() {
   renderPodioInsightsPaginated("insTopHost", topServidores, "insights-top", 5)
 }
 
-
 // Linha da tabela de Top servidores - mesmo design da "Lista completa de
 // servidores" (Servidores destaque): # + medalha, Servidor e Secretaria.
 // Empates compartilham a medalha (dense rank: 1º ouro, 2º prata, 3º bronze).
 function renderTopServidorRow(s, pos) {
   const r = s.rank
-  const medalCls = r === 1 ? "row-medal-gold"
-    : r === 2 ? "row-medal-silver"
-    : r === 3 ? "row-medal-bronze"
-    : ""
+  const medalCls = r === 1 ? "row-medal-gold" : r === 2 ? "row-medal-silver" : r === 3 ? "row-medal-bronze" : ""
   const medalIcon = r != null && r <= 3 ? `<i class="fas fa-medal" style="margin-right:6px;"></i>` : ""
   return `
     <tr class="${medalCls}">
@@ -1699,7 +1779,9 @@ function renderPodioInsightsPaginated(containerId, lista, scopeId, pageSize = 5)
           <tbody>${slice.map((s, i) => renderTopServidorRow(s, offset + i + 1)).join("")}</tbody>
         </table>
       </div>
-      ${lista.length > pageSize ? `
+      ${
+        lista.length > pageSize
+          ? `
         <div class="pager" data-pager-scope="${scopeId}">
           <span class="pager__info"><b>${from}–${to}</b> de <b>${lista.length}</b></span>
           <div class="pager__controls">
@@ -1707,7 +1789,9 @@ function renderPodioInsightsPaginated(containerId, lista, scopeId, pageSize = 5)
             <span class="pager__current"><b>${page}</b> / ${totalPages}</span>
             <button type="button" class="pager__btn ${page === totalPages ? "is-disabled" : ""}" data-pager-scope="${scopeId}" data-pager-page="${page + 1}" ${page === totalPages ? "disabled" : ""} aria-label="Próxima página"><i class="fas fa-chevron-right"></i></button>
           </div>
-        </div>` : ""}
+        </div>`
+          : ""
+      }
     `
     container.querySelectorAll(`[data-pager-scope="${scopeId}"][data-pager-page]`).forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1871,9 +1955,7 @@ const REL_DESC = {
 // classificação por não terem cargo informado (transparência).
 function relVinculoDesc(st) {
   const base = REL_DESC.vinculoPresentes
-  return st && st.vinculoSemInfo
-    ? `${base} Observação: ${st.vinculoSemInfo} presente(s) sem cargo informado não foram classificados.`
-    : base
+  return st && st.vinculoSemInfo ? `${base} Observação: ${st.vinculoSemInfo} presente(s) sem cargo informado não foram classificados.` : base
 }
 
 // Estatísticas de um conjunto de participantes (um evento ou o geral).
@@ -1881,8 +1963,13 @@ function statsFromParts(parts) {
   const presentes = parts.filter(p => p.presente)
   const tally = (keyFn, src) => {
     const m = {}
-    src.forEach(p => { const k = keyFn(p); if (k) m[k] = (m[k] || 0) + 1 })
-    return Object.entries(m).map(([nome, qtd]) => ({ nome, qtd })).sort((a, b) => b.qtd - a.qtd)
+    src.forEach(p => {
+      const k = keyFn(p)
+      if (k) m[k] = (m[k] || 0) + 1
+    })
+    return Object.entries(m)
+      .map(([nome, qtd]) => ({ nome, qtd }))
+      .sort((a, b) => b.qtd - a.qtd)
   }
   return {
     inscritos: parts.length,
@@ -1924,7 +2011,13 @@ function buildReportModel() {
   }
 
   return {
-    f, sec, evs, singleEvent, eventBlocks, geral, blocks,
+    f,
+    sec,
+    evs,
+    singleEvent,
+    eventBlocks,
+    geral,
+    blocks,
     eventoNome: singleEvent ? (evs[0] ? evs[0].title : "-") : "Todos os eventos",
     secretariaNome: sec || "Todas as secretarias",
     extraido: dataExtracao(),
@@ -1934,75 +2027,164 @@ function buildReportModel() {
 
 // ---- Construtores de gráfico (imagem PNG) reutilizados nos exports ----
 async function chartInscPresEvento(evs, sec) {
-  const labels = evs.map(e => e.title.length > 26 ? e.title.slice(0, 24) + "…" : e.title)
+  const labels = evs.map(e => (e.title.length > 26 ? e.title.slice(0, 24) + "…" : e.title))
   const insc = evs.map(ev => (ev.participantes || []).filter(p => !sec || p.secretaria === sec).length)
   const pres = evs.map(ev => (ev.participantes || []).filter(p => (!sec || p.secretaria === sec) && p.presente).length)
-  return await renderChartToImage("bar", {
-    data: { labels, datasets: [
-      { label: "Inscritos", data: insc, backgroundColor: MODELO_CHART.navy, borderWidth: 0 },
-      { label: "Presentes", data: pres, backgroundColor: MODELO_CHART.blueMid, borderWidth: 0 }
-    ] },
-    options: {
-      scales: {
-        y: { beginAtZero: true, title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid } },
-        x: { ticks: { font: { family: MODELO_CHART.font, size: 11 }, color: MODELO_CHART.text, maxRotation: 30, minRotation: 30 }, grid: { display: false } }
+  return await renderChartToImage(
+    "bar",
+    {
+      data: {
+        labels,
+        datasets: [
+          { label: "Inscritos", data: insc, backgroundColor: MODELO_CHART.navy, borderWidth: 0 },
+          { label: "Presentes", data: pres, backgroundColor: MODELO_CHART.blueMid, borderWidth: 0 }
+        ]
       },
-      plugins: {
-        legend: { position: "top", labels: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text } },
-        title: { display: true, text: "Inscritos x Presentes por Evento", font: { size: 16, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 12 } },
-        datalabels: { display: false }
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+            grid: { color: MODELO_CHART.grid }
+          },
+          x: { ticks: { font: { family: MODELO_CHART.font, size: 11 }, color: MODELO_CHART.text, maxRotation: 30, minRotation: 30 }, grid: { display: false } }
+        },
+        plugins: {
+          legend: { position: "top", labels: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text } },
+          title: {
+            display: true,
+            text: "Inscritos x Presentes por Evento",
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 12 }
+          },
+          datalabels: { display: false }
+        }
       }
-    }
-  }, 1100, 520)
+    },
+    1100,
+    520
+  )
 }
 
 async function chartDonutPresenca(pres, aus, titulo) {
-  return await renderChartToImage("doughnut", {
-    data: { labels: ["Presentes", "Ausentes"], datasets: [{ data: [pres, aus], backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueLighter], borderWidth: 2, borderColor: "#fff" }] },
-    options: {
-      plugins: {
-        legend: { position: "bottom", labels: { font: { family: MODELO_CHART.font, size: 13 }, color: MODELO_CHART.text } },
-        title: { display: true, text: titulo, font: { size: 16, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 12 } },
-        datalabels: { color: "#fff", font: { weight: "bold", size: 14, family: MODELO_CHART.font }, formatter: (v, ctx) => { const t = ctx.dataset.data.reduce((a, b) => a + b, 0); return t ? `${v}\n${((v / t) * 100).toFixed(1)}%` : v } }
+  return await renderChartToImage(
+    "doughnut",
+    {
+      data: {
+        labels: ["Presentes", "Ausentes"],
+        datasets: [{ data: [pres, aus], backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueLighter], borderWidth: 2, borderColor: "#fff" }]
+      },
+      options: {
+        plugins: {
+          legend: { position: "bottom", labels: { font: { family: MODELO_CHART.font, size: 13 }, color: MODELO_CHART.text } },
+          title: {
+            display: true,
+            text: titulo,
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 12 }
+          },
+          datalabels: {
+            color: "#fff",
+            font: { weight: "bold", size: 14, family: MODELO_CHART.font },
+            formatter: (v, ctx) => {
+              const t = ctx.dataset.data.reduce((a, b) => a + b, 0)
+              return t ? `${v}\n${((v / t) * 100).toFixed(1)}%` : v
+            }
+          }
+        }
       }
-    }
-  }, 700, 520)
+    },
+    700,
+    520
+  )
 }
 
 async function chartBarSecretarias(entries, titulo, eixo) {
   const t = (entries || []).slice(0, 10)
   if (!t.length) return null
-  return await renderChartToImage("bar", {
-    data: { labels: t.map(r => shortenOrg(r.nome, 32)), datasets: [{ data: t.map(r => r.qtd), backgroundColor: modeloGradedColors(t.map(r => r.qtd)), borderWidth: 0, barPercentage: 0.75, categoryPercentage: 0.8 }] },
-    options: {
-      indexAxis: "y",
-      scales: {
-        x: { beginAtZero: true, title: { display: true, text: eixo, font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid } },
-        y: { ticks: { font: { family: MODELO_CHART.font, size: 11 }, color: MODELO_CHART.text }, grid: { display: false } }
+  return await renderChartToImage(
+    "bar",
+    {
+      data: {
+        labels: t.map(r => shortenOrg(r.nome, 32)),
+        datasets: [
+          { data: t.map(r => r.qtd), backgroundColor: modeloGradedColors(t.map(r => r.qtd)), borderWidth: 0, barPercentage: 0.75, categoryPercentage: 0.8 }
+        ]
       },
-      plugins: {
-        legend: { display: false },
-        title: { display: true, text: titulo, font: { size: 16, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 12 } },
-        datalabels: { anchor: "end", align: "end", offset: 6, color: MODELO_CHART.navy, font: { weight: "bold", size: 12, family: MODELO_CHART.font }, formatter: v => v }
+      options: {
+        indexAxis: "y",
+        scales: {
+          x: {
+            beginAtZero: true,
+            title: { display: true, text: eixo, font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+            grid: { color: MODELO_CHART.grid }
+          },
+          y: { ticks: { font: { family: MODELO_CHART.font, size: 11 }, color: MODELO_CHART.text }, grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          title: {
+            display: true,
+            text: titulo,
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 12 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "end",
+            offset: 6,
+            color: MODELO_CHART.navy,
+            font: { weight: "bold", size: 12, family: MODELO_CHART.font },
+            formatter: v => v
+          }
+        }
       }
-    }
-  }, 1100, Math.max(360, 100 + t.length * 36))
+    },
+    1100,
+    Math.max(360, 100 + t.length * 36)
+  )
 }
 
 async function chartVinculo(entries, titulo) {
   const vinc = entries || []
   if (!vinc.length) return null
-  const cor = { "Comissionado": MODELO_CHART.navy, "Efetivo": MODELO_CHART.blueMid }
-  return await renderChartToImage("doughnut", {
-    data: { labels: vinc.map(v => v.nome), datasets: [{ data: vinc.map(v => v.qtd), backgroundColor: vinc.map(v => cor[v.nome] || MODELO_CHART.blueLight), borderWidth: 2, borderColor: "#fff" }] },
-    options: {
-      plugins: {
-        legend: { position: "bottom", labels: { font: { family: MODELO_CHART.font, size: 13 }, color: MODELO_CHART.text } },
-        title: { display: true, text: titulo, font: { size: 16, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 12 } },
-        datalabels: { color: "#fff", font: { weight: "bold", size: 13, family: MODELO_CHART.font }, formatter: (v, ctx) => { const tt = ctx.dataset.data.reduce((a, b) => a + b, 0); return tt ? `${v}\n${((v / tt) * 100).toFixed(0)}%` : v } }
+  const cor = { Comissionado: MODELO_CHART.navy, Efetivo: MODELO_CHART.blueMid }
+  return await renderChartToImage(
+    "doughnut",
+    {
+      data: {
+        labels: vinc.map(v => v.nome),
+        datasets: [{ data: vinc.map(v => v.qtd), backgroundColor: vinc.map(v => cor[v.nome] || MODELO_CHART.blueLight), borderWidth: 2, borderColor: "#fff" }]
+      },
+      options: {
+        plugins: {
+          legend: { position: "bottom", labels: { font: { family: MODELO_CHART.font, size: 13 }, color: MODELO_CHART.text } },
+          title: {
+            display: true,
+            text: titulo,
+            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 12 }
+          },
+          datalabels: {
+            color: "#fff",
+            font: { weight: "bold", size: 13, family: MODELO_CHART.font },
+            formatter: (v, ctx) => {
+              const tt = ctx.dataset.data.reduce((a, b) => a + b, 0)
+              return tt ? `${v}\n${((v / tt) * 100).toFixed(0)}%` : v
+            }
+          }
+        }
       }
-    }
-  }, 700, 520)
+    },
+    700,
+    520
+  )
 }
 
 // Lista ordenada de figuras (gráficos) de um bloco, conforme o filtro.
@@ -2019,20 +2201,35 @@ async function buildBlockFigures(block, sec) {
   if (!sec) {
     if (st.rankingInscricoes.length > 1) {
       const img = await chartBarSecretarias(st.rankingInscricoes, "Top Secretarias por Inscrições", "Inscrições")
-      if (img) figs.push({ titulo: "Top Secretarias por Inscrições", img, w: 1100, h: Math.max(360, 100 + Math.min(st.rankingInscricoes.length, 10) * 36), descricao: REL_DESC.secInscritos })
+      if (img)
+        figs.push({
+          titulo: "Top Secretarias por Inscrições",
+          img,
+          w: 1100,
+          h: Math.max(360, 100 + Math.min(st.rankingInscricoes.length, 10) * 36),
+          descricao: REL_DESC.secInscritos
+        })
     }
     if (st.secPresentes.length > 1) {
       const img = await chartBarSecretarias(st.secPresentes, "Secretarias com Mais Presentes", "Presentes")
-      if (img) figs.push({ titulo: "Secretarias com Mais Presentes", img, w: 1100, h: Math.max(360, 100 + Math.min(st.secPresentes.length, 10) * 36), descricao: REL_DESC.secPresentes })
+      if (img)
+        figs.push({
+          titulo: "Secretarias com Mais Presentes",
+          img,
+          w: 1100,
+          h: Math.max(360, 100 + Math.min(st.secPresentes.length, 10) * 36),
+          descricao: REL_DESC.secPresentes
+        })
     }
   }
   return figs
 }
 
-
 // Texto da introdução (ABNT), adaptado ao recorte selecionado.
 function reportIntro(model) {
-  const p = ["Este relatório apresenta os indicadores de participação dos eventos de capacitação da Escola de Governo de Pedro Leopoldo, elaborado a partir dos registros de inscrição e check-in."]
+  const p = [
+    "Este relatório apresenta os indicadores de participação dos eventos de capacitação da Escola de Governo de Pedro Leopoldo, elaborado a partir dos registros de inscrição e check-in."
+  ]
   if (model.singleEvent) p.push(`O recorte refere-se ao evento "${model.eventoNome}".`)
   else p.push("Os dados são apresentados individualmente por evento e, ao final, de forma consolidada (visão geral).")
   if (model.sec) p.push(`As informações estão restritas à secretaria "${model.sec}".`)
@@ -2051,8 +2248,16 @@ function blockTables(b, sec) {
   const st = b.stats
   const out = []
   if (!sec) {
-    out.push({ titulo: "Secretarias por inscrições", header: ["#", "Secretaria", "Inscrições"], data: st.rankingInscricoes.map((r, j) => [j + 1, r.nome, r.qtd]) })
-    out.push({ titulo: "Secretarias com mais presentes", header: ["#", "Secretaria", "Presentes"], data: st.secPresentes.map((r, j) => [j + 1, r.nome, r.qtd]) })
+    out.push({
+      titulo: "Secretarias por inscrições",
+      header: ["#", "Secretaria", "Inscrições"],
+      data: st.rankingInscricoes.map((r, j) => [j + 1, r.nome, r.qtd])
+    })
+    out.push({
+      titulo: "Secretarias com mais presentes",
+      header: ["#", "Secretaria", "Presentes"],
+      data: st.secPresentes.map((r, j) => [j + 1, r.nome, r.qtd])
+    })
   }
   return out
 }
@@ -2070,10 +2275,16 @@ function exportCsv() {
   const add = (...r) => r.forEach(x => rows.push(x))
 
   // ---- Capa ----
-  add([HR], ["ESCOLA DE GOVERNO DE PEDRO LEOPOLDO"], ["PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO"],
-    ["RELATÓRIO DE EVENTOS E PARTICIPAÇÃO"], [HR],
+  add(
+    [HR],
+    ["ESCOLA DE GOVERNO DE PEDRO LEOPOLDO"],
+    ["PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO"],
+    ["RELATÓRIO DE EVENTOS E PARTICIPAÇÃO"],
+    [HR],
     [`Recorte - Evento: ${model.eventoNome} | Secretaria: ${model.secretariaNome}`],
-    [`Dados extraídos em: ${model.extraido}`], [""])
+    [`Dados extraídos em: ${model.extraido}`],
+    [""]
+  )
 
   // ---- Sumário ----
   const refNum = blocks.length + 2
@@ -2090,7 +2301,10 @@ function exportCsv() {
     const st = b.stats
     add([hr], [`${num}  ${blockHeading(b)}`], [hr])
     if (b.tipo === "evento") add([`Data: ${b.date ? formatDateBR(b.date) : "-"} | Vagas: ${b.vagas ?? "-"}`])
-    add([`Inscritos: ${st.inscritos} | Presentes: ${st.presentes} | Ausentes: ${st.ausentes} | Taxa de presença: ${st.taxa != null ? st.taxa + "%" : "-"}`], [""])
+    add(
+      [`Inscritos: ${st.inscritos} | Presentes: ${st.presentes} | Ausentes: ${st.ausentes} | Taxa de presença: ${st.taxa != null ? st.taxa + "%" : "-"}`],
+      [""]
+    )
     blockTables(b, sec).forEach((t, j) => {
       add([`${num}.${j + 1}  ${t.titulo}`])
       if (t.desc) add([t.desc])
@@ -2099,14 +2313,17 @@ function exportCsv() {
   })
 
   // ---- Referências ----
-  add([hr], [`${refNum}  REFERÊNCIAS`], [hr], [relFonte()],
-    [HR], [`Documento gerado pelo Painel EGov em ${new Date().toLocaleString("pt-BR")}`], [HR])
+  add([hr], [`${refNum}  REFERÊNCIAS`], [hr], [relFonte()], [HR], [`Documento gerado pelo Painel EGov em ${new Date().toLocaleString("pt-BR")}`], [HR])
 
   const csv = rows
-    .map(r => r.map(c => {
-      const s = String(c ?? "").replace(/"/g, '""')
-      return /[",;\n]/.test(s) ? `"${s}"` : s
-    }).join(";"))
+    .map(r =>
+      r
+        .map(c => {
+          const s = String(c ?? "").replace(/"/g, '""')
+          return /[",;\n]/.test(s) ? `"${s}"` : s
+        })
+        .join(";")
+    )
     .join("\n")
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
   triggerDownload(blob, `relatorio-egov-${new Date().toISOString().slice(0, 10)}.csv`)
@@ -2130,26 +2347,37 @@ async function exportXlsx() {
   wb.title = "Relatório de Eventos e Participação"
   wb.created = new Date()
 
-  const NAVY = "FF1B2A4E", GREEN = "FF4DAD33", BG_SOFT = "FFF5F8FB", WHITE = "FFFFFFFF", TEXT_MUTED = "FF5A6B85"
+  const NAVY = "FF1B2A4E",
+    GREEN = "FF4DAD33",
+    BG_SOFT = "FFF5F8FB",
+    WHITE = "FFFFFFFF",
+    TEXT_MUTED = "FF5A6B85"
   const txt = (sh, addr, value, { size = 11, color = NAVY, bold = false, italic = false } = {}) => {
-    const c = sh.getCell(addr); c.value = value
+    const c = sh.getCell(addr)
+    c.value = value
     c.font = { name: "Calibri", size, bold, italic, color: { argb: color } }
     c.alignment = { vertical: "middle", wrapText: true }
     return c
   }
-  const sanitizeSheet = (name) => name.replace(/[\[\]\:\*\?\/\\]/g, " ").slice(0, 31).trim()
+  const sanitizeSheet = name =>
+    name
+      .replace(/[\[\]\:\*\?\/\\]/g, " ")
+      .slice(0, 31)
+      .trim()
   // Escreve uma tabela a partir da coluna B; devolve a próxima linha livre.
   const writeTable = (sh, startRow, header, data, color = NAVY) => {
     header.forEach((h, i) => {
       const c = sh.getCell(startRow, 2 + i)
-      c.value = h; c.font = { name: "Calibri", bold: true, size: 11, color: { argb: WHITE } }
+      c.value = h
+      c.font = { name: "Calibri", bold: true, size: 11, color: { argb: WHITE } }
       c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: color } }
       c.alignment = { vertical: "middle" }
     })
     data.forEach((arr, ri) => {
       arr.forEach((v, ci) => {
         const c = sh.getCell(startRow + 1 + ri, 2 + ci)
-        c.value = v; c.font = { name: "Calibri", size: 11, color: { argb: NAVY } }
+        c.value = v
+        c.font = { name: "Calibri", size: 11, color: { argb: NAVY } }
         if (ri % 2 === 1) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BG_SOFT } }
       })
     })
@@ -2166,13 +2394,20 @@ async function exportXlsx() {
     const fit = fitAspect(brand.dims.comboLogo.ratio, 320, 90)
     cap.addImage(logoId, { tl: { col: 1, row: 1 }, ext: { width: fit.w, height: fit.h } })
   } catch (_) {}
-  cap.mergeCells("B7:J8"); txt(cap, "B7", "RELATÓRIO DE EVENTOS E PARTICIPAÇÃO", { size: 20, bold: true })
-  cap.mergeCells("B9:J9"); txt(cap, "B9", "Escola de Governo de Pedro Leopoldo", { size: 13, color: TEXT_MUTED, italic: true })
-  cap.mergeCells("B10:J10"); txt(cap, "B10", "Prefeitura Municipal de Pedro Leopoldo", { size: 13, color: TEXT_MUTED, italic: true })
-  cap.mergeCells("B13:J13"); txt(cap, "B13", `Recorte - Evento: ${model.eventoNome}`, { size: 12 })
-  cap.mergeCells("B14:J14"); txt(cap, "B14", `Recorte - Secretaria: ${model.secretariaNome}`, { size: 12 })
-  cap.mergeCells("B16:J16"); txt(cap, "B16", `Dados extraídos em ${model.extraido}`, { size: 11, color: TEXT_MUTED, italic: true })
-  cap.mergeCells("B24:J24"); txt(cap, "B24", "PEDRO LEOPOLDO", { size: 12, bold: true })
+  cap.mergeCells("B7:J8")
+  txt(cap, "B7", "RELATÓRIO DE EVENTOS E PARTICIPAÇÃO", { size: 20, bold: true })
+  cap.mergeCells("B9:J9")
+  txt(cap, "B9", "Escola de Governo de Pedro Leopoldo", { size: 13, color: TEXT_MUTED, italic: true })
+  cap.mergeCells("B10:J10")
+  txt(cap, "B10", "Prefeitura Municipal de Pedro Leopoldo", { size: 13, color: TEXT_MUTED, italic: true })
+  cap.mergeCells("B13:J13")
+  txt(cap, "B13", `Recorte - Evento: ${model.eventoNome}`, { size: 12 })
+  cap.mergeCells("B14:J14")
+  txt(cap, "B14", `Recorte - Secretaria: ${model.secretariaNome}`, { size: 12 })
+  cap.mergeCells("B16:J16")
+  txt(cap, "B16", `Dados extraídos em ${model.extraido}`, { size: 11, color: TEXT_MUTED, italic: true })
+  cap.mergeCells("B24:J24")
+  txt(cap, "B24", "PEDRO LEOPOLDO", { size: 12, bold: true })
 
   // ============== Sumário ==============
   const sum = wb.addWorksheet("Sumário", { views: [{ showGridLines: false }] })
@@ -2187,7 +2422,8 @@ async function exportXlsx() {
   const intro = wb.addWorksheet("Introdução", { views: [{ showGridLines: false }] })
   intro.getColumn(2).width = 110
   txt(intro, "B2", "1  INTRODUÇÃO", { size: 18, bold: true })
-  intro.mergeCells("B4:B10"); txt(intro, "B4", reportIntro(model), { size: 12 })
+  intro.mergeCells("B4:B10")
+  txt(intro, "B4", reportIntro(model), { size: 12 })
   txt(intro, "B12", relFonte(), { size: 9, color: TEXT_MUTED, italic: true })
 
   // ============== Uma aba por bloco (evento + geral) ==============
@@ -2196,19 +2432,29 @@ async function exportXlsx() {
     const num = bi + 2
     const st = b.stats
     const sh = wb.addWorksheet(sanitizeSheet(`${num} ${b.tipo === "geral" ? "Visão Geral" : b.titulo}`), { views: [{ showGridLines: false }] })
-    sh.getColumn(1).width = 3; sh.getColumn(2).width = 26; sh.getColumn(3).width = 46; sh.getColumn(4).width = 14
+    sh.getColumn(1).width = 3
+    sh.getColumn(2).width = 26
+    sh.getColumn(3).width = 46
+    sh.getColumn(4).width = 14
     txt(sh, "B2", `${num}  ${blockHeading(b)}`, { size: 16, bold: true })
     if (b.tipo === "evento") txt(sh, "B3", `Data: ${b.date ? formatDateBR(b.date) : "-"}  |  Vagas: ${b.vagas ?? "-"}`, { size: 11, color: TEXT_MUTED })
-    txt(sh, "B4", `Inscritos: ${st.inscritos}  |  Presentes: ${st.presentes}  |  Ausentes: ${st.ausentes}  |  Taxa de presença: ${st.taxa != null ? st.taxa + "%" : "-"}`, { size: 11 })
+    txt(
+      sh,
+      "B4",
+      `Inscritos: ${st.inscritos}  |  Presentes: ${st.presentes}  |  Ausentes: ${st.ausentes}  |  Taxa de presença: ${st.taxa != null ? st.taxa + "%" : "-"}`,
+      { size: 11 }
+    )
 
     let row = 6
     const figs = await buildBlockFigures(b, sec)
     for (const fig of figs) {
       figN++
       txt(sh, `B${row++}`, `Figura ${figN} - ${fig.titulo}`, { size: 12, bold: true })
-      if (fig.descricao) { txt(sh, `B${row++}`, fig.descricao, { size: 10, color: TEXT_MUTED, italic: true }) }
+      if (fig.descricao) {
+        txt(sh, `B${row++}`, fig.descricao, { size: 10, color: TEXT_MUTED, italic: true })
+      }
       const dispW = fig.w >= 1000 ? 640 : 440
-      const dispH = Math.round(dispW * fig.h / fig.w)
+      const dispH = Math.round((dispW * fig.h) / fig.w)
       const id = wb.addImage({ base64: fig.img, extension: "png" })
       sh.addImage(id, { tl: { col: 1, row: row - 1 }, ext: { width: dispW, height: dispH } })
       row += Math.ceil(dispH / 18) + 1
@@ -2249,123 +2495,212 @@ async function exportPdf() {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
-  const NAVY = [27, 42, 78], GREEN = [77, 173, 51], TEXT_MUTED = [90, 107, 133], BG_SOFT = [245, 248, 251], BODY = [40, 48, 66]
+  const NAVY = [27, 42, 78],
+    GREEN = [77, 173, 51],
+    TEXT_MUTED = [90, 107, 133],
+    BG_SOFT = [245, 248, 251],
+    BODY = [40, 48, 66]
   const { blocks, sec } = model
 
   // ============== CAPA (folha de rosto ABNT) ==============
-  try { if (brand) doc.addImage(brand.hero, "PNG", 0, 0, pageW, 90) } catch (_) {}
-  doc.setFillColor(255, 255, 255); doc.rect(0, 90, pageW, pageH - 90, "F")
-  try { if (brand) { const fit = fitAspect(brand.dims.comboLogo.ratio, 110, 38); doc.addImage(brand.comboLogo, "PNG", (pageW - fit.w) / 2, 30, fit.w, fit.h) } } catch (_) {}
-  doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(...NAVY)
+  try {
+    if (brand) doc.addImage(brand.hero, "PNG", 0, 0, pageW, 90)
+  } catch (_) {}
+  doc.setFillColor(255, 255, 255)
+  doc.rect(0, 90, pageW, pageH - 90, "F")
+  try {
+    if (brand) {
+      const fit = fitAspect(brand.dims.comboLogo.ratio, 110, 38)
+      doc.addImage(brand.comboLogo, "PNG", (pageW - fit.w) / 2, 30, fit.w, fit.h)
+    }
+  } catch (_) {}
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(14)
+  doc.setTextColor(...NAVY)
   doc.text("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", pageW / 2, 112, { align: "center" })
-  doc.setDrawColor(...GREEN); doc.setLineWidth(1); doc.line(pageW / 2 - 30, 118, pageW / 2 + 30, 118)
-  doc.setFont("helvetica", "normal"); doc.setFontSize(13); doc.setTextColor(...TEXT_MUTED)
+  doc.setDrawColor(...GREEN)
+  doc.setLineWidth(1)
+  doc.line(pageW / 2 - 30, 118, pageW / 2 + 30, 118)
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(13)
+  doc.setTextColor(...TEXT_MUTED)
   doc.text("Escola de Governo de Pedro Leopoldo", pageW / 2, 130, { align: "center" })
-  doc.setFont("helvetica", "bold"); doc.setFontSize(24); doc.setTextColor(...NAVY)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(24)
+  doc.setTextColor(...NAVY)
   doc.text("Relatório de Eventos e Participação", pageW / 2, 162, { align: "center" })
-  doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(...BODY)
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(11)
+  doc.setTextColor(...BODY)
   doc.text(`Evento: ${model.eventoNome}`, pageW / 2, 180, { align: "center" })
   doc.text(`Secretaria: ${model.secretariaNome}`, pageW / 2, 187, { align: "center" })
-  doc.setFont("helvetica", "italic"); doc.setFontSize(11); doc.setTextColor(...TEXT_MUTED)
+  doc.setFont("helvetica", "italic")
+  doc.setFontSize(11)
+  doc.setTextColor(...TEXT_MUTED)
   doc.text(`Dados extraídos em ${model.extraido}`, pageW / 2, 200, { align: "center" })
-  doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(11)
+  doc.setTextColor(...NAVY)
   doc.text("PEDRO LEOPOLDO", pageW / 2, pageH - 22, { align: "center" })
 
   const drawHeaderFooter = () => {
-    doc.setFillColor(...NAVY); doc.rect(0, 0, pageW, 14, "F")
-    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(10)
+    doc.setFillColor(...NAVY)
+    doc.rect(0, 0, pageW, 14, "F")
+    doc.setTextColor(255, 255, 255)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(10)
     doc.text("Escola de Governo de Pedro Leopoldo", pageW / 2, 9, { align: "center" })
-    doc.setDrawColor(...GREEN); doc.setLineWidth(0.5); doc.line(0, 14, pageW, 14)
-    doc.setFillColor(...BG_SOFT); doc.rect(0, pageH - 10, pageW, 10, "F")
-    doc.setTextColor(...TEXT_MUTED); doc.setFontSize(9); doc.setFont("helvetica", "normal")
+    doc.setDrawColor(...GREEN)
+    doc.setLineWidth(0.5)
+    doc.line(0, 14, pageW, 14)
+    doc.setFillColor(...BG_SOFT)
+    doc.rect(0, pageH - 10, pageW, 10, "F")
+    doc.setTextColor(...TEXT_MUTED)
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "normal")
     doc.text("Prefeitura Municipal de Pedro Leopoldo", pageW / 2, pageH - 4, { align: "center" })
   }
 
   // Inicia uma seção numa página nova; devolve o nº absoluto da página.
-  const startSection = (titulo) => {
-    doc.addPage(); drawHeaderFooter()
-    doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(...NAVY)
+  const startSection = titulo => {
+    doc.addPage()
+    drawHeaderFooter()
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(15)
+    doc.setTextColor(...NAVY)
     doc.text(titulo, 14, 28)
-    doc.setDrawColor(...GREEN); doc.setLineWidth(0.6); doc.line(14, 31, 58, 31)
+    doc.setDrawColor(...GREEN)
+    doc.setLineWidth(0.6)
+    doc.line(14, 31, 58, 31)
     return doc.internal.getNumberOfPages()
   }
 
   // Figura ABNT: "Figura N -título" + descrição + imagem + Fonte (com data).
   const drawFigure = (n, fig) => {
-    doc.addPage(); drawHeaderFooter()
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...NAVY)
+    doc.addPage()
+    drawHeaderFooter()
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(12)
+    doc.setTextColor(...NAVY)
     const tl = doc.splitTextToSize(`Figura ${n} - ${fig.titulo}`, pageW - 28)
     doc.text(tl, 14, 26)
     let topY = 26 + tl.length * 5 + 2
     if (fig.descricao) {
-      doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...TEXT_MUTED)
+      doc.setFont("helvetica", "italic")
+      doc.setFontSize(9)
+      doc.setTextColor(...TEXT_MUTED)
       const dl = doc.splitTextToSize(fig.descricao, pageW - 28)
-      doc.text(dl, 14, topY); topY += dl.length * 4.2 + 3
+      doc.text(dl, 14, topY)
+      topY += dl.length * 4.2 + 3
     }
-    const maxW = pageW - 28, maxH = pageH - topY - 26, ratio = fig.w / fig.h
-    let w = maxW, h = w / ratio
-    if (h > maxH) { h = maxH; w = h * ratio }
+    const maxW = pageW - 28,
+      maxH = pageH - topY - 26,
+      ratio = fig.w / fig.h
+    let w = maxW,
+      h = w / ratio
+    if (h > maxH) {
+      h = maxH
+      w = h * ratio
+    }
     const x = (pageW - w) / 2
     doc.addImage(fig.img, "PNG", x, topY, w, h)
-    doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(...TEXT_MUTED)
+    doc.setFont("helvetica", "italic")
+    doc.setFontSize(8)
+    doc.setTextColor(...TEXT_MUTED)
     doc.text(doc.splitTextToSize(relFonte(), pageW - 28), 14, Math.min(topY + h + 6, pageH - 13))
     return doc.internal.getNumberOfPages()
   }
 
   // Página de sumário/lista com preenchimento pontilhado e nº de página.
   const drawTocPage = (titulo, entries) => {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(...NAVY)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(18)
+    doc.setTextColor(...NAVY)
     doc.text(titulo, pageW / 2, 30, { align: "center" })
-    doc.setDrawColor(...GREEN); doc.setLineWidth(0.6); doc.line(pageW / 2 - 24, 34, pageW / 2 + 24, 34)
+    doc.setDrawColor(...GREEN)
+    doc.setLineWidth(0.6)
+    doc.line(pageW / 2 - 24, 34, pageW / 2 + 24, 34)
     doc.setFontSize(11)
     let y = 46
     entries.forEach(e => {
       if (y > pageH - 18) return
       const pageStr = String(e.page - 1)
-      doc.setFont("helvetica", "normal"); doc.setTextColor(...NAVY)
+      doc.setFont("helvetica", "normal")
+      doc.setTextColor(...NAVY)
       doc.text(e.label, 14, y)
       doc.text(pageStr, pageW - 14, y, { align: "right" })
-      const lw = doc.getTextWidth(e.label), pw = doc.getTextWidth(pageStr)
-      let dx = 14 + lw + 1.5; const endX = pageW - 14 - pw - 1.5
+      const lw = doc.getTextWidth(e.label),
+        pw = doc.getTextWidth(pageStr)
+      let dx = 14 + lw + 1.5
+      const endX = pageW - 14 - pw - 1.5
       doc.setTextColor(190, 198, 210)
-      while (dx < endX) { doc.text(".", dx, y); dx += 1.7 }
+      while (dx < endX) {
+        doc.text(".", dx, y)
+        dx += 1.7
+      }
       y += 7
     })
   }
 
   // Reserva páginas para Sumário e Lista de Figuras (preenchidas no fim).
-  doc.addPage(); drawHeaderFooter(); const pgSumario = doc.internal.getNumberOfPages()
-  doc.addPage(); drawHeaderFooter(); const pgLista = doc.internal.getNumberOfPages()
+  doc.addPage()
+  drawHeaderFooter()
+  const pgSumario = doc.internal.getNumberOfPages()
+  doc.addPage()
+  drawHeaderFooter()
+  const pgLista = doc.internal.getNumberOfPages()
 
-  const toc = [], figIndex = []
+  const toc = [],
+    figIndex = []
   let figN = 0
 
   // ============== 1 INTRODUÇÃO ==============
   {
     const pg = startSection("1  INTRODUÇÃO")
     toc.push({ label: "1  INTRODUÇÃO", page: pg })
-    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(...BODY)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(11)
+    doc.setTextColor(...BODY)
     doc.text(doc.splitTextToSize(reportIntro(model), pageW - 28), 14, 44)
   }
 
   // ============== Seções por bloco ==============
   for (let bi = 0; bi < blocks.length; bi++) {
-    const b = blocks[bi], num = bi + 2, st = b.stats
+    const b = blocks[bi],
+      num = bi + 2,
+      st = b.stats
     const heading = `${num}  ${blockHeading(b)}`
     const pg = startSection(heading)
     toc.push({ label: heading, page: pg })
     let y = 42
     if (b.tipo === "evento") {
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(...TEXT_MUTED)
-      doc.text(`Data: ${b.date ? formatDateBR(b.date) : "-"}     |     Vagas: ${b.vagas ?? "-"}`, 14, y); y += 7
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(10)
+      doc.setTextColor(...TEXT_MUTED)
+      doc.text(`Data: ${b.date ? formatDateBR(b.date) : "-"}     |     Vagas: ${b.vagas ?? "-"}`, 14, y)
+      y += 7
     }
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY)
-    doc.text(`Inscritos: ${st.inscritos}     Presentes: ${st.presentes}     Ausentes: ${st.ausentes}     Taxa de presença: ${st.taxa != null ? st.taxa + "%" : "-"}`, 14, y); y += 8
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(11)
+    doc.setTextColor(...NAVY)
+    doc.text(
+      `Inscritos: ${st.inscritos}     Presentes: ${st.presentes}     Ausentes: ${st.ausentes}     Taxa de presença: ${st.taxa != null ? st.taxa + "%" : "-"}`,
+      14,
+      y
+    )
+    y += 8
 
     for (const t of blockTables(b, sec)) {
-      if (y > pageH - 40) { doc.addPage(); drawHeaderFooter(); y = 24 }
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(...NAVY)
-      doc.text(t.titulo, 14, y); y += 3
+      if (y > pageH - 40) {
+        doc.addPage()
+        drawHeaderFooter()
+        y = 24
+      }
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(11)
+      doc.setTextColor(...NAVY)
+      doc.text(t.titulo, 14, y)
+      y += 3
       doc.autoTable({
         startY: y,
         head: [t.header],
@@ -2377,8 +2712,11 @@ async function exportPdf() {
         didDrawPage: drawHeaderFooter
       })
       y = doc.lastAutoTable.finalY + 5
-      doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(...TEXT_MUTED)
-      doc.text(relFonte(), 14, y); y += 7
+      doc.setFont("helvetica", "italic")
+      doc.setFontSize(8)
+      doc.setTextColor(...TEXT_MUTED)
+      doc.text(relFonte(), 14, y)
+      y += 7
     }
 
     const blockFigs = await buildBlockFigures(b, sec)
@@ -2394,14 +2732,19 @@ async function exportPdf() {
     const refTit = `${blocks.length + 2}  REFERÊNCIAS`
     const pg = startSection(refTit)
     toc.push({ label: refTit, page: pg })
-    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(...BODY)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(11)
+    doc.setTextColor(...BODY)
     doc.text(doc.splitTextToSize(relFonte(), pageW - 28), 14, 44)
-    doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...TEXT_MUTED)
+    doc.setFont("helvetica", "italic")
+    doc.setFontSize(9)
+    doc.setTextColor(...TEXT_MUTED)
     doc.text(`Documento gerado pelo Painel EGov em ${new Date().toLocaleString("pt-BR")}.`, 14, 56)
   }
 
   // ============== Preenche Sumário e Lista de Figuras ==============
-  doc.setPage(pgSumario); drawTocPage("SUMÁRIO", toc)
+  doc.setPage(pgSumario)
+  drawTocPage("SUMÁRIO", toc)
   doc.setPage(pgLista)
   drawTocPage("LISTA DE FIGURAS", figIndex.length ? figIndex : [{ label: "(sem figuras no recorte)", page: pgLista }])
 
@@ -2409,7 +2752,9 @@ async function exportPdf() {
   const total = doc.internal.getNumberOfPages()
   for (let i = 2; i <= total; i++) {
     doc.setPage(i)
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...TEXT_MUTED)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.setTextColor(...TEXT_MUTED)
     doc.text(`Página ${i - 1} de ${total - 1}`, pageW - 14, pageH - 4, { align: "right" })
   }
 
@@ -2436,7 +2781,8 @@ async function exportPptx() {
   pptx.title = "Relatório de Eventos e Participação"
   buildEgovPptxMaster(pptx, brand, "Relatório de Eventos e Participação")
 
-  const fonteSlide = (s) => s.addText(relFonte(), { x: 0.7, y: 6.75, w: 12, h: 0.35, fontFace: EGOV_BRAND.font, fontSize: 9, italic: true, color: EGOV_BRAND.textMuted })
+  const fonteSlide = s =>
+    s.addText(relFonte(), { x: 0.7, y: 6.75, w: 12, h: 0.35, fontFace: EGOV_BRAND.font, fontSize: 9, italic: true, color: EGOV_BRAND.textMuted })
 
   // ============== Capa ==============
   const sCover = pptx.addSlide()
@@ -2447,23 +2793,85 @@ async function exportPptx() {
     const fit = fitAspect(brand.dims.comboLogo.ratio, 5.4, 1.4)
     sCover.addImage({ data: brand.comboLogo, x: (13.333 - fit.w) / 2, y: 0.8, w: fit.w, h: fit.h })
   }
-  sCover.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", { x: 1, y: 2.3, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, bold: true, color: EGOV_BRAND.navy, align: "center", charSpacing: 4 })
+  sCover.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", {
+    x: 1,
+    y: 2.3,
+    w: 11.3,
+    h: 0.5,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 14,
+    bold: true,
+    color: EGOV_BRAND.navy,
+    align: "center",
+    charSpacing: 4
+  })
   sCover.addShape("line", { x: 5.4, y: 2.9, w: 2.5, h: 0, line: { color: EGOV_BRAND.green, width: 2 } })
-  sCover.addText("Relatório de Eventos e Participação", { x: 1, y: 3.1, w: 11.3, h: 1.0, fontFace: EGOV_BRAND.font, fontSize: 40, bold: true, color: EGOV_BRAND.navy, align: "center" })
-  sCover.addText(`Evento: ${model.eventoNome}`, { x: 1, y: 4.35, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 18, color: EGOV_BRAND.text, align: "center" })
-  sCover.addText(`Secretaria: ${model.secretariaNome}`, { x: 1, y: 4.9, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 18, color: EGOV_BRAND.text, align: "center" })
-  sCover.addText(`Dados extraídos em ${model.extraido}`, { x: 1, y: 5.7, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, italic: true, color: EGOV_BRAND.textMuted, align: "center" })
+  sCover.addText("Relatório de Eventos e Participação", {
+    x: 1,
+    y: 3.1,
+    w: 11.3,
+    h: 1.0,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 40,
+    bold: true,
+    color: EGOV_BRAND.navy,
+    align: "center"
+  })
+  sCover.addText(`Evento: ${model.eventoNome}`, {
+    x: 1,
+    y: 4.35,
+    w: 11.3,
+    h: 0.5,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 18,
+    color: EGOV_BRAND.text,
+    align: "center"
+  })
+  sCover.addText(`Secretaria: ${model.secretariaNome}`, {
+    x: 1,
+    y: 4.9,
+    w: 11.3,
+    h: 0.5,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 18,
+    color: EGOV_BRAND.text,
+    align: "center"
+  })
+  sCover.addText(`Dados extraídos em ${model.extraido}`, {
+    x: 1,
+    y: 5.7,
+    w: 11.3,
+    h: 0.5,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 14,
+    italic: true,
+    color: EGOV_BRAND.textMuted,
+    align: "center"
+  })
 
   // ============== Sumário ==============
   const sSum = pptx.addSlide({ masterName: "EGOV_MASTER" })
   egovSlideTitle(sSum, "Sumário")
   const sumLines = ["1  INTRODUÇÃO", ...blocks.map((b, i) => `${i + 2}  ${blockHeading(b)}`), `${blocks.length + 2}  REFERÊNCIAS`]
-  sSum.addText(sumLines.map(t => ({ text: t, options: { breakLine: true, fontSize: 15, color: EGOV_BRAND.navy, paraSpaceAfter: 8 } })), { x: 1, y: 1.7, w: 11.3, h: 5.2, fontFace: EGOV_BRAND.font, valign: "top" })
+  sSum.addText(
+    sumLines.map(t => ({ text: t, options: { breakLine: true, fontSize: 15, color: EGOV_BRAND.navy, paraSpaceAfter: 8 } })),
+    { x: 1, y: 1.7, w: 11.3, h: 5.2, fontFace: EGOV_BRAND.font, valign: "top" }
+  )
 
   // ============== Introdução ==============
   const sIntro = pptx.addSlide({ masterName: "EGOV_MASTER" })
   egovSlideTitle(sIntro, "1  Introdução")
-  sIntro.addText(reportIntro(model), { x: 0.95, y: 1.9, w: 11.4, h: 4.2, fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.text, align: "justify", valign: "top" })
+  sIntro.addText(reportIntro(model), {
+    x: 0.95,
+    y: 1.9,
+    w: 11.4,
+    h: 4.2,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 16,
+    color: EGOV_BRAND.text,
+    align: "justify",
+    valign: "top"
+  })
   fonteSlide(sIntro)
 
   // ============== Seções por bloco ==============
@@ -2473,20 +2881,35 @@ async function exportPptx() {
     const s = pptx.addSlide({ masterName: "EGOV_MASTER" })
     s.addShape("rect", { x: 0.7, y: 0.95, w: 0.16, h: 0.55, fill: { color: EGOV_BRAND.green } })
     s.addText(`Figura ${figN} - ${titulo}`, { x: 0.95, y: 0.9, w: 11.8, h: 0.65, fontFace: EGOV_BRAND.font, fontSize: 20, bold: true, color: EGOV_BRAND.navy })
-    if (fig.descricao) s.addText(fig.descricao, { x: 0.95, y: 1.55, w: 11.5, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 12, italic: true, color: EGOV_BRAND.textMuted })
+    if (fig.descricao)
+      s.addText(fig.descricao, { x: 0.95, y: 1.55, w: 11.5, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 12, italic: true, color: EGOV_BRAND.textMuted })
     const ratio = fig.w / fig.h
-    let w = 10.8, h = w / ratio
-    if (h > 4.4) { h = 4.4; w = h * ratio }
+    let w = 10.8,
+      h = w / ratio
+    if (h > 4.4) {
+      h = 4.4
+      w = h * ratio
+    }
     s.addImage({ data: fig.img, x: (13.333 - w) / 2, y: 2.05, w, h })
     fonteSlide(s)
   }
 
   for (let bi = 0; bi < blocks.length; bi++) {
-    const b = blocks[bi], num = bi + 2, st = b.stats
+    const b = blocks[bi],
+      num = bi + 2,
+      st = b.stats
     const sDiv = pptx.addSlide({ masterName: "EGOV_MASTER" })
     egovSlideTitle(sDiv, `${num}  ${b.titulo}`)
     const kpi = (x, label, value, accent) => {
-      sDiv.addShape("roundRect", { x, y: 2.5, w: 2.8, h: 2.0, fill: { color: EGOV_BRAND.white }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.12 })
+      sDiv.addShape("roundRect", {
+        x,
+        y: 2.5,
+        w: 2.8,
+        h: 2.0,
+        fill: { color: EGOV_BRAND.white },
+        line: { color: EGOV_BRAND.blueSoft, width: 1 },
+        rectRadius: 0.12
+      })
       sDiv.addShape("rect", { x, y: 2.5, w: 2.8, h: 0.1, fill: { color: accent } })
       sDiv.addText(String(value), { x, y: 2.7, w: 2.8, h: 1.1, fontFace: EGOV_BRAND.font, fontSize: 38, bold: true, color: accent, align: "center" })
       sDiv.addText(label, { x, y: 3.8, w: 2.8, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, color: EGOV_BRAND.textMuted, align: "center" })
@@ -2495,7 +2918,18 @@ async function exportPptx() {
     kpi(3.9, "Presentes", st.presentes, EGOV_BRAND.green)
     kpi(6.9, "Ausentes", st.ausentes, EGOV_BRAND.navyLight)
     kpi(9.9, "Taxa de presença", st.taxa != null ? st.taxa + "%" : "-", EGOV_BRAND.navyLight)
-    if (b.tipo === "evento") sDiv.addText(`Data: ${b.date ? formatDateBR(b.date) : "-"}   ·   Vagas: ${b.vagas ?? "-"}`, { x: 0.95, y: 4.9, w: 11.5, h: 0.4, fontFace: EGOV_BRAND.font, fontSize: 14, italic: true, color: EGOV_BRAND.text, align: "center" })
+    if (b.tipo === "evento")
+      sDiv.addText(`Data: ${b.date ? formatDateBR(b.date) : "-"}   ·   Vagas: ${b.vagas ?? "-"}`, {
+        x: 0.95,
+        y: 4.9,
+        w: 11.5,
+        h: 0.4,
+        fontFace: EGOV_BRAND.font,
+        fontSize: 14,
+        italic: true,
+        color: EGOV_BRAND.text,
+        align: "center"
+      })
     const figs = await buildBlockFigures(b, sec)
     for (const fig of figs) figSlide(fig.titulo, fig)
   }
@@ -2504,11 +2938,19 @@ async function exportPptx() {
   const sRef = pptx.addSlide({ masterName: "EGOV_MASTER" })
   egovSlideTitle(sRef, `${blocks.length + 2}  Referências`)
   sRef.addText(relFonte(), { x: 0.95, y: 2.0, w: 11.3, h: 0.8, fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.text })
-  sRef.addText(`Documento gerado pelo Painel EGov em ${new Date().toLocaleString("pt-BR")}.`, { x: 0.95, y: 3.0, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 12, italic: true, color: EGOV_BRAND.textMuted })
+  sRef.addText(`Documento gerado pelo Painel EGov em ${new Date().toLocaleString("pt-BR")}.`, {
+    x: 0.95,
+    y: 3.0,
+    w: 11.3,
+    h: 0.5,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 12,
+    italic: true,
+    color: EGOV_BRAND.textMuted
+  })
 
   await pptx.writeFile({ fileName: `relatorio-egov-${new Date().toISOString().slice(0, 10)}.pptx` })
 }
-
 
 // ================ CERTIFICADOS ================
 function loadCertTemplate(templateId) {
@@ -2580,17 +3022,19 @@ function renderCertPosEditor() {
   }
 
   // (Re)monta os handles em cada chamada - a fonte do texto e a posicao podem mudar.
-  layer.innerHTML = handleFields.map(({ key }) => {
-    let value = String(fields[key] ?? "").trim() || "-"
-    if (key === "dia2" && !fields.dia2) value = "(2º dia)"
-    return `
+  layer.innerHTML = handleFields
+    .map(({ key }) => {
+      let value = String(fields[key] ?? "").trim() || "-"
+      if (key === "dia2" && !fields.dia2) value = "(2º dia)"
+      return `
       <div class="cert-drag-handle" data-field="${key}"
            style="left:${(P[key].x * 100).toFixed(3)}%; top:${(P[key].y * 100).toFixed(3)}%">
         <span class="cert-drag-handle__grip"><i class="fas fa-up-down-left-right"></i></span>
         <span class="cert-drag-handle__text">${escapeHtml(value)}</span>
       </div>
     `
-  }).join("")
+    })
+    .join("")
 
   // Wire-up drag por handle
   layer.querySelectorAll(".cert-drag-handle").forEach(el => {
@@ -2648,11 +3092,11 @@ function renderCertPosEditor() {
   const typoGrid = document.getElementById("certTypoGrid")
   if (typoGrid) {
     const SCALE_FIELD_META = {
-      nome:  { label: "Nome completo", icon: "fa-user" },
+      nome: { label: "Nome completo", icon: "fa-user" },
       curso: { label: "Título do curso", icon: "fa-graduation-cap" },
-      dia:   { label: "Dia", icon: "fa-1" },
-      mes:   { label: "Mês", icon: "fa-calendar" },
-      ano:   { label: "Ano", icon: "fa-hashtag" },
+      dia: { label: "Dia", icon: "fa-1" },
+      mes: { label: "Mês", icon: "fa-calendar" },
+      ano: { label: "Ano", icon: "fa-hashtag" },
       carga: { label: "Carga horária", icon: "fa-clock" }
     }
     typoGrid.innerHTML = CERT_SCALE_FIELDS.map(key => {
@@ -2664,7 +3108,7 @@ function renderCertPosEditor() {
             <span class="cert-typo-control__label"><i class="fas ${meta.icon}"></i> ${meta.label}</span>
             <span class="cert-typo-control__value" data-typo-val="${key}">${pct}%</span>
           </div>
-          <input type="range" class="cert-typo-control__range" data-typo="${key}" min="${Math.round(CERT_SCALE_MIN*100)}" max="${Math.round(CERT_SCALE_MAX*100)}" step="1" value="${pct}" />
+          <input type="range" class="cert-typo-control__range" data-typo="${key}" min="${Math.round(CERT_SCALE_MIN * 100)}" max="${Math.round(CERT_SCALE_MAX * 100)}" step="1" value="${pct}" />
         </div>
       `
     }).join("")
@@ -2713,7 +3157,7 @@ function renderCertPosEditor() {
     const toggleBtn = document.getElementById("certTypoToggle")
     const panel = document.getElementById("certTypoPanel")
     if (toggleBtn && panel) {
-      const setCollapsed = (c) => {
+      const setCollapsed = c => {
         panel.classList.toggle("is-collapsed", c)
         toggleBtn.querySelector("i").className = c ? "fas fa-chevron-down" : "fas fa-chevron-up"
       }
@@ -3855,6 +4299,122 @@ function getCertFormData(nomeOverride = null) {
   }
 }
 
+// ---------------- QR de validação de autenticidade ----------------
+// Embutimos no certificado um QR que aponta para /validar?c=<código assinado>.
+// O código é gerado/assinado no servidor (/api/certificado, HMAC), sem o
+// segredo ninguém forja um código válido. Se a assinatura falhar, emitimos o
+// certificado mesmo assim, só que sem QR (degradação graciosa).
+const CERT_QR_ENABLED = true
+
+// Pede ao servidor os códigos assinados (1 por participante, alinhado a `selected`).
+// Devolve array de strings ou null (emite sem QR).
+async function _prepCertCodes(selected, fd) {
+  if (!CERT_QR_ENABLED) return null
+  try {
+    const dataLabel = (fd.dia2 ? `${fd.dia} e ${fd.dia2}` : fd.dia) + ` de ${fd.mes} de ${fd.ano}`
+    const certs = selected.map(p => ({ nome: p.nome, curso: fd.curso, carga: fd.carga, data: dataLabel }))
+    const resp = await fetch("/api/certificado", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ certs })
+    })
+    if (!resp.ok) return null
+    const j = await resp.json()
+    return j && j.ok && Array.isArray(j.items) ? j.items.map(it => it.codigo) : null
+  } catch (_) {
+    return null
+  }
+}
+
+// Gera um QR (PNG dataURL) de um texto usando a lib global QRCode (qrcodejs).
+function _qrDataUrl(text, px = 512) {
+  return new Promise(resolve => {
+    if (!window.QRCode) return resolve(null)
+    const host = document.createElement("div")
+    host.style.position = "fixed"
+    host.style.left = "-9999px"
+    document.body.appendChild(host)
+    try {
+      new window.QRCode(host, {
+        text,
+        width: px,
+        height: px,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: window.QRCode.CorrectLevel.M
+      })
+    } catch (_) {
+      document.body.removeChild(host)
+      return resolve(null)
+    }
+    setTimeout(() => {
+      const node = host.querySelector("img") || host.querySelector("canvas")
+      let dataUrl = null
+      try {
+        if (node && node.tagName === "IMG") dataUrl = node.src
+        else if (node) dataUrl = node.toDataURL("image/png")
+      } catch (_) {}
+      document.body.removeChild(host)
+      resolve(dataUrl)
+    }, 60)
+  })
+}
+
+// Sobre o PDF já com a imagem do certificado, adiciona uma área clicável (link)
+// por cima do texto da URL de validação. `fields.certLink` é preenchido por
+// drawCertificateInto (em px do canvas); convertemos para mm da página A4.
+function _addCertLink(pdf, canvas, fields) {
+  const L = fields && fields.certLink
+  if (!L || !canvas || !canvas.width || !canvas.height) return
+  try {
+    pdf.link((L.x / canvas.width) * 297, (L.y / canvas.height) * 210, (L.w / canvas.width) * 297, (L.h / canvas.height) * 210, { url: L.url })
+  } catch (_) {}
+}
+
+// Monta { img, codigo } pronto para drawCertificateInto, ou null.
+async function _certQrFor(codigo) {
+  if (!codigo) return null
+  const du = await _qrDataUrl(`${location.origin}/validar?c=${encodeURIComponent(codigo)}`, 512)
+  if (!du) return null
+  const img = new Image()
+  img.src = du
+  try {
+    await img.decode()
+  } catch (_) {}
+  return { img, codigo }
+}
+
+// Converte o QR (preto sobre branco) num canvas com fundo TRANSPARENTE e os
+// módulos recoloridos para o azul-marinho institucional, para o QR assentar
+// "sem moldura" direto sobre o certificado. Pixels claros viram transparentes;
+// escuros viram navy preservando o alpha (bordas suaves). Devolve null em falha.
+function _qrTransparent(img, navy = [22, 31, 54]) {
+  try {
+    const s = img.naturalWidth || img.width || 512
+    const cv = document.createElement("canvas")
+    cv.width = s
+    cv.height = s
+    const cx = cv.getContext("2d")
+    cx.drawImage(img, 0, 0, s, s)
+    const data = cx.getImageData(0, 0, s, s)
+    const d = data.data
+    for (let i = 0; i < d.length; i += 4) {
+      const lum = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114
+      if (lum > 160) {
+        d[i + 3] = 0 // claro -> transparente (vira quiet zone do template)
+      } else {
+        d[i] = navy[0]
+        d[i + 1] = navy[1]
+        d[i + 2] = navy[2]
+      }
+    }
+    cx.putImageData(data, 0, 0)
+    return cv
+  } catch (_) {
+    return null
+  }
+}
+
 function drawCertificateInto(canvas, fields) {
   if (!state.templateImg) return
   const w = canvas.width,
@@ -3894,6 +4454,51 @@ function drawCertificateInto(canvas, fields) {
   drawField("mes", fields.mes)
   drawField("ano", String(fields.ano))
   drawField("carga", String(fields.carga))
+
+  // QR de validação no canto inferior direito (sem moldura) + o CÓDIGO do
+  // certificado em texto pequeno, posicionado por fração fixa (mesma posição
+  // para todos os modelos, ajustada no /cert-preview). O código também vira
+  // link clicável no PDF (ver _addCertLink). `fields.qr` = { img, codigo }.
+  if (fields.qr && fields.qr.img) {
+    const margin = Math.round(w * 0.022)
+    const qrSize = Math.round(w * 0.082)
+    const codigo = String(fields.qr.codigo || "")
+    const origin = typeof location !== "undefined" ? location.origin : ""
+    const linkUrl = `${origin}/validar?c=${codigo}`
+
+    // QR fixo no canto inferior direito.
+    const qrX = w - qrSize - margin
+    const qrY = h - qrSize - margin
+    const qr = _qrTransparent(fields.qr.img)
+
+    // Código em fonte pequena, centralizado na posição (fração) escolhida.
+    const pos = CERT_CODE_POS
+    const maxW = w * 0.92
+    let fs = w * 0.0066
+    c.font = `600 ${fs}px ${fontFamily}`
+    while (c.measureText(codigo).width > maxW && fs > 3) {
+      fs -= 0.5
+      c.font = `600 ${fs}px ${fontFamily}`
+    }
+    const tw = c.measureText(codigo).width
+    const cx = pos.x * w
+    const cy = pos.y * h
+
+    c.save()
+    c.drawImage(qr || fields.qr.img, qrX, qrY, qrSize, qrSize)
+    c.textAlign = "center"
+    c.textBaseline = "middle"
+    c.font = `600 ${fs}px ${fontFamily}`
+    c.lineWidth = Math.max(2, fs * 0.18)
+    c.strokeStyle = "rgba(255,255,255,0.85)"
+    c.strokeText(codigo, cx, cy)
+    c.fillStyle = "#161f36"
+    c.fillText(codigo, cx, cy)
+    c.restore()
+
+    // Retângulo (px) do código para virar link clicável no PDF.
+    fields.certLink = { url: linkUrl, x: cx - tw / 2, y: cy - fs / 2, w: tw, h: fs }
+  }
 }
 
 function renderCertPreview() {
@@ -3901,7 +4506,30 @@ function renderCertPreview() {
   if (!canvas || !state.templateImg) return
   canvas.width = state.templateImg.naturalWidth
   canvas.height = state.templateImg.naturalHeight
-  drawCertificateInto(canvas, getCertFormData())
+  const fields = getCertFormData()
+  // Mostra o QR + URL de validação já na prévia (usa um código de demonstração
+  // gerado uma vez; serve só para visualizar posição/aparência).
+  if (state._certPreviewQr) fields.qr = state._certPreviewQr
+  drawCertificateInto(canvas, fields)
+  if (!state._certPreviewQr) ensureCertPreviewQr()
+}
+
+// Gera (uma vez) um QR de demonstração para a prévia e re-renderiza quando pronto.
+async function ensureCertPreviewQr() {
+  if (state._certPreviewQr || state._certPreviewQrLoading) return
+  state._certPreviewQrLoading = true
+  try {
+    const codes = await _prepCertCodes([{ nome: "NOME COMPLETO DO PARTICIPANTE" }], getCertFormData())
+    const qr = codes && codes[0] ? await _certQrFor(codes[0]) : null
+    if (qr) {
+      state._certPreviewQr = qr
+      renderCertPreview()
+    }
+  } catch (_) {
+    // sem QR na prévia: não bloqueia a emissão, que gera o código de verdade
+  } finally {
+    state._certPreviewQrLoading = false
+  }
 }
 
 function slug(s) {
@@ -3927,7 +4555,11 @@ async function emitCertificadosLote() {
   updateCertEmitCount()
   const selected = getCertSelectedParticipants()
   if (!selected.length) {
-    showAlert({ title: "Nenhum participante selecionado", message: "Volte à etapa 2 e selecione ao menos um participante para emitir os certificados.", type: "warn" })
+    showAlert({
+      title: "Nenhum participante selecionado",
+      message: "Volte à etapa 2 e selecione ao menos um participante para emitir os certificados.",
+      type: "warn"
+    })
     return
   }
 
@@ -3949,13 +4581,17 @@ async function emitCertificadosLote() {
   tmp.width = state.templateImg.naturalWidth
   tmp.height = state.templateImg.naturalHeight
 
+  const certCodes = await _prepCertCodes(selected, fd)
+
   for (let i = 0; i < selected.length; i++) {
     const p = selected[i]
     const fields = { ...fd, nome: p.nome }
+    fields.qr = certCodes ? await _certQrFor(certCodes[i]) : null
     drawCertificateInto(tmp, fields)
     const imgData = tmp.toDataURL("image/jpeg", 0.92)
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
     pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
+    _addCertLink(pdf, tmp, fields)
     const blob = pdf.output("blob")
     zip.file(`certificado-${slug(p.nome)}-${slug(fd.curso)}.pdf`, blob)
     const pctVal = Math.round(((i + 1) / selected.length) * 100)
@@ -4022,7 +4658,11 @@ async function enviarCertificadosLote() {
   const url = CERT_WEBAPP_URL
   const token = CERT_WEBAPP_TOKEN
   if (!url || url.startsWith("COLE_AQUI") || !token) {
-    showAlert({ title: "Configuração ausente", message: "Endpoint de envio não configurado. Edite CERT_WEBAPP_URL em assets/js/app.js antes de enviar e-mails.", type: "error" })
+    showAlert({
+      title: "Configuração ausente",
+      message: "Endpoint de envio não configurado. Edite CERT_WEBAPP_URL em assets/js/app.js antes de enviar e-mails.",
+      type: "error"
+    })
     return
   }
 
@@ -4040,7 +4680,11 @@ async function enviarCertificadosLote() {
       .slice(0, 5)
       .map(p => p.nome)
       .join(", ")
-    showAlert({ title: "E-mails inválidos", message: `${semEmail.length} selecionado(s) sem e-mail válido. Ex.: ${nomes}.\n\nCorrija na planilha de origem ou desmarque-os antes de enviar.`, type: "warn" })
+    showAlert({
+      title: "E-mails inválidos",
+      message: `${semEmail.length} selecionado(s) sem e-mail válido. Ex.: ${nomes}.\n\nCorrija na planilha de origem ou desmarque-os antes de enviar.`,
+      type: "warn"
+    })
     return
   }
 
@@ -4075,15 +4719,19 @@ async function enviarCertificadosLote() {
   let okCount = 0
   const erros = []
 
+  const certCodes = await _prepCertCodes(selected, fd)
+
   for (let i = 0; i < selected.length; i++) {
     const p = selected[i]
     const fields = { ...fd, nome: p.nome }
+    fields.qr = certCodes ? await _certQrFor(certCodes[i]) : null
     const filename = `certificado-${slug(p.nome)}-${slug(fd.curso)}.pdf`
     try {
       drawCertificateInto(tmp, fields)
       const imgData = tmp.toDataURL("image/jpeg", 0.92)
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
       pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
+      _addCertLink(pdf, tmp, fields)
       const pdfBlob = pdf.output("blob")
       const pdfBase64 = await _blobToBase64(pdfBlob)
 
@@ -4223,9 +4871,11 @@ function renderViewAutoReport() {
                 </select>
               </label>
               <div id="arPesqEventStatus" class="ar-event-summary">
-                ${s.pesquisa?.fromEventId
-                  ? `<p class="ar-event-summary__empty"><i class="fas fa-check-circle"></i> ${escapeHtml(s.pesquisa.fileName)} · ${s.pesquisa.respostas} respostas</p>`
-                  : `<p class="ar-event-summary__empty"><i class="fas fa-circle-info"></i> Selecione um evento. Se ele tiver <b>satisfacao.xlsx</b> na pasta, será carregada automaticamente.</p>`}
+                ${
+                  s.pesquisa?.fromEventId
+                    ? `<p class="ar-event-summary__empty"><i class="fas fa-check-circle"></i> ${escapeHtml(s.pesquisa.fileName)} · ${s.pesquisa.respostas} respostas</p>`
+                    : `<p class="ar-event-summary__empty"><i class="fas fa-circle-info"></i> Selecione um evento. Se ele tiver <b>satisfacao.xlsx</b> na pasta, será carregada automaticamente.</p>`
+                }
               </div>
             </div>
 
@@ -4310,15 +4960,23 @@ function setupAutoReportPesquisaEventPicker() {
     // do AO VIVO (caminho do Drive) e os arquivos servidos são os LOCAIS, também
     // consultamos o manifesto local (build) — que sempre casa com o que está no
     // servidor. Cobre ainda eventos consolidados (sem fonte) via `_turmas`.
-    const folderOf = p => String(p || "").split("/").slice(0, -1).join("/")
+    const folderOf = p =>
+      String(p || "")
+        .split("/")
+        .slice(0, -1)
+        .join("/")
     const folders = []
-    const addFolder = f => { if (f && !folders.includes(f)) folders.push(f) }
+    const addFolder = f => {
+      if (f && !folders.includes(f)) folders.push(f)
+    }
     addFolder(folderOf(ev.fonte))
     ;(ev._turmas || []).forEach(t => addFolder(folderOf(t.fonte)))
     try {
       const man = await fetch("assets/docs/relatorios/manifest.json", { cache: "no-cache" }).then(r => (r.ok ? r.json() : null))
-      const ids = new Set([id, ...((ev._turmas || []).map(t => t.id))])
-      ;(man?.planilhas || []).forEach(p => { if (ids.has(p.id)) addFolder(folderOf(p.arquivo)) })
+      const ids = new Set([id, ...(ev._turmas || []).map(t => t.id)])
+      ;(man?.planilhas || []).forEach(p => {
+        if (ids.has(p.id)) addFolder(folderOf(p.arquivo))
+      })
     } catch (_) {}
 
     if (!folders.length) {
@@ -5005,26 +5663,35 @@ function titleCase(s) {
 // Cada termo pode ser uma palavra-base ou expressão; usamos match por contém.
 // Importante: o primeiro grupo cujos termos casarem com a resposta "ganha".
 const SEMANTIC_GROUPS = [
-  { label: "Palestrante / Mediação",       terms: ["palestrant", "mediad", "instrut", "professor", "facilitad", "ministr", "convidad", "expositor"] },
-  { label: "Conteúdo / Material",          terms: ["conteud", "materia", "apostil", "tema", "assunt", "abordage", "infor"] },
-  { label: "Organização do evento",        terms: ["organiz", "planejament", "coordena", "logístic", "logistic"] },
-  { label: "Duração / Carga horária",      terms: ["duraç", "duracao", "tempo", "horári", "horario", "carga", "longo", "curto", "estendid"] },
-  { label: "Estrutura / Local",            terms: ["estrutura", "local", "espaço", "espaco", "ambient", "ar-condicion", "ar condicion", "audio", "som", "som ", "iluminaç", "iluminac", "sala"] },
-  { label: "Dinâmica / Participação",      terms: ["dinâmic", "dinamic", "interaç", "interac", "particip", "engajament", "atividade", "exercíc", "exercic", "prátic", "pratic"] },
-  { label: "Alimentação / Coquetel",       terms: ["alimentaç", "alimentac", "coquet", "lanche", "café", "cafe", "comida", "bebida", "refeiç", "refeic"] },
-  { label: "Aplicabilidade / Rotina",      terms: ["aplicabilid", "aplicaç", "aplicac", "prátic", "pratic", "rotina", "dia a dia", "uso real"] },
-  { label: "Mais eventos / Frequência",    terms: ["mais event", "mais frequ", "frequenc", "frequên", "regular", "periodic", "mais cursos", "mais capacit"] },
-  { label: "Divulgação / Público",         terms: ["divulgaç", "divulgac", "públic", "public ", "convite", "convocaç", "convocac", "comunic"] },
-  { label: "Liderança / Gestão",           terms: ["liderança", "lideranca", "lider", "gestão de pesso", "gestao de pesso", "chef"] },
-  { label: "Saúde mental / Bem-estar",     terms: ["saúde mental", "saude mental", "bem estar", "bem-estar", "autocuid", "estresse", "ansied", "burnout", "qualidade de vida"] },
-  { label: "Ética / Serviço público",      terms: ["étic", "etic", "moral", "integridad", "conduta", "serviç", "servic público", "servidor"] },
-  { label: "Comunicação / Atendimento",    terms: ["comunicaç", "comunicac", "atend", "oratóri", "oratoria", "escuta", "diál"] },
-  { label: "Inovação / Tecnologia",        terms: ["inovaç", "inovac", "tecnologi", "digital", "inteligência artif", "ia ", "transformaç digital"] },
-  { label: "Legislação / Normas",          terms: ["legislaç", "legislac", "lei ", "norma", "regulamen", "decret", "estatut"] },
-  { label: "Financeiro / Orçamento",       terms: ["financeir", "orçament", "orcament", "tribut", "fiscal", "contábil", "contabil", "tesourar"] },
-  { label: "Diversidade / Inclusão",       terms: ["diversidad", "inclus", "raça", "raca", "gênero", "genero", "lgbt", "pcd", "acessib", "equidade"] },
-  { label: "Compras / Licitação",          terms: ["compras", "licitaç", "licitac", "contrataç", "pregão", "pregao"] },
-  { label: "Avaliação / Indicadores",      terms: ["avaliaç", "indicad", "métric", "metric", "kpi", "monitorament"] }
+  { label: "Palestrante / Mediação", terms: ["palestrant", "mediad", "instrut", "professor", "facilitad", "ministr", "convidad", "expositor"] },
+  { label: "Conteúdo / Material", terms: ["conteud", "materia", "apostil", "tema", "assunt", "abordage", "infor"] },
+  { label: "Organização do evento", terms: ["organiz", "planejament", "coordena", "logístic", "logistic"] },
+  { label: "Duração / Carga horária", terms: ["duraç", "duracao", "tempo", "horári", "horario", "carga", "longo", "curto", "estendid"] },
+  {
+    label: "Estrutura / Local",
+    terms: ["estrutura", "local", "espaço", "espaco", "ambient", "ar-condicion", "ar condicion", "audio", "som", "som ", "iluminaç", "iluminac", "sala"]
+  },
+  {
+    label: "Dinâmica / Participação",
+    terms: ["dinâmic", "dinamic", "interaç", "interac", "particip", "engajament", "atividade", "exercíc", "exercic", "prátic", "pratic"]
+  },
+  { label: "Alimentação / Coquetel", terms: ["alimentaç", "alimentac", "coquet", "lanche", "café", "cafe", "comida", "bebida", "refeiç", "refeic"] },
+  { label: "Aplicabilidade / Rotina", terms: ["aplicabilid", "aplicaç", "aplicac", "prátic", "pratic", "rotina", "dia a dia", "uso real"] },
+  { label: "Mais eventos / Frequência", terms: ["mais event", "mais frequ", "frequenc", "frequên", "regular", "periodic", "mais cursos", "mais capacit"] },
+  { label: "Divulgação / Público", terms: ["divulgaç", "divulgac", "públic", "public ", "convite", "convocaç", "convocac", "comunic"] },
+  { label: "Liderança / Gestão", terms: ["liderança", "lideranca", "lider", "gestão de pesso", "gestao de pesso", "chef"] },
+  {
+    label: "Saúde mental / Bem-estar",
+    terms: ["saúde mental", "saude mental", "bem estar", "bem-estar", "autocuid", "estresse", "ansied", "burnout", "qualidade de vida"]
+  },
+  { label: "Ética / Serviço público", terms: ["étic", "etic", "moral", "integridad", "conduta", "serviç", "servic público", "servidor"] },
+  { label: "Comunicação / Atendimento", terms: ["comunicaç", "comunicac", "atend", "oratóri", "oratoria", "escuta", "diál"] },
+  { label: "Inovação / Tecnologia", terms: ["inovaç", "inovac", "tecnologi", "digital", "inteligência artif", "ia ", "transformaç digital"] },
+  { label: "Legislação / Normas", terms: ["legislaç", "legislac", "lei ", "norma", "regulamen", "decret", "estatut"] },
+  { label: "Financeiro / Orçamento", terms: ["financeir", "orçament", "orcament", "tribut", "fiscal", "contábil", "contabil", "tesourar"] },
+  { label: "Diversidade / Inclusão", terms: ["diversidad", "inclus", "raça", "raca", "gênero", "genero", "lgbt", "pcd", "acessib", "equidade"] },
+  { label: "Compras / Licitação", terms: ["compras", "licitaç", "licitac", "contrataç", "pregão", "pregao"] },
+  { label: "Avaliação / Indicadores", terms: ["avaliaç", "indicad", "métric", "metric", "kpi", "monitorament"] }
 ]
 
 // Tenta encaixar um texto normalizado em um dos grupos semânticos curados.
@@ -5069,9 +5736,7 @@ function extractThemes(responses, max = 10) {
 
   // Limpa, descarta vazios e respostas-fantasma ("não", "nenhum", "tudo bom")
   const SKIP = /^(n[ãa]o|nenhum[ao]?|nd|nada|tudo (bom|ok|certo)|sem (coment|sugest|opini)|ok)\.?\s*$/i
-  const clean = responses
-    .map(r => String(r || "").trim())
-    .filter(r => r.length >= 3 && !SKIP.test(r))
+  const clean = responses.map(r => String(r || "").trim()).filter(r => r.length >= 3 && !SKIP.test(r))
 
   if (!clean.length) return []
 
@@ -5099,7 +5764,10 @@ function extractThemes(responses, max = 10) {
     let bestSim = 0
     for (const c of clusters) {
       const s = jaccard(c.tokens, tokens)
-      if (s > bestSim) { best = c; bestSim = s }
+      if (s > bestSim) {
+        best = c
+        bestSim = s
+      }
     }
     if (best && bestSim >= 0.34) {
       best.value += 1
@@ -5117,7 +5785,10 @@ function extractThemes(responses, max = 10) {
     const bigCounts = new Map()
     const uniCounts = new Map()
     c.samples.forEach(s => {
-      const words = normalizeText(s).split(" ").map(lemmatize).filter(w => w.length >= 4 && !PT_STOPWORDS.has(w))
+      const words = normalizeText(s)
+        .split(" ")
+        .map(lemmatize)
+        .filter(w => w.length >= 4 && !PT_STOPWORDS.has(w))
       const seenB = new Set()
       for (let i = 0; i < words.length - 1; i++) {
         const bg = words[i] + " " + words[i + 1]
@@ -5127,10 +5798,19 @@ function extractThemes(responses, max = 10) {
       }
       new Set(words).forEach(w => uniCounts.set(w, (uniCounts.get(w) || 0) + 1))
     })
-    let best = null, bestC = 0
-    for (const [k, v] of bigCounts) if (v > bestC) { best = k; bestC = v }
+    let best = null,
+      bestC = 0
+    for (const [k, v] of bigCounts)
+      if (v > bestC) {
+        best = k
+        bestC = v
+      }
     if (best && bestC >= 1) return titleCase(best)
-    for (const [k, v] of uniCounts) if (v > bestC) { best = k; bestC = v }
+    for (const [k, v] of uniCounts)
+      if (v > bestC) {
+        best = k
+        bestC = v
+      }
     return best ? titleCase(best) : "Outros"
   }
 
@@ -5142,9 +5822,7 @@ function extractThemes(responses, max = 10) {
     out.push({ label: labelForCluster(c), value: c.value, samples: c.samples })
   }
 
-  return out
-    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
-    .slice(0, max)
+  return out.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label)).slice(0, max)
 }
 
 // ---------------- Geração do PDF ----------------
@@ -5210,12 +5888,13 @@ async function loadBrandAssets() {
     })
   }
   // Lê as dimensões naturais da imagem - essencial para manter aspect ratio.
-  const getDims = (dataUrl) => new Promise(res => {
-    const img = new Image()
-    img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight, ratio: img.naturalWidth / img.naturalHeight })
-    img.onerror = () => res({ w: 1, h: 1, ratio: 1 })
-    img.src = dataUrl
-  })
+  const getDims = dataUrl =>
+    new Promise(res => {
+      const img = new Image()
+      img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight, ratio: img.naturalWidth / img.naturalHeight })
+      img.onerror = () => res({ w: 1, h: 1, ratio: 1 })
+      img.src = dataUrl
+    })
 
   const [egovLogo, comboLogo, brasao, hero] = await Promise.all([
     toDataUrl("assets/img/marca/egov-logo.png"),
@@ -5223,11 +5902,12 @@ async function loadBrandAssets() {
     toDataUrl("assets/img/marca/pl-brasao.png"),
     toDataUrl("assets/img/marca/hero-gradient.png")
   ])
-  const [egovLogoDims, comboLogoDims, brasaoDims, heroDims] = await Promise.all([
-    getDims(egovLogo), getDims(comboLogo), getDims(brasao), getDims(hero)
-  ])
+  const [egovLogoDims, comboLogoDims, brasaoDims, heroDims] = await Promise.all([getDims(egovLogo), getDims(comboLogo), getDims(brasao), getDims(hero)])
   _brandAssetsCache = {
-    egovLogo, comboLogo, brasao, hero,
+    egovLogo,
+    comboLogo,
+    brasao,
+    hero,
     dims: { egovLogo: egovLogoDims, comboLogo: comboLogoDims, brasao: brasaoDims, hero: heroDims }
   }
   return _brandAssetsCache
@@ -5256,11 +5936,21 @@ function buildEgovPptxMaster(pptx, brand, rodape = "Relatório") {
       // Faixa decorativa superior (gradient verde→azul do Modelo)
       { image: { x: 0, y: 0, w: 13.333, h: 0.55, data: brand.hero, sizing: { type: "cover", w: 13.333, h: 0.55 } } },
       // Texto institucional no header - sem brasão (evita distorção)
-      { text: { text: "Escola de Governo · Prefeitura Municipal de Pedro Leopoldo", options: { x: 0.5, y: 0, w: 12.333, h: 0.55, fontFace: "Calibri", fontSize: 12, bold: true, color: "1B2A4E", valign: "middle", align: "center" } } },
+      {
+        text: {
+          text: "Escola de Governo · Prefeitura Municipal de Pedro Leopoldo",
+          options: { x: 0.5, y: 0, w: 12.333, h: 0.55, fontFace: "Calibri", fontSize: 12, bold: true, color: "1B2A4E", valign: "middle", align: "center" }
+        }
+      },
       // Rodapé institucional centralizado
       { rect: { x: 0, y: 7.18, w: 13.333, h: 0.32, fill: { color: "F5F8FB" } } },
       { rect: { x: 0, y: 7.18, w: 13.333, h: 0.04, fill: { color: "4DAD33" } } },
-      { text: { text: rodape, options: { x: 0, y: 7.18, w: 13.333, h: 0.32, fontFace: "Calibri", fontSize: 10, color: "5A6B85", valign: "middle", align: "center" } } }
+      {
+        text: {
+          text: rodape,
+          options: { x: 0, y: 7.18, w: 13.333, h: 0.32, fontFace: "Calibri", fontSize: 10, color: "5A6B85", valign: "middle", align: "center" }
+        }
+      }
     ],
     slideNumber: { x: 12.75, y: 7.18, w: 0.5, h: 0.32, fontFace: "Calibri", fontSize: 10, color: "5A6B85" }
   })
@@ -5275,9 +5965,9 @@ function egovSlideTitle(slide, text) {
 // Paleta institucional Pedro Leopoldo / EGov (azul-marinho do brasão + verde
 // EGov + tons suaves do Modelo Apresentação)
 const EGOV_BRAND = {
-  navy: "1B2A4E",        // azul-marinho do brasão
+  navy: "1B2A4E", // azul-marinho do brasão
   navyLight: "243759",
-  green: "4DAD33",       // verde EGov
+  green: "4DAD33", // verde EGov
   greenLight: "82C56F",
   greenSoft: "DCEFD2",
   blueSoft: "E6EEF7",
@@ -5298,11 +5988,7 @@ function render3DPie(containerId, labels, valores, opts = {}) {
     host.innerHTML = `<div class="empty-state"><i class="fas fa-circle-info"></i><h3>Sem dados</h3><p>${opts.emptyMessage || "Nada para exibir."}</p></div>`
     return null
   }
-  const PALETA = opts.cores || [
-    "#1B2A4E", "#3B5BA5", "#5B9BD5", "#9DC3E6",
-    "#2F86C9", "#57C7E0", "#D69A1F", "#C0392B",
-    "#7E57C2", "#F0A35E"
-  ]
+  const PALETA = opts.cores || ["#1B2A4E", "#3B5BA5", "#5B9BD5", "#9DC3E6", "#2F86C9", "#57C7E0", "#D69A1F", "#C0392B", "#7E57C2", "#F0A35E"]
   const isDonut = (opts.tipo || "pie") === "donut"
   const options = {
     chart: {
@@ -5343,7 +6029,7 @@ function render3DPie(containerId, labels, valores, opts = {}) {
       enabled: true,
       style: { fontSize: "13px", fontWeight: 700, colors: ["#fff"] },
       dropShadow: { enabled: true, blur: 3, opacity: 0.6 },
-      formatter: (val) => `${val.toFixed(1).replace(".", ",")}%`
+      formatter: val => `${val.toFixed(1).replace(".", ",")}%`
     },
     legend: {
       position: opts.legendPosition || "right",
@@ -5360,10 +6046,12 @@ function render3DPie(containerId, labels, valores, opts = {}) {
         }
       }
     },
-    responsive: [{
-      breakpoint: 768,
-      options: { legend: { position: "bottom" } }
-    }]
+    responsive: [
+      {
+        breakpoint: 768,
+        options: { legend: { position: "bottom" } }
+      }
+    ]
   }
   const chart = new window.ApexCharts(host, options)
   chart.render()
@@ -5499,8 +6187,21 @@ async function renderRespostasRepetidasChart(titulo, repetidas, canvasW, canvasH
         },
         plugins: {
           legend: { display: false },
-          title: { display: true, text: titulo, font: { size: 15, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 14 } },
-          datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 13, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+          title: {
+            display: true,
+            text: titulo,
+            font: { size: 15, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 14 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "end",
+            offset: 6,
+            font: { weight: "bold", size: 13, family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            formatter: v => v
+          }
         }
       }
     },
@@ -6252,28 +6953,59 @@ async function generateSatisfacaoDocx() {
   // um gráfico de barras com os temas agrupados e o nº de menções, seguido de um
   // parágrafo analítico montado a partir dos próprios dados (sem inventar texto).
   const mencao = n => (n === 1 ? "menção" : "menções")
-  const listaMencoes = cats => cats.map(c => `${c.label} (${c.value} ${mencao(c.value)})`).join(", ").replace(/, ([^,]*)$/, " e $1")
+  const listaMencoes = cats =>
+    cats
+      .map(c => `${c.label} (${c.value} ${mencao(c.value)})`)
+      .join(", ")
+      .replace(/, ([^,]*)$/, " e $1")
 
   // Gera o gráfico de barras horizontais de um conjunto de temas, no mesmo
   // estilo do PPTX/PDF (eixo "Nº de menções", barras "graded", rótulos navy).
   const renderTemaChart = async (titulo, cats) => {
     if (!cats.length) return null
     const vals = cats.map(c => c.value)
-    return renderChartToImage("bar", {
-      data: { labels: cats.map(c => c.label), datasets: [{ data: vals, backgroundColor: modeloGradedColors(vals), borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.78 }] },
-      options: {
-        indexAxis: "y",
-        scales: {
-          x: { beginAtZero: true, suggestedMax: Math.max(...vals) + 1, title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
-          y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+    return renderChartToImage(
+      "bar",
+      {
+        data: {
+          labels: cats.map(c => c.label),
+          datasets: [{ data: vals, backgroundColor: modeloGradedColors(vals), borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.78 }]
         },
-        plugins: {
-          legend: { display: false },
-          title: { display: true, text: titulo, font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
-          datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 14, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+        options: {
+          indexAxis: "y",
+          scales: {
+            x: {
+              beginAtZero: true,
+              suggestedMax: Math.max(...vals) + 1,
+              title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+              ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+              grid: { color: MODELO_CHART.grid, drawBorder: false }
+            },
+            y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+          },
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: titulo,
+              font: { size: 18, weight: "bold", family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              padding: { bottom: 18 }
+            },
+            datalabels: {
+              anchor: "end",
+              align: "end",
+              offset: 6,
+              font: { weight: "bold", size: 14, family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              formatter: v => v
+            }
+          }
         }
-      }
-    }, 1200, Math.max(500, 140 + cats.length * 60))
+      },
+      1200,
+      Math.max(500, 140 + cats.length * 60)
+    )
   }
 
   // Monta uma seção de respostas abertas: heading "Gráfico N - ...", o gráfico
@@ -6379,9 +7111,21 @@ async function generateSatisfacaoPptx() {
   const s = state.autoReport
   const status = document.getElementById("arStatus")
   status.className = "auto-report-status"
-  if (!s.participantes) { status.classList.add("is-error"); status.textContent = "Faça upload da planilha de participantes."; return }
-  if (!s.pesquisa) { status.classList.add("is-error"); status.textContent = "Faça upload da pesquisa de satisfação."; return }
-  if (!window.PptxGenJS) { status.classList.add("is-error"); status.textContent = "Biblioteca PptxGenJS não carregou. Recarregue a página."; return }
+  if (!s.participantes) {
+    status.classList.add("is-error")
+    status.textContent = "Faça upload da planilha de participantes."
+    return
+  }
+  if (!s.pesquisa) {
+    status.classList.add("is-error")
+    status.textContent = "Faça upload da pesquisa de satisfação."
+    return
+  }
+  if (!window.PptxGenJS) {
+    status.classList.add("is-error")
+    status.textContent = "Biblioteca PptxGenJS não carregou. Recarregue a página."
+    return
+  }
   status.classList.remove("is-error")
   status.textContent = "Gerando apresentação..."
 
@@ -6395,7 +7139,11 @@ async function generateSatisfacaoPptx() {
   const naoAdquiridos = cap - inscritos
   const taxaPresenca = ((presentes / inscritos) * 100).toFixed(1).replace(".", ",")
   const criterios = s.pesquisa.criterios || []
-  if (!criterios.length) { status.classList.add("is-error"); status.textContent = "Pesquisa sem critérios numéricos detectados."; return }
+  if (!criterios.length) {
+    status.classList.add("is-error")
+    status.textContent = "Pesquisa sem critérios numéricos detectados."
+    return
+  }
   const respostas = s.pesquisa.respostas
   const destaque = s.pesquisa.recomendacao || criterios.reduce((a, b) => (a.media >= b.media ? a : b))
   const minMedia = Math.min(...criterios.map(c => c.media))
@@ -6405,64 +7153,155 @@ async function generateSatisfacaoPptx() {
 
   // Renderiza charts em PNG
   status.textContent = "Renderizando gráficos..."
-  const g1 = await renderChartToImage("bar", {
-    data: {
-      labels: ["Ingressos Disponibilizados", "Ingressos Adquiridos", "Presentes"],
-      datasets: [{ data: [cap, inscritos, presentes], backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueMid, MODELO_CHART.blueLighter], borderWidth: 0, barPercentage: 0.65, categoryPercentage: 0.7 }]
-    },
-    options: {
-      scales: {
-        y: { beginAtZero: true, title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted, precision: 0 }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
-        x: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text, maxRotation: 0, autoSkip: false }, grid: { display: false, drawBorder: false } }
+  const g1 = await renderChartToImage(
+    "bar",
+    {
+      data: {
+        labels: ["Ingressos Disponibilizados", "Ingressos Adquiridos", "Presentes"],
+        datasets: [
+          {
+            data: [cap, inscritos, presentes],
+            backgroundColor: [MODELO_CHART.navy, MODELO_CHART.blueMid, MODELO_CHART.blueLighter],
+            borderWidth: 0,
+            barPercentage: 0.65,
+            categoryPercentage: 0.7
+          }
+        ]
       },
-      plugins: {
-        legend: { display: false },
-        title: { display: true, text: "Participação no Evento", font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
-        datalabels: { anchor: "end", align: "top", font: { weight: "bold", size: 16, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Quantidade", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted, precision: 0 },
+            grid: { color: MODELO_CHART.grid, drawBorder: false }
+          },
+          x: {
+            ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text, maxRotation: 0, autoSkip: false },
+            grid: { display: false, drawBorder: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          title: {
+            display: true,
+            text: "Participação no Evento",
+            font: { size: 18, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 18 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "top",
+            font: { weight: "bold", size: 16, family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            formatter: v => v
+          }
+        }
       }
-    }
-  }, 1200, 700)
+    },
+    1200,
+    700
+  )
 
   const mediaVals = criterios.map(c => Number(c.media.toFixed(2)))
   const wrapL = (txt, max = 22) => {
-    const w = txt.split(/\s+/); const ls = [""]
-    w.forEach(x => { if ((ls[ls.length - 1] + " " + x).trim().length > max) ls.push(x); else ls[ls.length - 1] = (ls[ls.length - 1] + " " + x).trim() })
+    const w = txt.split(/\s+/)
+    const ls = [""]
+    w.forEach(x => {
+      if ((ls[ls.length - 1] + " " + x).trim().length > max) ls.push(x)
+      else ls[ls.length - 1] = (ls[ls.length - 1] + " " + x).trim()
+    })
     return ls.slice(0, 3)
   }
-  const g2 = await renderChartToImage("bar", {
-    data: { labels: criterios.map(c => wrapL(c.label)), datasets: [{ data: mediaVals, backgroundColor: modeloGradedColors(mediaVals), borderWidth: 0, barPercentage: 0.7, categoryPercentage: 0.75 }] },
-    options: {
-      indexAxis: "y",
-      scales: {
-        x: { beginAtZero: true, max: 5, title: { display: true, text: "Média (escala 1-5)", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { stepSize: 1, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
-        y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+  const g2 = await renderChartToImage(
+    "bar",
+    {
+      data: {
+        labels: criterios.map(c => wrapL(c.label)),
+        datasets: [{ data: mediaVals, backgroundColor: modeloGradedColors(mediaVals), borderWidth: 0, barPercentage: 0.7, categoryPercentage: 0.75 }]
       },
-      plugins: {
-        legend: { display: false },
-        title: { display: true, text: "Médias das Avaliações", font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
-        datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 14, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => Number(v).toFixed(2).replace(".", ",") }
-      }
-    }
-  }, 1200, Math.max(500, 130 + criterios.length * 70))
-
-  const renderCatPpt = async (titulo, cats) => {
-    if (!cats.length) return null
-    const vals = cats.map(c => c.value)
-    return renderChartToImage("bar", {
-      data: { labels: cats.map(c => c.label), datasets: [{ data: vals, backgroundColor: modeloGradedColors(vals), borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.78 }] },
       options: {
         indexAxis: "y",
         scales: {
-          x: { beginAtZero: true, suggestedMax: Math.max(...vals) + 1, title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text }, ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted }, grid: { color: MODELO_CHART.grid, drawBorder: false } },
+          x: {
+            beginAtZero: true,
+            max: 5,
+            title: { display: true, text: "Média (escala 1-5)", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+            ticks: { stepSize: 1, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+            grid: { color: MODELO_CHART.grid, drawBorder: false }
+          },
           y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
         },
         plugins: {
           legend: { display: false },
-          title: { display: true, text: titulo, font: { size: 18, weight: "bold", family: MODELO_CHART.font }, color: MODELO_CHART.navy, padding: { bottom: 18 } },
-          datalabels: { anchor: "end", align: "end", offset: 6, font: { weight: "bold", size: 14, family: MODELO_CHART.font }, color: MODELO_CHART.navy, formatter: v => v }
+          title: {
+            display: true,
+            text: "Médias das Avaliações",
+            font: { size: 18, weight: "bold", family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            padding: { bottom: 18 }
+          },
+          datalabels: {
+            anchor: "end",
+            align: "end",
+            offset: 6,
+            font: { weight: "bold", size: 14, family: MODELO_CHART.font },
+            color: MODELO_CHART.navy,
+            formatter: v => Number(v).toFixed(2).replace(".", ",")
+          }
         }
       }
-    }, 1200, Math.max(500, 140 + cats.length * 60))
+    },
+    1200,
+    Math.max(500, 130 + criterios.length * 70)
+  )
+
+  const renderCatPpt = async (titulo, cats) => {
+    if (!cats.length) return null
+    const vals = cats.map(c => c.value)
+    return renderChartToImage(
+      "bar",
+      {
+        data: {
+          labels: cats.map(c => c.label),
+          datasets: [{ data: vals, backgroundColor: modeloGradedColors(vals), borderWidth: 0, barPercentage: 0.72, categoryPercentage: 0.78 }]
+        },
+        options: {
+          indexAxis: "y",
+          scales: {
+            x: {
+              beginAtZero: true,
+              suggestedMax: Math.max(...vals) + 1,
+              title: { display: true, text: "Nº de menções", font: { family: MODELO_CHART.font, size: 13, weight: "600" }, color: MODELO_CHART.text },
+              ticks: { stepSize: 1, precision: 0, font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.textMuted },
+              grid: { color: MODELO_CHART.grid, drawBorder: false }
+            },
+            y: { ticks: { font: { family: MODELO_CHART.font, size: 12 }, color: MODELO_CHART.text }, grid: { display: false, drawBorder: false } }
+          },
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: titulo,
+              font: { size: 18, weight: "bold", family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              padding: { bottom: 18 }
+            },
+            datalabels: {
+              anchor: "end",
+              align: "end",
+              offset: 6,
+              font: { weight: "bold", size: 14, family: MODELO_CHART.font },
+              color: MODELO_CHART.navy,
+              formatter: v => v
+            }
+          }
+        }
+      },
+      1200,
+      Math.max(500, 140 + cats.length * 60)
+    )
   }
   const g3 = await renderCatPpt("Principais Pontos Altos", cAltos)
   const g4 = await renderCatPpt("O que pode ser melhorado?", cMelhor)
@@ -6487,9 +7326,30 @@ async function generateSatisfacaoPptx() {
   // Logo aspect ratio preservado - centralizada
   const s1LogoFit = fitAspect(brand.dims.comboLogo.ratio, 5.4, 1.4)
   s1.addImage({ data: brand.comboLogo, x: (13.333 - s1LogoFit.w) / 2, y: 0.9, w: s1LogoFit.w, h: s1LogoFit.h })
-  s1.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", { x: 1, y: 2.4, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, bold: true, color: EGOV_BRAND.navy, align: "center", charSpacing: 4 })
+  s1.addText("PREFEITURA MUNICIPAL DE PEDRO LEOPOLDO", {
+    x: 1,
+    y: 2.4,
+    w: 11.3,
+    h: 0.5,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 14,
+    bold: true,
+    color: EGOV_BRAND.navy,
+    align: "center",
+    charSpacing: 4
+  })
   s1.addShape("line", { x: 5.4, y: 3.0, w: 2.5, h: 0, line: { color: EGOV_BRAND.green, width: 2 } })
-  s1.addText("Relatório de Satisfação", { x: 1, y: 3.2, w: 11.3, h: 1.1, fontFace: EGOV_BRAND.font, fontSize: 48, bold: true, color: EGOV_BRAND.navy, align: "center" })
+  s1.addText("Relatório de Satisfação", {
+    x: 1,
+    y: 3.2,
+    w: 11.3,
+    h: 1.1,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 48,
+    bold: true,
+    color: EGOV_BRAND.navy,
+    align: "center"
+  })
   s1.addText(evento, { x: 1, y: 4.5, w: 11.3, h: 1, fontFace: EGOV_BRAND.font, fontSize: 26, italic: true, color: EGOV_BRAND.text, align: "center" })
   if (data) s1.addText(data, { x: 1, y: 5.7, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.textMuted, align: "center" })
   if (local) s1.addText(local, { x: 1, y: 6.15, w: 11.3, h: 0.5, fontFace: EGOV_BRAND.font, fontSize: 14, color: EGOV_BRAND.textMuted, align: "center" })
@@ -6498,7 +7358,15 @@ async function generateSatisfacaoPptx() {
   const s2 = pptx.addSlide({ masterName: "EGOV_MASTER" })
   egovSlideTitle(s2, "Visão Geral")
   const kpiBox = (slide, x, label, value, accent) => {
-    slide.addShape("roundRect", { x, y: 2.0, w: 2.8, h: 2.2, fill: { color: EGOV_BRAND.white }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.15 })
+    slide.addShape("roundRect", {
+      x,
+      y: 2.0,
+      w: 2.8,
+      h: 2.2,
+      fill: { color: EGOV_BRAND.white },
+      line: { color: EGOV_BRAND.blueSoft, width: 1 },
+      rectRadius: 0.15
+    })
     slide.addShape("rect", { x, y: 2.0, w: 2.8, h: 0.1, fill: { color: accent }, line: { color: accent, width: 0 } })
     slide.addText(String(value), { x, y: 2.25, w: 2.8, h: 1.2, fontFace: EGOV_BRAND.font, fontSize: 52, bold: true, color: accent, align: "center" })
     slide.addText(label, { x, y: 3.45, w: 2.8, h: 0.6, fontFace: EGOV_BRAND.font, fontSize: 15, color: EGOV_BRAND.textMuted, align: "center" })
@@ -6507,7 +7375,17 @@ async function generateSatisfacaoPptx() {
   kpiBox(s2, 3.7, "Presentes", presentes, EGOV_BRAND.green)
   kpiBox(s2, 6.7, "Ausentes", ausentes, "C0392B")
   kpiBox(s2, 9.7, "Taxa de presença", `${taxaPresenca}%`, EGOV_BRAND.navyLight)
-  s2.addText(`O evento foi avaliado por ${respostas} participantes através da pesquisa de satisfação.`, { x: 0.95, y: 5.5, w: 11.5, h: 0.6, fontFace: EGOV_BRAND.font, fontSize: 16, italic: true, color: EGOV_BRAND.text, align: "center" })
+  s2.addText(`O evento foi avaliado por ${respostas} participantes através da pesquisa de satisfação.`, {
+    x: 0.95,
+    y: 5.5,
+    w: 11.5,
+    h: 0.6,
+    fontFace: EGOV_BRAND.font,
+    fontSize: 16,
+    italic: true,
+    color: EGOV_BRAND.text,
+    align: "center"
+  })
 
   // ===== Slide 3: Gráfico 1 =====
   const s3 = pptx.addSlide({ masterName: "EGOV_MASTER" })
@@ -6522,15 +7400,26 @@ async function generateSatisfacaoPptx() {
   // ===== Slide 5: tabela Nota 4 / Nota 5 =====
   const s5 = pptx.addSlide({ masterName: "EGOV_MASTER" })
   egovSlideTitle(s5, "Distribuição de Notas Altas")
-  const tableRows = [[
-    { text: "Critério", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "left", fontFace: EGOV_BRAND.font, fontSize: 14 } },
-    { text: "Nota 4", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "center", fontFace: EGOV_BRAND.font, fontSize: 14 } },
-    { text: "Nota 5", options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "center", fontFace: EGOV_BRAND.font, fontSize: 14 } }
-  ]]
+  const tableRows = [
+    [
+      {
+        text: "Critério",
+        options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "left", fontFace: EGOV_BRAND.font, fontSize: 14 }
+      },
+      {
+        text: "Nota 4",
+        options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "center", fontFace: EGOV_BRAND.font, fontSize: 14 }
+      },
+      {
+        text: "Nota 5",
+        options: { bold: true, color: EGOV_BRAND.white, fill: { color: EGOV_BRAND.navy }, align: "center", fontFace: EGOV_BRAND.font, fontSize: 14 }
+      }
+    ]
+  ]
   criterios.forEach((c, i) => {
     const tot = Math.max(c.dist.total, 1)
-    const p4 = c.dist[4] ? ` (${((c.dist[4]/tot)*100).toFixed(1).replace(".", ",")}%)` : ""
-    const p5 = c.dist[5] ? ` (${((c.dist[5]/tot)*100).toFixed(1).replace(".", ",")}%)` : ""
+    const p4 = c.dist[4] ? ` (${((c.dist[4] / tot) * 100).toFixed(1).replace(".", ",")}%)` : ""
+    const p5 = c.dist[5] ? ` (${((c.dist[5] / tot) * 100).toFixed(1).replace(".", ",")}%)` : ""
     const bg = i % 2 === 0 ? EGOV_BRAND.white : EGOV_BRAND.bgSoft
     tableRows.push([
       { text: c.label, options: { fill: { color: bg }, color: EGOV_BRAND.text, fontFace: EGOV_BRAND.font, fontSize: 13 } },
@@ -6546,28 +7435,79 @@ async function generateSatisfacaoPptx() {
     const slide = pptx.addSlide({ masterName: "EGOV_MASTER" })
     egovSlideTitle(slide, titulo)
     slide.addImage({ data: img, x: 0.95, y: 1.7, w: 8.5, h: 5.1 })
-    slide.addShape("roundRect", { x: 9.65, y: 1.7, w: 3.15, h: 5.1, fill: { color: EGOV_BRAND.bgSoft }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.1 })
+    slide.addShape("roundRect", {
+      x: 9.65,
+      y: 1.7,
+      w: 3.15,
+      h: 5.1,
+      fill: { color: EGOV_BRAND.bgSoft },
+      line: { color: EGOV_BRAND.blueSoft, width: 1 },
+      rectRadius: 0.1
+    })
     slide.addText(narrativa, { x: 9.85, y: 1.85, w: 2.8, h: 4.9, fontFace: EGOV_BRAND.font, fontSize: 13, color: EGOV_BRAND.text, valign: "top" })
   }
-  if (g3) addChartSlide("Principais Pontos Altos", g3, `Os participantes destacaram ${cAltos.slice(0, 2).map(c => `${c.label} (${c.value} ${c.value === 1 ? "menção" : "menções"})`).join(" e ")} como os pontos altos do evento.`)
-  if (g4) addChartSlide("Oportunidades de Melhoria", g4, `A principal sugestão de melhoria foi ${cMelhor[0].label.toLowerCase()} (${cMelhor[0].value} ${cMelhor[0].value === 1 ? "menção" : "menções"}).`)
-  if (g5) addChartSlide("Sugestões para Próximas Ações", g5, `Há interesse predominante em ${cSugest.slice(0, 2).map(c => c.label).join(" e ")} como temas para futuras capacitações.`)
+  if (g3)
+    addChartSlide(
+      "Principais Pontos Altos",
+      g3,
+      `Os participantes destacaram ${cAltos
+        .slice(0, 2)
+        .map(c => `${c.label} (${c.value} ${c.value === 1 ? "menção" : "menções"})`)
+        .join(" e ")} como os pontos altos do evento.`
+    )
+  if (g4)
+    addChartSlide(
+      "Oportunidades de Melhoria",
+      g4,
+      `A principal sugestão de melhoria foi ${cMelhor[0].label.toLowerCase()} (${cMelhor[0].value} ${cMelhor[0].value === 1 ? "menção" : "menções"}).`
+    )
+  if (g5)
+    addChartSlide(
+      "Sugestões para Próximas Ações",
+      g5,
+      `Há interesse predominante em ${cSugest
+        .slice(0, 2)
+        .map(c => c.label)
+        .join(" e ")} como temas para futuras capacitações.`
+    )
 
   // ===== Slide final: conclusão =====
   const sN = pptx.addSlide({ masterName: "EGOV_MASTER" })
   egovSlideTitle(sN, "Conclusão")
-  sN.addShape("roundRect", { x: 0.95, y: 1.75, w: 11.4, h: 4.8, fill: { color: EGOV_BRAND.bgSoft }, line: { color: EGOV_BRAND.blueSoft, width: 1 }, rectRadius: 0.15 })
+  sN.addShape("roundRect", {
+    x: 0.95,
+    y: 1.75,
+    w: 11.4,
+    h: 4.8,
+    fill: { color: EGOV_BRAND.bgSoft },
+    line: { color: EGOV_BRAND.blueSoft, width: 1 },
+    rectRadius: 0.15
+  })
   sN.addShape("rect", { x: 0.95, y: 1.75, w: 0.12, h: 4.8, fill: { color: EGOV_BRAND.green } })
   const txt = [
-    { text: `O evento "${evento}" alcançou ${taxaPresenca}% de presença e médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala 1 a 5).`, options: { fontFace: EGOV_BRAND.font, fontSize: 18, color: EGOV_BRAND.text } },
+    {
+      text: `O evento "${evento}" alcançou ${taxaPresenca}% de presença e médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala 1 a 5).`,
+      options: { fontFace: EGOV_BRAND.font, fontSize: 18, color: EGOV_BRAND.text }
+    },
     { text: "\n\n", options: {} },
-    { text: `O critério "${destaque.label}" obteve o maior reconhecimento do público, consolidando a percepção positiva da iniciativa.`, options: { fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.text, italic: true } },
+    {
+      text: `O critério "${destaque.label}" obteve o maior reconhecimento do público, consolidando a percepção positiva da iniciativa.`,
+      options: { fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.text, italic: true }
+    },
     { text: "\n\n", options: {} },
-    { text: "Recomenda-se a continuidade e institucionalização desta linha de capacitação como ação estratégica da Escola de Governo.", options: { fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.navy, bold: true } }
+    {
+      text: "Recomenda-se a continuidade e institucionalização desta linha de capacitação como ação estratégica da Escola de Governo.",
+      options: { fontFace: EGOV_BRAND.font, fontSize: 16, color: EGOV_BRAND.navy, bold: true }
+    }
   ]
   sN.addText(txt, { x: 1.4, y: 2.05, w: 10.5, h: 4, valign: "top" })
 
-  const slug = (evento || "evento").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  const slug = (evento || "evento")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
   await pptx.writeFile({ fileName: `Relatorio Satisfacao - ${slug}.pptx` })
 
   status.classList.add("is-success")
