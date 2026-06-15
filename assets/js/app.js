@@ -174,10 +174,6 @@ const CERT_POS_BY_TEMPLATE = {
   "modelo-6": _defaultPos6
 }
 
-// Posição (fração 0-1) do CENTRO do código de validação impresso no rodapé.
-// Mesma posição para todos os modelos (ajustada via /cert-preview).
-const CERT_CODE_POS = { x: 0.742, y: 0.986 }
-
 // Escalas manuais de fonte por campo e por modelo. 1.0 = tamanho base.
 // Campos suportados: nome, curso, dia, mes, ano, carga. Persistido no
 // localStorage. Modelos 3 e 4 compartilham (edição em um aplica nos dois).
@@ -4455,10 +4451,9 @@ function drawCertificateInto(canvas, fields) {
   drawField("ano", String(fields.ano))
   drawField("carga", String(fields.carga))
 
-  // QR de validação no canto inferior direito (sem moldura) + o CÓDIGO do
-  // certificado em texto pequeno, posicionado por fração fixa (mesma posição
-  // para todos os modelos, ajustada no /cert-preview). O código também vira
-  // link clicável no PDF (ver _addCertLink). `fields.qr` = { img, codigo }.
+  // QR de validação no canto inferior direito (sem moldura). O código do
+  // certificado NÃO é impresso no documento; a validação se dá pelo QR (ou
+  // pelo link clicável no PDF, ver _addCertLink). `fields.qr` = { img, codigo }.
   if (fields.qr && fields.qr.img) {
     const margin = Math.round(w * 0.022)
     const qrSize = Math.round(w * 0.082)
@@ -4471,30 +4466,12 @@ function drawCertificateInto(canvas, fields) {
     const qrY = h - qrSize - margin
     const qr = _qrTransparent(fields.qr.img)
 
-    // Código em fonte pequena, centralizado na posição (fração) escolhida.
-    const pos = CERT_CODE_POS
-    const maxW = w * 0.92
-    let fs = w * 0.0066
-    c.font = `600 ${fs}px ${fontFamily}`
-    while (c.measureText(codigo).width > maxW && fs > 3) {
-      fs -= 0.5
-      c.font = `600 ${fs}px ${fontFamily}`
-    }
-    const tw = c.measureText(codigo).width
-    const cx = pos.x * w
-    const cy = pos.y * h
-
     c.save()
     c.drawImage(qr || fields.qr.img, qrX, qrY, qrSize, qrSize)
-    c.textAlign = "center"
-    c.textBaseline = "middle"
-    c.font = `600 ${fs}px ${fontFamily}`
-    c.fillStyle = "#ffffff"
-    c.fillText(codigo, cx, cy)
     c.restore()
 
-    // Retângulo (px) do código para virar link clicável no PDF.
-    fields.certLink = { url: linkUrl, x: cx - tw / 2, y: cy - fs / 2, w: tw, h: fs }
+    // Área do QR vira link clicável no PDF (validação por clique).
+    fields.certLink = { url: linkUrl, x: qrX, y: qrY, w: qrSize, h: qrSize }
   }
 }
 

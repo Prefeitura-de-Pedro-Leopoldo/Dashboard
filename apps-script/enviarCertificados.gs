@@ -11,7 +11,7 @@
 const FOLDER_ID         = '1Ld3y0gXo7Qzw0q2nUrff41IvaMCtlLYC';
 const SHEET_NAME        = 'Certificados';
 const MAX_SENDS_PER_RUN = 50;     // trava de seguranca por execucao
-const DRY_RUN           = true;   // true = simula, nao envia e-mails
+const DRY_RUN           = false;  // true = simula, nao envia e-mails
 const TEST_EMAIL        = 'lucelho.silva@pedroleopoldo.mg.gov.br';
 const PROJECT_NAME      = 'Escola de Governo · Prefeitura de Pedro Leopoldo';
 const EMAIL_SUBJECT     = 'Seu certificado de participação';
@@ -363,9 +363,11 @@ function doPost(e) {
     const rootFolder = DriveApp.getFolderById(FOLDER_ID);
     const folder    = obterOuCriarSubpasta_(rootFolder, nomeAba);
 
-    // Evita duplicatas: se ja existe arquivo com esse nome na subpasta, falha.
-    if (folder.getFilesByName(pdfName).hasNext()) {
-      return out({ ok: false, error: 'Arquivo ja existe no Drive: ' + nomeAba + '/' + pdfName });
+    // Reenvio: se ja existe arquivo com esse nome na subpasta, remove o antigo
+    // para que o anexo reflita a versao recem-gerada (template, QR, correcoes).
+    const existentes = folder.getFilesByName(pdfName);
+    while (existentes.hasNext()) {
+      existentes.next().setTrashed(true);
     }
 
     const bytes = Utilities.base64Decode(pdfBase64);
