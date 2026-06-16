@@ -343,8 +343,10 @@ export function renderEventDetail(ev) {
   const ocupTxt = ocup == null ? naTooltip(OCUP_SEM_DADOS) : pct(ocup);
   const vagasTxt = vagasVal == null ? naTooltip(OCUP_MOTIVO) : fmt(vagasVal);
 
-  // Curso multi-módulo: troca KPI "Vagas" pelo KPI "Aptos ao certificado"
-  const temModulos = ev.modulos && ev.modulos.M1 && ev.modulos.M2;
+  // Curso multi-módulo: troca KPI "Vagas" pelo KPI "Aptos ao certificado".
+  // Só quando TODOS os módulos ocorreram (modulosCompletos); com M2 "a definir"
+  // mantém o KPI de Vagas e não exibe aptidão ainda.
+  const temModulos = !!(ev.modulos && ev.modulos.M1 && ev.modulos.M2 && ev.modulosCompletos);
   const aptos = temModulos ? (ev.totalAptos ?? ev.totalPresentes) : null;
 
   return `
@@ -445,6 +447,8 @@ function renderModulosBreakdown(ev) {
   const inscritos = ev.totalInscritos || 0;
   const aptos = ev.totalAptos ?? ev.totalPresentes ?? 0;
   const naoAptos = Math.max(0, inscritos - aptos);
+  // Aptidão ao certificado só é calculada quando TODOS os módulos ocorreram.
+  const completos = ev.modulosCompletos !== false;
 
   const cards = entries.map((m, i) => {
     const tx = m.taxaPresenca ?? 0;
@@ -505,8 +509,9 @@ function renderModulosBreakdown(ev) {
         <h4><i class="fas fa-list-check"></i> Presença por módulo</h4>
         <span class="event-detail__modulos-sub">
           <i class="fas fa-circle-info"></i>
-          Considera-se <b>presente</b> quem compareceu a <b>todos os módulos</b> ·
-          <b class="green">${fmt(aptos)}</b> aptos · <b class="red">${fmt(naoAptos)}</b> não aptos
+          ${completos
+            ? `Considera-se <b>presente</b> quem compareceu a <b>todos os módulos</b> · <b class="green">${fmt(aptos)}</b> aptos · <b class="red">${fmt(naoAptos)}</b> não aptos`
+            : `Para o <b>certificado</b> é preciso comparecer a <b>todos os módulos</b>. A aptidão será calculada quando o <b>Módulo 2</b> ocorrer.`}
         </span>
       </div>
       <div class="event-detail__modulos-grid">${cards}</div>

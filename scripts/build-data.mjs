@@ -373,6 +373,45 @@ export function parsePlanilhaFromWorkbook(wb) {
 
 export function buildEvento(arquivo, meta, participantes) {
   const totalInscritos = participantes.length;
+
+  // Multi-módulo: a presença "vigente" (que alimenta o card) é a interseção dos
+  // módulos JÁ realizados; "apto" ao certificado exige TODOS os módulos. Enquanto
+  // um módulo não tem data nem check-in, ele fica pendente ("a definir") e não
+  // entra no cálculo — o card segue mostrando a presença dos módulos realizados
+  // (ex.: só o M1). `modulosCompletos` libera a aptidão quando todos ocorrerem.
+  const temModulosData = participantes.some(
+    (p) => p.presenteM1 !== null && p.presenteM1 !== undefined
+  );
+  let modulosCompletos = true;
+  let _m1Real = true, _m2Real = true;
+  if (temModulosData) {
+    const hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0);
+    const mm = Array.isArray(meta.modulos) ? meta.modulos : [];
+    const dataMod = (i) => (mm[i] && mm[i].date) ? new Date(mm[i].date + "T00:00:00") : null;
+    const realizado = (i, any) => {
+      if (any) return true;                       // já há check-in nesse módulo
+      const d = dataMod(i);
+      return !!(d && !isNaN(d) && d <= hoje0);     // ou a data do módulo já passou
+    };
+    _m1Real = realizado(0, participantes.some((p) => p.presenteM1));
+    _m2Real = realizado(1, participantes.some((p) => p.presenteM2));
+    modulosCompletos = _m1Real && _m2Real;
+    // `p.apto` (vindo do parser: coluna Apto explícita ou M1∩M2) já é a aptidão ao
+    // certificado e fica preservado. Aqui só ajustamos a presença VIGENTE: com
+    // todos os módulos realizados ela é a própria aptidão; com algum pendente, é a
+    // interseção apenas dos módulos já realizados (ex.: só o M1).
+    for (const p of participantes) {
+      if (modulosCompletos) {
+        p.presente = !!p.apto;
+      } else {
+        const flags = [];
+        if (_m1Real) flags.push(!!p.presenteM1);
+        if (_m2Real) flags.push(!!p.presenteM2);
+        p.presente = flags.length ? flags.every(Boolean) : false;
+      }
+    }
+  }
+
   const presentes = participantes.filter((p) => p.presente);
   const totalPresentes = presentes.length;
   const totalAusentes = totalInscritos - totalPresentes;
@@ -397,35 +436,28 @@ export function buildEvento(arquivo, meta, participantes) {
   let turmas = tally(participantes, (p) => p.turma);
   let turmasPresentes = tally(presentes, (p) => p.turma);
 
-  // Suporte a eventos multi-módulo: se a planilha tem colunas Check-in M1/M2,
-  // expõe stats por módulo e usa-os como "turmas" no gráfico
-  // (para reusar o pie/bar de turmas como pie/bar de módulos).
-  const temModulosData = participantes.some(
-    (p) => p.presenteM1 !== null && p.presenteM1 !== undefined
-  );
+  // Suporte a eventos multi-módulo: stats por módulo (reusa o bar de turmas como
+  // bar de módulos). Módulo PENDENTE ("a definir": sem data e sem check-in) entra
+  // zerado, sem taxa e com o rótulo sufixado "(a definir)".
   let modulos = null;
   let totalAptos = totalPresentes;
   if (temModulosData) {
     const presentesM1 = participantes.filter((p) => p.presenteM1).length;
     const presentesM2 = participantes.filter((p) => p.presenteM2).length;
-    totalAptos = participantes.filter((p) => p.apto).length;
+    // Aptidão (interseção de TODOS os módulos) só conta quando todos ocorrerem;
+    // enquanto pendente, "aptos" espelha a presença vigente para não enganar.
+    totalAptos = modulosCompletos ? participantes.filter((p) => p.apto).length : totalPresentes;
+    const modInfo = (idx, pad, pres, real) => ({
+      label: ((meta.modulos && meta.modulos[idx] && meta.modulos[idx].label) || pad) + (real ? "" : " (a definir)"),
+      date: (meta.modulos && meta.modulos[idx] && meta.modulos[idx].date) || null,
+      pendente: !real,
+      presentes: real ? pres : 0,
+      ausentes: real ? totalInscritos - pres : 0,
+      taxaPresenca: real && totalInscritos ? Math.round((pres / totalInscritos) * 1000) / 10 : null,
+    });
     modulos = {
-      M1: {
-        label: (meta.modulos && meta.modulos[0] && meta.modulos[0].label) || "Módulo 1",
-        date: (meta.modulos && meta.modulos[0] && meta.modulos[0].date) || null,
-        presentes: presentesM1,
-        ausentes: totalInscritos - presentesM1,
-        taxaPresenca: totalInscritos
-          ? Math.round((presentesM1 / totalInscritos) * 1000) / 10 : 0,
-      },
-      M2: {
-        label: (meta.modulos && meta.modulos[1] && meta.modulos[1].label) || "Módulo 2",
-        date: (meta.modulos && meta.modulos[1] && meta.modulos[1].date) || null,
-        presentes: presentesM2,
-        ausentes: totalInscritos - presentesM2,
-        taxaPresenca: totalInscritos
-          ? Math.round((presentesM2 / totalInscritos) * 1000) / 10 : 0,
-      },
+      M1: modInfo(0, "Módulo 1", presentesM1, _m1Real),
+      M2: modInfo(1, "Módulo 2", presentesM2, _m2Real),
     };
     // Sobrescreve turmas/turmasPresentes para o dashboard exibir módulos.
     turmas = { [modulos.M1.label]: totalInscritos, [modulos.M2.label]: totalInscritos };
@@ -485,6 +517,7 @@ export function buildEvento(arquivo, meta, participantes) {
     totalAptos,
     taxaPresenca,
     modulos,
+    modulosCompletos,
     turmas,
     turmasPresentes,
     secretarias,

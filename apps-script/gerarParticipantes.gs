@@ -21,6 +21,13 @@
  *   - Check-in = "Não"  caso contrário.
  *   - "Data de check-in" = carimbo (mais antigo) da pessoa na planilha Presentes.
  *
+ * Eventos MULTI-MÓDULO (M1/M2): se a entrada do evento no eventos-meta.json tem
+ * um array `modulos` (com a data de cada módulo), gera colunas "Check-in M1/M2"
+ * (+ "Data de check-in M1/M2") em vez de um "Check-in" único, atribuindo cada
+ * check-in da Presentes ao módulo cuja DATA bate com o carimbo. Módulo sem data
+ * ("a definir") fica vazio até a data ser definida e a turma ocorrer. No
+ * dashboard, apto ao certificado = compareceu a TODOS os módulos.
+ *
  * Quando gera: roda por gatilho de tempo (a cada 15 minutos) e só gera o
  * participantes.xlsx de um evento depois de passadas HORAS_APOS_EVENTO (3h) da
  * data/hora do evento (lida do eventos-meta.json publicado; se não houver meta,
@@ -115,7 +122,11 @@ function _processar(forcar) {
 
     try {
       const destino = _navegarSaida(rel, true); // cria a árvore de pastas se faltar
-      _gerarUm(destino, insc, pres, _acharSaida(destino));
+      // Evento multi-módulo (declarado no eventos-meta.json): gera colunas
+      // Check-in M1/M2 separando os check-ins pela DATA de cada módulo.
+      const m = meta[rel + '/' + NOME_SAIDA];
+      const modDates = (m && Array.isArray(m.modulos)) ? m.modulos.map(function (x) { return (x && x.date) ? x.date : null; }) : null;
+      _gerarUm(destino, insc, pres, _acharSaida(destino), modDates);
       Logger.log('✓ %s: participantes.xlsx gerado em relatórios.', rel);
       gerados++;
     } catch (e) {
@@ -155,38 +166,56 @@ function _acharSubpasta(folder, nome) {
 
 // ============ GERAÇÃO DE UM EVENTO ============
 
-function _gerarUm(folder, inscFile, presFile, existente) {
+function _gerarUm(folder, inscFile, presFile, existente, modDates) {
   // 1) Lê a Inscrição (base).
   const insc = _lerValores(inscFile);
   if (!insc.values.length) throw new Error('Inscrição vazia.');
   const inHeaders = insc.values[0].map(function (h) { return String(h).trim(); });
   const inIdx = _detectarColunas(inHeaders);
 
-  // 2) Lê a Presentes e monta os índices de presença (por e-mail e por nome),
-  //    guardando o carimbo (check-in) MAIS ANTIGO de cada pessoa.
-  const presIdx = _indicePresenca(presFile);
+  // Multi-módulo: o evento tem 2+ módulos declarados no eventos-meta.json. Cada
+  // check-in da Presentes é atribuído a um módulo pela DATA do carimbo. Um módulo
+  // sem data ("a definir") fica vazio até a data ser definida e a turma ocorrer.
+  const ehModulos = Array.isArray(modDates) && modDates.length >= 2;
 
-  // 3) Monta o cabeçalho de saída: copia o da Inscrição, renomeia a coluna de
-  //    carimbo para "Data de inscrição" e acrescenta "Check-in" + "Data de check-in".
+  // 2) Monta o cabeçalho de saída: copia o da Inscrição, renomeia a coluna de
+  //    carimbo para "Data de inscrição" e acrescenta as colunas de check-in.
   const outHeader = inHeaders.slice();
   if (inIdx.data >= 0) outHeader[inIdx.data] = 'Data de inscrição';
-  outHeader.push('Check-in', 'Data de check-in');
+  if (ehModulos) {
+    for (let i = 0; i < modDates.length; i++) {
+      outHeader.push('Check-in M' + (i + 1), 'Data de check-in M' + (i + 1));
+    }
+  } else {
+    outHeader.push('Check-in', 'Data de check-in');
+  }
+
+  // 3) Índices de presença (por e-mail e por nome), guardando o carimbo MAIS
+  //    ANTIGO de cada pessoa — por módulo no modo multi-módulo.
+  const presIdx = ehModulos ? _indicePresencaModulos(presFile, modDates) : _indicePresenca(presFile);
 
   const out = [outHeader];
 
-  // 4) Para cada inscrito, decide Check-in e Data de check-in.
+  // 4) Para cada inscrito, decide Check-in (por módulo, se for o caso).
   for (let r = 1; r < insc.values.length; r++) {
     const row = insc.values[r];
     const nome = inIdx.nome >= 0 ? String(row[inIdx.nome] || '').trim() : '';
     const email = inIdx.email >= 0 ? String(row[inIdx.email] || '').trim() : '';
     if (!nome && !email) continue; // linha vazia
 
-    const carimbo = _checkinDe(presIdx, nome, email); // Date ou null
-    const presente = !!carimbo;
-
     const novaLinha = row.slice();
-    novaLinha.push(presente ? 'Sim' : 'Não');
-    novaLinha.push(carimbo ? _fmtData(carimbo) : '');
+    if (ehModulos) {
+      const mods = _modulosDe(presIdx, nome, email, modDates.length); // [Date|sentinela|null]
+      for (let i = 0; i < modDates.length; i++) {
+        const c = mods[i];
+        novaLinha.push(c ? 'Sim' : 'Não');
+        novaLinha.push(c instanceof Date ? _fmtData(c) : '');
+      }
+    } else {
+      const carimbo = _checkinDe(presIdx, nome, email); // Date ou null
+      novaLinha.push(carimbo ? 'Sim' : 'Não');
+      novaLinha.push(carimbo ? _fmtData(carimbo) : '');
+    }
     out.push(novaLinha);
   }
 
@@ -245,6 +274,85 @@ function _checkinDe(presIdx, nome, email) {
     }
   }
   return null;
+}
+
+// ===== Presença por MÓDULO (eventos com Check-in M1/M2) =====
+
+// Índice de presença por módulo. Classifica cada linha da Presentes para um
+// módulo comparando a DATA do carimbo (yyyy-MM-dd) com a data de cada módulo
+// (modDates[i]). Se só UM módulo tem data, check-ins que não casam por data (ou
+// sem carimbo) caem nele. Guarda o carimbo MAIS ANTIGO por (pessoa, módulo).
+function _indicePresencaModulos(presFile, modDates) {
+  const dados = _lerValores(presFile);
+  const byEmail = {}, byName = {}, nameEntries = [];
+  if (!dados.values.length) return { byEmail: byEmail, byName: byName, nameEntries: nameEntries };
+
+  const headers = dados.values[0].map(function (h) { return String(h).trim(); });
+  const idx = _detectarColunas(headers);
+  const tz = Session.getScriptTimeZone();
+  const comData = modDates.filter(function (d) { return !!d; });
+  const unicoComData = comData.length === 1 ? modDates.indexOf(comData[0]) : -1;
+
+  for (let i = 1; i < dados.values.length; i++) {
+    const row = dados.values[i];
+    const nome = idx.nome >= 0 ? String(row[idx.nome] || '').trim() : '';
+    const email = idx.email >= 0 ? String(row[idx.email] || '').trim() : '';
+    if (!nome && !email) continue;
+    const carimbo = idx.data >= 0 ? _comoData(row[idx.data]) : null;
+
+    let mi = -1;
+    if (carimbo) {
+      const ymd = Utilities.formatDate(carimbo, tz, 'yyyy-MM-dd');
+      mi = modDates.indexOf(ymd);
+    }
+    if (mi < 0) mi = unicoComData; // sem casar e só há um módulo com data
+    if (mi < 0) continue;          // não classificável (vários módulos, data não bate)
+
+    if (email) _guardarModulo(byEmail, _norm(email), mi, carimbo);
+    if (nome) {
+      _guardarModulo(byName, _norm(nome), mi, carimbo);
+      const tokens = _tokensNome(nome);
+      if (tokens.length) nameEntries.push({ tokens: tokens, mi: mi, carimbo: carimbo });
+    }
+  }
+  return { byEmail: byEmail, byName: byName, nameEntries: nameEntries };
+}
+
+function _guardarModulo(map, chave, mi, carimbo) {
+  if (!chave) return;
+  if (!map[chave]) map[chave] = {};
+  const cur = map[chave][mi];
+  if (cur === undefined) { map[chave][mi] = carimbo || null; return; }
+  if (carimbo && (!cur || (cur instanceof Date && carimbo < cur))) map[chave][mi] = carimbo;
+}
+
+// Presença por módulo de uma pessoa: array de tamanho nMod com Date | sentinela
+// | null (ausente). Casa por e-mail, senão nome exato, senão nome aproximado.
+function _modulosDe(presIdx, nome, email, nMod) {
+  const out = [];
+  for (let i = 0; i < nMod; i++) out.push(null);
+  const ke = email ? _norm(email) : '', kn = nome ? _norm(nome) : '';
+
+  let src = null;
+  if (ke && Object.prototype.hasOwnProperty.call(presIdx.byEmail, ke)) src = presIdx.byEmail[ke];
+  else if (kn && Object.prototype.hasOwnProperty.call(presIdx.byName, kn)) src = presIdx.byName[kn];
+  if (src) {
+    for (const k in src) {
+      if (Object.prototype.hasOwnProperty.call(src, k)) out[k] = src[k] || _SENTINELA_PRESENTE;
+    }
+    return out;
+  }
+  // Fallback: nome aproximado (e-mail diferente + forma mais curta/longa do nome).
+  if (kn) {
+    const tks = _tokensNome(nome);
+    const entries = presIdx.nameEntries || [];
+    for (let j = 0; j < entries.length; j++) {
+      if (_mesmoNome(tks, entries[j].tokens)) {
+        out[entries[j].mi] = entries[j].carimbo || _SENTINELA_PRESENTE;
+      }
+    }
+  }
+  return out;
 }
 
 // Tokens normalizados (sem acento/maiúsculas) de um nome.
