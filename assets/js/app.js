@@ -501,6 +501,9 @@ async function reloadData(opts = {}) {
     hideSplash()
     // Turmas com inscrição aberta entram em 2º plano (não travam a tela).
     augmentInscricoesAbertas()
+    // Eventos abertos cuja data já chegou: tenta ler o participantes.xlsx ao vivo
+    // (promove para concluído sem novo build). Também em 2º plano.
+    augmentParticipantesRecentes()
   } catch (err) {
     hideLoader()
     hideSplash()
@@ -603,6 +606,68 @@ async function augmentInscricoesAbertas() {
     _reaplicarComInscricoes()
     refreshNotificacoes()
   } catch (_) {}
+}
+
+// Lê (em 2º plano) o participantes.xlsx AO VIVO de eventos abertos cuja data já
+// chegou (data <= hoje), via /api/participantes. Assim que o gerarParticipantes
+// grava o .xlsx com check-ins no Drive (3h após o evento), o card é "promovido"
+// de inscrição aberta para concluído SEM precisar de novo build/deploy. Eventos
+// que ainda não aconteceram têm só o placeholder vazio (hasData=false) e não são
+// alterados. Falha silenciosa.
+async function augmentParticipantesRecentes() {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+  const candidato = ev => {
+    const folder = pastaDeEvento(ev)
+    if (!folder) return null
+    const d = ev.date ? new Date(ev.date + "T00:00:00") : null
+    if (!d || isNaN(d) || d > hoje) return null            // futuro: pula (não impacta)
+    if ((ev.totalPresentes || 0) > 0) return null          // já tem presença (concluído)
+    if (!(ev.inscricaoAberta || ev.status === "agendado")) return null
+    return folder
+  }
+
+  // Pastas-alvo: eventos abertos (reais + sintéticos) com data já chegada.
+  const folders = new Set()
+  ;((state.dataRaw && state.dataRaw.eventos) || []).forEach(ev => { const f = candidato(ev); if (f) folders.add(f) })
+  ;(state.inscricoesAbertas || []).forEach(ev => { const f = candidato(ev); if (f) folders.add(f) })
+  if (!folders.size) return
+
+  // Funde um evento ao vivo no dataRaw (substitui por fonte; senão acrescenta).
+  const fundir = evento => {
+    if (!evento || !state.dataRaw) return false
+    const evs = state.dataRaw.eventos || (state.dataRaw.eventos = [])
+    const i = evs.findIndex(e => e.fonte === evento.fonte)
+    if (i >= 0) evs[i] = evento
+    else evs.push(evento)
+    return true
+  }
+
+  // Cache de sessão: aplica o que já foi visto antes (instantâneo no reload).
+  let aplicouCache = false
+  for (const folder of folders) {
+    try {
+      const c = JSON.parse(sessionStorage.getItem("egov_parts_" + folder) || "null")
+      if (c && c.fonte) aplicouCache = fundir(c) || aplicouCache
+    } catch (_) {}
+  }
+  if (aplicouCache) _reaplicarComInscricoes()
+
+  // Busca ao vivo em paralelo e funde quem tiver dados reais.
+  const resultados = await Promise.all([...folders].map(async folder => {
+    try {
+      const r = await fetch(`/api/participantes?folder=${encodeURIComponent(folder)}`)
+      const j = await r.json()
+      if (j && j.ok && j.hasData && j.evento) {
+        try { sessionStorage.setItem("egov_parts_" + folder, JSON.stringify(j.evento)) } catch (_) {}
+        return j.evento
+      }
+    } catch (_) {}
+    return null
+  }))
+
+  let mudou = false
+  for (const evento of resultados) if (evento) mudou = fundir(evento) || mudou
+  if (mudou) { _reaplicarComInscricoes(); refreshNotificacoes() }
 }
 
 function showDashboardSkeleton() {
