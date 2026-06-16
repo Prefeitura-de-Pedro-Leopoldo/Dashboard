@@ -4,6 +4,7 @@
  */
 export const state = {
   data: null,
+  participantesAoVivo: {}, // fonte -> evento lido ao vivo do participantes.xlsx (sobrepõe o estático a cada rebuild)
   view: "dashboard",
   _certTypoLinked: true, // padrão: manter proporções entre os campos
   _certDragEnabled: true, // padrão: arrasta-e-solta ligado

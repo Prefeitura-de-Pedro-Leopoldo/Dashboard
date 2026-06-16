@@ -540,8 +540,27 @@ function pastaDeEvento(ev) {
 // o sintético quando JÁ existe um evento real na mesma pasta. A filtragem é feita
 // AQUI (contra os dados vigentes), não na busca — assim um evento presente só no
 // estático ou só no ao vivo não "pisca e some" entre as duas fontes.
+// Sobrepõe os eventos lidos AO VIVO do participantes.xlsx (state.participantesAoVivo)
+// aos eventos crus: substitui por `fonte` (ou acrescenta se não existir no estático).
+// Aplicado a cada rebuild, então a promoção sobrevive a qualquer re-render/refetch.
+function _overlayParticipantesAoVivo(rawEventos) {
+  const ao = state.participantesAoVivo
+  const lista = rawEventos || []
+  if (!ao || !Object.keys(ao).length) return lista
+  const usados = new Set()
+  const out = lista.map(ev => {
+    const p = ev && ev.fonte && ao[ev.fonte]
+    if (p) { usados.add(ev.fonte); return p }
+    return ev
+  })
+  for (const fonte in ao) {
+    if (!usados.has(fonte)) out.push(ao[fonte])
+  }
+  return out
+}
+
 function _baseComInscricoes(rawEventos) {
-  const reais = rawEventos || []
+  const reais = _overlayParticipantesAoVivo(rawEventos)
   // Indexa os sintéticos (inscrições abertas) por pasta.
   const inscPorPasta = new Map()
   for (const s of state.inscricoesAbertas || []) {
@@ -627,18 +646,21 @@ async function augmentParticipantesRecentes() {
   }
 
   // Pastas-alvo: eventos abertos (reais + sintéticos) com data já chegada.
+  // Ignora os que já foram promovidos ao vivo (presentes vêm do overlay).
+  const promovidos = state.participantesAoVivo || (state.participantesAoVivo = {})
+  const jaPromovido = ev => ev && ev.fonte && promovidos[ev.fonte]
   const folders = new Set()
-  ;((state.dataRaw && state.dataRaw.eventos) || []).forEach(ev => { const f = candidato(ev); if (f) folders.add(f) })
-  ;(state.inscricoesAbertas || []).forEach(ev => { const f = candidato(ev); if (f) folders.add(f) })
+  const coletar = ev => { if (jaPromovido(ev)) return; const f = candidato(ev); if (f) folders.add(f) }
+  ;((state.dataRaw && state.dataRaw.eventos) || []).forEach(coletar)
+  ;(state.inscricoesAbertas || []).forEach(coletar)
   if (!folders.size) return
 
-  // Funde um evento ao vivo no dataRaw (substitui por fonte; senão acrescenta).
-  const fundir = evento => {
-    if (!evento || !state.dataRaw) return false
-    const evs = state.dataRaw.eventos || (state.dataRaw.eventos = [])
-    const i = evs.findIndex(e => e.fonte === evento.fonte)
-    if (i >= 0) evs[i] = evento
-    else evs.push(evento)
+  // Guarda o evento ao vivo em state.participantesAoVivo (chaveado por fonte). O
+  // overlay em _baseComInscricoes o reaplica a CADA rebuild, então sobrevive ao
+  // onLiveUpdate tardio do loadData (que troca state.dataRaw por um objeto novo).
+  const guardar = evento => {
+    if (!evento || !evento.fonte) return false
+    promovidos[evento.fonte] = evento
     return true
   }
 
@@ -647,12 +669,12 @@ async function augmentParticipantesRecentes() {
   for (const folder of folders) {
     try {
       const c = JSON.parse(sessionStorage.getItem("egov_parts_" + folder) || "null")
-      if (c && c.fonte) aplicouCache = fundir(c) || aplicouCache
+      if (c && c.fonte) aplicouCache = guardar(c) || aplicouCache
     } catch (_) {}
   }
   if (aplicouCache) _reaplicarComInscricoes()
 
-  // Busca ao vivo em paralelo e funde quem tiver dados reais.
+  // Busca ao vivo em paralelo e guarda quem tiver dados reais.
   const resultados = await Promise.all([...folders].map(async folder => {
     try {
       const r = await fetch(`/api/participantes?folder=${encodeURIComponent(folder)}`)
@@ -666,7 +688,7 @@ async function augmentParticipantesRecentes() {
   }))
 
   let mudou = false
-  for (const evento of resultados) if (evento) mudou = fundir(evento) || mudou
+  for (const evento of resultados) if (evento) mudou = guardar(evento) || mudou
   if (mudou) { _reaplicarComInscricoes(); refreshNotificacoes() }
 }
 
@@ -1302,7 +1324,7 @@ function renderEventBlock(ev) {
       <!-- Linha 2: Presença + (Por módulo | Distribuição por turma) -->
       <div class="grid-2">
         <div class="card">
-          <div class="card__header"><div><h3>${ev.modulos ? "Aptos ao certificado" : "Presença"}</h3><p>${ev.modulos ? "Compareceram a <b>todos os módulos</b> vs faltaram em pelo menos um." : "Compareceram vs faltaram."}</p></div></div>
+          <div class="card__header"><div><h3>${ev.modulos && ev.modulosCompletos ? "Aptos ao certificado" : "Presença"}</h3><p>${ev.modulos && ev.modulosCompletos ? "Compareceram a <b>todos os módulos</b> vs faltaram em pelo menos um." : "Compareceram vs faltaram."}</p></div></div>
           <div class="chart-wrap lg"><canvas id="chartEvDonut"></canvas></div>
         </div>
         <div class="card">
