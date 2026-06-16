@@ -21,7 +21,7 @@
  *   - Check-in = "Não"  caso contrário.
  *   - "Data de check-in" = carimbo (mais antigo) da pessoa na planilha Presentes.
  *
- * Quando gera: roda por gatilho de tempo (de hora em hora) e só gera o
+ * Quando gera: roda por gatilho de tempo (a cada 15 minutos) e só gera o
  * participantes.xlsx de um evento depois de passadas HORAS_APOS_EVENTO (3h) da
  * data/hora do evento (lida do eventos-meta.json publicado; se não houver meta,
  * usa o último check-in da Presentes como referência). Regera se as planilhas
@@ -498,7 +498,7 @@ function _fmtData(v) {
 
 // ============ GATILHO ============
 
-// Instala (uma vez) um gatilho de tempo que roda de hora em hora.
+// Instala (uma vez) um gatilho de tempo que roda a cada 15 minutos.
 function instalarGatilho() {
   const existentes = ScriptApp.getProjectTriggers();
   for (let i = 0; i < existentes.length; i++) {
@@ -506,6 +506,6 @@ function instalarGatilho() {
       ScriptApp.deleteTrigger(existentes[i]);
     }
   }
-  ScriptApp.newTrigger('gerarParticipantesPendentes').timeBased().everyHours(1).create();
-  Logger.log('Gatilho instalado: gerarParticipantesPendentes a cada 1 hora.');
+  ScriptApp.newTrigger('gerarParticipantesPendentes').timeBased().everyMinutes(15).create();
+  Logger.log('Gatilho instalado: gerarParticipantesPendentes a cada 15 minutos.');
 }

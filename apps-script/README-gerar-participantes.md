@@ -20,7 +20,7 @@ bater — cobre quem se inscreveu com e-mail diferente ou nome com erro de digit
 
 ## Quando gera
 
-- Roda por **gatilho de tempo (de hora em hora)**.
+- Roda por **gatilho de tempo (a cada 15 minutos)**.
 - Só gera depois de **3h após o evento TERMINAR** (`HORAS_APOS_EVENTO`). O fim =
   início (`date` + `time` do `eventos-meta.json`) **+ duração** (`cargaHoraria`),
   e ainda considera o **último check-in** da Presentes (usa o que for mais tarde).
