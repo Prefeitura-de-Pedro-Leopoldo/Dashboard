@@ -372,13 +372,7 @@ export function parsePlanilhaFromWorkbook(wb) {
 }
 
 export function buildEvento(arquivo, meta, participantes) {
-  // Inscritos pré-lançados: evento ainda SEM lista de presença real (placeholder
-  // ou planilha vazia) pode declarar um total de inscritos conhecido (ex.: contagem
-  // do formulário) via `inscritos` no eventos-meta.json. Quando a planilha real for
-  // preenchida, participantes.length passa a ter precedência automaticamente.
-  const inscritosOverride = Number(meta.inscritos);
-  const totalInscritos = participantes.length
-    || (Number.isFinite(inscritosOverride) && inscritosOverride > 0 ? inscritosOverride : 0);
+  const totalInscritos = participantes.length;
 
   // Multi-módulo: a presença "vigente" (que alimenta o card) é a interseção dos
   // módulos JÁ realizados; "apto" ao certificado exige TODOS os módulos. Enquanto
