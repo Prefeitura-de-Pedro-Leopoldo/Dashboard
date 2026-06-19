@@ -187,7 +187,10 @@ function detectHeaderRow(rows) {
   for (let i = 0; i < Math.min(15, rows.length); i++) {
     const r = rows[i] || [];
     const txt = r.map((c) => stripAccents(String(c || "")).toLowerCase().trim());
-    if (txt.some((c) => c === "nome") || txt.some((c) => c.includes("ordem de"))) return i;
+    // Aceita "Nome" e variantes como "Nome completo" (o participantes.xlsx gerado
+    // ao vivo copia o cabeçalho do formulário de Inscrição, que usa "Nome completo").
+    // `startsWith("nome")` não casa "sobrenome", então não há falso positivo.
+    if (txt.some((c) => c === "nome" || c.startsWith("nome ")) || txt.some((c) => c.includes("ordem de"))) return i;
   }
   return -1;
 }
