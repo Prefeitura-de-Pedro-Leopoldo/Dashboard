@@ -103,16 +103,39 @@ function _file(id) {
 // permissao de "conexoes externas" (UrlFetch) na 1a autorizacao apos publicar.
 const _XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 function _exportarXlsx(id) {
-  const url = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) +
+  const headers = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
+  // 1) Drive API v3 export: nao redireciona, ideal com bearer token.
+  const u1 = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) +
     '/export?mimeType=' + encodeURIComponent(_XLSX_MIME);
-  const resp = UrlFetchApp.fetch(url, {
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
-  });
-  if (resp.getResponseCode() !== 200) {
-    throw new Error('Falha ao exportar planilha como xlsx (HTTP ' + resp.getResponseCode() + ').');
+  const r1 = UrlFetchApp.fetch(u1, { headers: headers, muteHttpExceptions: true });
+  if (r1.getResponseCode() === 200) return r1.getBlob();
+  // 2) Fallback: export classico do Google Sheets (segue redirecionamento).
+  const u2 = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(id) + '/export?format=xlsx';
+  const r2 = UrlFetchApp.fetch(u2, { headers: headers, muteHttpExceptions: true, followRedirects: true });
+  if (r2.getResponseCode() === 200) return r2.getBlob();
+  throw new Error('Falha ao exportar planilha como xlsx (drive=' + r1.getResponseCode() + ', docs=' + r2.getResponseCode() + ').');
+}
+
+// Rode UMA vez no editor (selecione e Executar) DEPOIS de publicar. Usa
+// UrlFetchApp, então dispara o pedido de AUTORIZAÇÃO de "conexões externas"
+// (escopo script.external_request) — aceite em "Revisar permissões". Em seguida
+// localiza as planilhas Google de satisfacao/pesquisa e tenta exportar cada uma,
+// logando OK + bytes ou o erro exato. Veja em "Execuções" -> "Registros".
+function autorizarEExportarSatisfacao() {
+  const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
+  const out = [];
+  _walk(root, '', out);
+  const gs = out.filter(function (f) { return f.gsheet; });
+  Logger.log('Planilhas Google de satisfacao/pesquisa encontradas: %s', gs.length);
+  for (let i = 0; i < gs.length; i++) {
+    const f = gs[i];
+    try {
+      const blob = _exportarXlsx(f.id);
+      Logger.log('OK   "%s" -> %s bytes', f.path, blob.getBytes().length);
+    } catch (e) {
+      Logger.log('ERRO "%s": %s', f.path, e && e.message);
+    }
   }
-  return resp.getBlob();
 }
 
 // Nome (sem extensao) de planilha Google que e pesquisa de satisfacao: comeca
