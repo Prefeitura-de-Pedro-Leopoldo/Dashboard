@@ -233,6 +233,12 @@ export function renderEventCard(ev) {
 
 // ================ Course card (curso com turmas/módulos) ================
 
+// Inscrição em modo aberto, mas o Form foi fechado (manual ou lotação):
+// aceitandoInscricoes === false. Nesse caso o rótulo vira "encerradas".
+export const inscricaoFechada = (ev) => !!ev.inscricaoAberta && ev.aceitandoInscricoes === false;
+// Inscrição realmente RECEBENDO respostas (modo aberto E Form aceitando).
+export const inscricaoRecebendo = (ev) => !!ev.inscricaoAberta && ev.aceitandoInscricoes !== false;
+
 export const turmaLabel = (ev) => {
   const g = ev.grupo || {};
   let base;
@@ -240,7 +246,8 @@ export const turmaLabel = (ev) => {
   else if (g.modulo != null) base = `Módulo ${g.modulo}`;
   else if (g.turma != null) base = `Turma ${g.turma}`;
   else base = ev.title;
-  return ev.inscricaoAberta ? `${base} - Inscrições abertas` : base;
+  if (!ev.inscricaoAberta) return base;
+  return `${base} - Inscrições ${inscricaoFechada(ev) ? "encerradas" : "abertas"}`;
 };
 
 export function renderCourseCard(group) {
@@ -262,10 +269,12 @@ export function renderCourseCard(group) {
     const eocup = taxaOcupacao(e);
     const vagasInfo = e.vagas ? ` &middot; ${fmt(e.vagas)} vagas${eocup != null ? ` (${pct(eocup)} ocup.)` : ""}` : "";
     const meta = e.inscricaoAberta
-      ? `<span class="course-card__turma-tag"><i class="fas fa-user-plus"></i> Inscrições abertas</span>`
+      ? inscricaoFechada(e)
+        ? `<span class="course-card__turma-tag is-closed"><i class="fas fa-lock"></i> Inscrições encerradas</span>`
+        : `<span class="course-card__turma-tag"><i class="fas fa-user-plus"></i> Inscrições abertas</span>`
       : `${fmt(e.totalInscritos)} inscr.${e.totalPresentes ? " &middot; " + fmt(e.totalPresentes) + " pres." : ""}${etx != null ? " &middot; " + pct(etx) : ""}${vagasInfo}`;
     return `
-      <button type="button" class="course-card__turma${e.inscricaoAberta ? " is-open" : ""}" data-event="${e.id}" data-group="${escapeHtml(group.grupo.id)}">
+      <button type="button" class="course-card__turma${inscricaoRecebendo(e) ? " is-open" : ""}${inscricaoFechada(e) ? " is-closed" : ""}" data-event="${e.id}" data-group="${escapeHtml(group.grupo.id)}">
         <span class="course-card__turma-name">
           <i class="fas fa-chevron-right"></i> ${escapeHtml(turmaLabel(e))}
         </span>
@@ -278,7 +287,7 @@ export function renderCourseCard(group) {
   const ehModulo = evs.length > 0 && evs.every((e) => e.grupo && e.grupo.modulo != null);
   const unidade = ehModulo ? "módulo(s)" : "turma(s)";
   const unidadeCap = ehModulo ? "Módulos" : "Turmas";
-  const abertas = evs.filter((e) => e.inscricaoAberta).length;
+  const abertas = evs.filter((e) => inscricaoRecebendo(e)).length;
   // Botão Certificados aponta para uma turma realizada (tem arquivo de presença).
   const turmaCert = evs.find((e) => e.fonte && e.status === "realizado") || evs.find((e) => e.fonte && !e.inscricaoAberta);
 

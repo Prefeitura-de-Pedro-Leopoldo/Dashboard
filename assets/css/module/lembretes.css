@@ -173,6 +173,12 @@
   color: var(--brand-primary); font-weight: var(--fw-semibold);
 }
 .course-card__turma-tag i { font-size: 0.8em; }
+/* Inscrições encerradas (Form fechado): tom neutro, sem destaque de "aberto". */
+.course-card__turma.is-closed {
+  border-left: 3px solid var(--border-default);
+  background: var(--surface-muted, rgba(120,130,150,0.06));
+}
+.course-card__turma-tag.is-closed { color: var(--text-muted); }
 
 .event-detail--aberta { --tone-accent: var(--brand-primary); }
 .lemb-tag-aberta {
@@ -182,6 +188,8 @@
   font-size: var(--fs-xs); font-weight: var(--fw-bold);
 }
 .lemb-tag-aberta i { font-size: 0.85em; }
+/* Banner de detalhe quando o Form foi fechado: pílula neutra "encerradas". */
+.lemb-tag-aberta.is-closed { background: var(--text-muted, #6b7280); }
 
 /* ---- Seletor de turma (Consolidado / Turma 1 / Turma 2 / ...) ---- */
 .turma-switch {

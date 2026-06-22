@@ -44,7 +44,9 @@ import {
   renderParticipantsTable,
   renderEventsTable,
   renderSecretariasTable,
-  turmaLabel
+  turmaLabel,
+  inscricaoFechada,
+  inscricaoRecebendo
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
 import { chaveServidor, agregarServidores, classificarVinculo, taxaRetencao } from "./servidores.js"
@@ -575,7 +577,11 @@ function _baseComInscricoes(rawEventos) {
     if ((ev.totalInscritos || 0) > 0 || (ev.totalPresentes || 0) > 0) return ev
     const s = inscPorPasta.get(pastaDeEvento(ev))
     const n = (s && Number(s.totalInscritos)) || 0
-    return n > 0 ? { ...ev, totalInscritos: n, totalAprovados: n } : ev
+    if (n <= 0) return ev
+    const extra = { totalInscritos: n, totalAprovados: n }
+    // herda o estado do formulário (encerrado manualmente) do sintético
+    if (s && s.aceitandoInscricoes === false) extra.aceitandoInscricoes = false
+    return { ...ev, ...extra }
   })
   const pastasReais = new Set(reais.map(pastaDeEvento).filter(Boolean))
   const sinteticos = (state.inscricoesAbertas || []).filter(s => {
@@ -1213,7 +1219,7 @@ function renderViewEventos() {
     ? `
     <div class="turma-switch" role="tablist" aria-label="Selecionar turma">
       ${pill("", "Consolidado", !turmaSel, false)}
-      ${turmas.map(t => pill(t.id, turmaLabel(t), !!(turmaSel && turmaSel.id === t.id), !!t.inscricaoAberta)).join("")}
+      ${turmas.map(t => pill(t.id, turmaLabel(t), !!(turmaSel && turmaSel.id === t.id), inscricaoRecebendo(t))).join("")}
     </div>`
     : ""
 
@@ -1274,13 +1280,14 @@ function renderEventBlock(ev) {
 
   // Cabeçalho: turma aberta tem um banner próprio (sem KPIs de presença).
   const turmaTxt = ev.grupo && ev.grupo.turma != null ? `Turma ${ev.grupo.turma}` : ev.grupo && ev.grupo.modulo != null ? `Módulo ${ev.grupo.modulo}` : ""
+  const fechada = inscricaoFechada(ev)
   const headerHtml = aberta
     ? `<section class="event-detail event-detail--aberta" data-tone="scheduled">
         <header class="event-detail__head">
           <div class="event-detail__title-wrap">
             <h2 class="event-detail__title">${escapeHtml((ev.grupo && ev.grupo.titulo) || ev.title)}${turmaTxt ? " · " + escapeHtml(turmaTxt) : ""}</h2>
             <div class="event-detail__meta">
-              <span class="lemb-tag-aberta"><i class="fas fa-user-plus"></i> Inscrições abertas</span>
+              <span class="lemb-tag-aberta${fechada ? " is-closed" : ""}"><i class="fas ${fechada ? "fa-lock" : "fa-user-plus"}"></i> Inscrições ${fechada ? "encerradas" : "abertas"}</span>
               ${ev.pastaInscricao ? `<span title="${escapeHtml(ev.pastaInscricao)}"><i class="fas fa-folder-open"></i> ${escapeHtml(ev.pastaInscricao)}</span>` : ""}
             </div>
           </div>

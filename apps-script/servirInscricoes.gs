@@ -15,9 +15,12 @@
  * Vercel.
  *
  * Endpoints (GET):
- *   ?action=manifest&token=...            -> { ok, sheets:[{ folder, name, id, total }] }
+ *   ?action=manifest&token=...            -> { ok, sheets:[{ folder, name, id, total, aceitando }] }
  *        ("total" = nº de inscritos da planilha; usado pelo painel para avisar
- *         "inscrições lotadas". É null se a planilha não pôde ser lida.)
+ *         "inscrições lotadas". É null se a planilha não pôde ser lida.
+ *         "aceitando" = true/false se o Form vinculado ainda aceita respostas
+ *         (usado pelo painel para mostrar "inscrições encerradas" quando o Form
+ *         foi fechado manualmente). É null se não há form vinculado ou erro.)
  *   ?action=inscritos&token=...&path=<pasta do evento>
  *   ?action=inscritos&token=...&id=<sheetId>
  *        -> { ok, folder, sheetId, headers, total, inscritos:[{nome,email,dataInscricao}], atualizadoEm }
@@ -85,11 +88,14 @@ function _varrerPasta(folder, prefixo, out, depth) {
   while (files.hasNext()) {
     const f = files.next();
     if (f.getMimeType() === MimeType.GOOGLE_SHEETS && _ehInscricao(f.getName())) {
-      // total = nº de inscritos (para o painel avisar "lotado"). Se falhar a
-      // leitura de uma planilha, segue com total=null sem quebrar o manifesto.
-      var total = null;
+      // total = nº de inscritos (para o painel avisar "lotado"). aceitando =
+      // se o Form vinculado ainda aceita respostas (para o painel mostrar
+      // "encerradas" quando fechado manualmente). Falha de leitura não quebra
+      // o manifesto: segue com total/aceitando = null.
+      var total = null, aceitando = null;
       try { total = _lerInscricao(f).total; } catch (e) { total = null; }
-      out.push({ folder: prefixo, name: f.getName(), id: f.getId(), total: total });
+      try { aceitando = _formAceitando(f.getId()); } catch (e) { aceitando = null; }
+      out.push({ folder: prefixo, name: f.getName(), id: f.getId(), total: total, aceitando: aceitando });
     }
   }
   const subs = folder.getFolders();
@@ -147,6 +153,16 @@ function _presentesById(id) {
   const dados = _lerInscricao(file, false); // presença: 1 linha por encontro, não deduplica
   return { ok: true, sheetId: id, headers: dados.headers, total: dados.total,
            atualizadoEm: dados.atualizadoEm, presentes: dados.inscritos };
+}
+
+// Retorna true/false se o Google Form vinculado à planilha de respostas ainda
+// aceita respostas; null se a planilha não tem form vinculado (getFormUrl vazio)
+// ou se houve erro/sem permissão. Usado pelo painel para diferenciar "inscrições
+// abertas" de "encerradas" quando o Form é fechado manualmente.
+function _formAceitando(sheetId) {
+  var url = SpreadsheetApp.openById(sheetId).getFormUrl();
+  if (!url) return null;
+  return FormApp.openByUrl(url).isAcceptingResponses();
 }
 
 // ============ LEITURA DA PLANILHA ============
