@@ -134,7 +134,7 @@ function _presentesByPath(path) {
   }
   const file = _acharArquivo(folder, _ehPresente);
   if (!file) return { ok: false, error: 'Nenhuma planilha "Presente" nesta pasta.', reason: 'nopresente' };
-  const dados = _lerInscricao(file);
+  const dados = _lerInscricao(file, false); // presença: 1 linha por encontro, não deduplica
   // expõe como "presentes" mantendo nome/email/dataInscricao(=carimbo do check-in)
   return { ok: true, folder: segs.join('/'), sheetId: file.getId(),
            headers: dados.headers, total: dados.total, atualizadoEm: dados.atualizadoEm,
@@ -144,14 +144,19 @@ function _presentesByPath(path) {
 // Lê a planilha "Presente(s)" diretamente por ID.
 function _presentesById(id) {
   const file = DriveApp.getFileById(id);
-  const dados = _lerInscricao(file);
+  const dados = _lerInscricao(file, false); // presença: 1 linha por encontro, não deduplica
   return { ok: true, sheetId: id, headers: dados.headers, total: dados.total,
            atualizadoEm: dados.atualizadoEm, presentes: dados.inscritos };
 }
 
 // ============ LEITURA DA PLANILHA ============
 
-function _lerInscricao(file) {
+// dedup=true (inscrições): conta PESSOAS distintas por e-mail — uma pessoa = uma
+// vaga, então inscrições repetidas não inflam o total nem fecham o form antes da
+// hora. dedup=false (presenças): NÃO deduplica, pois a mesma pessoa aparece em
+// várias linhas (uma por encontro/dia, ex.: M1/M2) e cada linha é um check-in.
+function _lerInscricao(file, dedup) {
+  if (dedup === undefined) dedup = true;
   const ss = SpreadsheetApp.openById(file.getId());
   const sheet = ss.getSheets()[0]; // aba de respostas do Forms
   const range = sheet.getDataRange();
@@ -161,11 +166,17 @@ function _lerInscricao(file) {
   const headers = values[0].map(function (h) { return String(h).trim(); });
   const idx = _detectarColunas(headers);
   const inscritos = [];
+  const vistos = {}; // e-mails já contados (uma pessoa = uma vaga)
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     const email = idx.email >= 0 ? String(row[idx.email] || '').trim() : '';
     const nome  = idx.nome  >= 0 ? String(row[idx.nome]  || '').trim() : '';
     if (!email && !nome) continue; // pula linhas vazias
+    const chave = email.toLowerCase();
+    if (dedup && chave) {
+      if (vistos[chave]) continue; // inscrição repetida da mesma pessoa: ignora
+      vistos[chave] = true;
+    }
     inscritos.push({
       nome: nome,
       email: email,

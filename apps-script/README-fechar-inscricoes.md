@@ -12,7 +12,15 @@ respectivo evento, lida da **mesma fonte que o painel** — o campo `vagas` do
 `eventos-data.json`) de propósito: assim eventos **futuros** — que ainda não têm
 `participantes.xlsx`, mas já estão com inscrição aberta — também têm as vagas
 certas. Mudar as vagas é só editar o `eventos-meta.json` e publicar; nada para
-mexer no script. Eventos sem `vagas` definidas usam o `LIMITE_PADRAO`.
+mexer no script. **Sem `vagas` no meta, o form NÃO é fechado** (só registra um
+aviso no log): fechar por um número arbitrário poderia encerrar inscrições antes
+das vagas reais, então só fechamos com `vagas` explícitas.
+
+O total de inscritos conta **pessoas distintas (e-mail único)**, não linhas:
+inscrições repetidas da mesma pessoa ou linhas de teste não fecham o form antes
+de atingir as vagas reais. O casamento planilha↔evento tolera divergência de
+**ano/mês** na pasta (ex.: Drive `...-2026-06` x meta `...-2025-06`), casando
+pelo slug base quando ele é único.
 
 Como funciona: a cada 10 minutos varre as planilhas **"Inscrição"** (respostas
 dos Forms) na pasta de relatórios; baixa o `eventos-meta.json`, casa cada
@@ -30,7 +38,7 @@ Arquivo: `fecharInscricoesLotadas.gs` — é um **projeto Apps Script próprio**
    - `ROOT_FOLDER_ID` — pasta "relatorios" (a mesma do `confirmacaoInscricao.gs`).
    - `META_URL` — URL pública do `eventos-meta.json` (padrão já aponta para o
      deploy: `…/assets/docs/relatorios/eventos-meta.json`).
-   - `LIMITE_PADRAO` — fallback só para eventos sem `vagas` ou sem match.
+   - (Não há mais `LIMITE_PADRAO`: form sem `vagas` no meta não é fechado.)
    - `AVISO_PARA` — quem recebe o e-mail ao fechar (padrão: Fabiana).
      `AVISAR_EMAIL = false` desliga o aviso. Rode `avisarFechamentoTeste` para
      ver o visual do e-mail.
@@ -38,7 +46,9 @@ Arquivo: `fecharInscricoesLotadas.gs` — é um **projeto Apps Script próprio**
    permissões (Drive, Sheets, **Forms**, **Gmail**, **conexões externas/UrlFetch**).
    Veja em **Execuções → Registros**: cada form aparece como
    `"<pasta>": <inscritos>/<vagas> [evento "<id>"] | form: ABERTO | >>> FECHARIA`
-   (ou `(mantém)`). Nada é alterado e nenhum e-mail é enviado.
+   (ou `(mantém)`). Se aparecer `SEM match (não fecha)` em vez de `evento "<id>"`,
+   a pasta do Drive não casou com o meta — ajuste o nome da pasta ou a chave do
+   `eventos-meta.json`. Nada é alterado e nenhum e-mail é enviado.
 4. Com os números conferidos, troque para **`DRY_RUN = false`** e rode
    `instalarGatilhoFecharForms` **uma vez** (gatilho de 10 em 10 min).
 
@@ -50,10 +60,12 @@ Arquivo: `fecharInscricoesLotadas.gs` — é um **projeto Apps Script próprio**
 - O match planilha↔evento é pela **pasta**: a chave do meta (ex.:
   `comissao-recursal-2026-05/turma 1/participantes.xlsx`) tem o mesmo diretório
   da planilha "Inscrição" daquele evento. A comparação ignora acentos e
-  maiúsculas/minúsculas.
-- Se um form não casar com nenhum evento (ou o evento não tiver `vagas`), usa o
-  `LIMITE_PADRAO` — e o diagnóstico marca como `PADRÃO (sem match)`, para você
-  ajustar o `eventos-meta.json` se quiser.
+  maiúsculas/minúsculas, e **tolera o sufixo de data** (`-aaaa-mm`): se o ano/mês
+  da pasta do Drive divergir do meta, ainda casa pelo slug base, desde que ele
+  seja único.
+- Se um form não casar com nenhum evento (ou o evento não tiver `vagas`), o form
+  **não é fechado** e o diagnóstico marca como `SEM match (não fecha)`, para você
+  corrigir o nome da pasta ou o `eventos-meta.json`.
 
 ## Aviso por e-mail + notificação no painel
 
@@ -78,8 +90,9 @@ Arquivo: `fecharInscricoesLotadas.gs` — é um **projeto Apps Script próprio**
 - A planilha "Inscrição" tem de ser a **destinatária de respostas** do Form.
   Planilhas avulsas não têm form vinculado (`getFormUrl()` vazio) e são
   ignoradas com aviso.
-- O total conta **linhas com e-mail preenchido** (mesma regra do
-  `confirmacaoInscricao.gs`), para bater com o número do painel.
+- O total conta **pessoas distintas (e-mail único)**, não linhas: inscrições
+  repetidas da mesma pessoa ou linhas de teste não inflam o número nem fecham o
+  form cedo. Mesma regra do painel (`servirInscricoes.gs`).
 
 ## Observações
 

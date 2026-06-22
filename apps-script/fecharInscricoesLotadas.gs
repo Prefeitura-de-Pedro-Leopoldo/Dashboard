@@ -9,11 +9,17 @@
  *
  * VAGAS POR EVENTO (não é um número fixo): o limite de cada formulário vem da
  * MESMA fonte que o painel usa — o campo "vagas" do eventos-meta.json. O script
- * baixa esse JSON e casa cada planilha "Inscrição" com o evento pela PASTA.
- * Usar o eventos-meta.json (e não o eventos-data.json) garante que eventos
- * FUTUROS — que ainda não têm participantes.xlsx, mas já têm inscrição aberta —
- * também tenham as vagas corretas. Eventos sem "vagas" caem no LIMITE_PADRAO.
- * Assim, mudar as vagas é só editar o eventos-meta.json e publicar.
+ * baixa esse JSON e casa cada planilha "Inscrição" com o evento pela PASTA (com
+ * tolerância ao ano/mês da pasta, ver _vagasDaPasta). Usar o eventos-meta.json
+ * (e não o eventos-data.json) garante que eventos FUTUROS — que ainda não têm
+ * participantes.xlsx, mas já têm inscrição aberta — também tenham as vagas
+ * corretas. Assim, mudar as vagas é só editar o eventos-meta.json e publicar.
+ *
+ * IMPORTANTE: o form só fecha com "vagas" EXPLÍCITAS no meta. Se um formulário
+ * não casar com nenhum evento que tenha "vagas", ele NÃO é fechado (só registra
+ * um aviso no log) — fechar por um número arbitrário poderia encerrar inscrições
+ * ANTES das vagas reais. A contagem de inscritos é por PESSOA (e-mail único),
+ * então linhas duplicadas/de teste não fecham o form antes da hora.
  *
  * Por quê um script? O Google Forms não tem "fechar após N respostas" nativo.
  * Reaproveita a varredura de pastas do confirmacaoInscricao.gs (é um projeto
@@ -41,9 +47,10 @@ const ROOT_FOLDER_ID = '1Jfyl8jE70W05t8YydDvVMEzkqXZZ7QJK';
 // eventos futuros (inscrição aberta) que ainda não estão no eventos-data.json.
 const META_URL = 'https://egov-dashboard.vercel.app/assets/docs/relatorios/eventos-meta.json';
 
-// Fallback: usado só quando o evento não tem "vagas" definido (ou a planilha
-// não casa com nenhum evento). Deixe um número conservador.
-const LIMITE_PADRAO = 40;
+// Sem fallback numérico: se um formulário NÃO casar com um evento que tenha
+// "vagas" definidas no eventos-meta.json, o script NÃO fecha aquele form (só
+// registra um aviso no log). Fechar por um número arbitrário poderia encerrar
+// inscrições ANTES das vagas reais — por isso só fechamos com "vagas" explícitas.
 
 // Mensagem exibida a quem abrir o formulário já encerrado (deixe '' p/ manter
 // a mensagem padrão do Google Forms).
@@ -78,10 +85,15 @@ function fecharFormsLotados() {
     try { total = _contarInscritos(info.id); }
     catch (e) { Logger.log('ERRO lendo "%s": %s', info.folder, e && e.message); continue; }
 
-    const ev = vagasPorPasta[_normPath(info.folder)];
-    const limite = (ev && ev.vagas > 0) ? ev.vagas : LIMITE_PADRAO;
-    const origem = (ev && ev.vagas > 0) ? ('vagas do evento "' + ev.id + '"') : 'LIMITE_PADRAO';
+    const ev = _vagasDaPasta(vagasPorPasta, info.folder);
+    const limite = (ev && ev.vagas > 0) ? ev.vagas : 0; // 0 = vagas desconhecidas
     const titulo = (ev && ev.title) ? ev.title : info.folder;
+
+    if (!limite) { // sem "vagas" no meta -> NÃO fecha (evita encerrar antes da hora)
+      Logger.log('SEM vagas no meta para "%s" (%s inscritos) — mantém aberto. Defina "vagas" no eventos-meta.json para fechar automaticamente.', info.folder, total);
+      continue;
+    }
+    const origem = 'vagas do evento "' + ev.id + '"';
 
     if (total < limite) continue; // ainda tem vaga
 
@@ -230,17 +242,17 @@ function avisarFechamentoTeste() {
 // .xlsx" -> "comissao-recursal-2026-05/turma 1"), que é a mesma pasta da
 // planilha "Inscrição" daquele evento.
 function _mapaVagasPorPasta() {
-  const mapa = {};
+  const mapa = { exato: {}, base: {} };
   let dados;
   try {
     const resp = UrlFetchApp.fetch(META_URL, { muteHttpExceptions: true });
     if (resp.getResponseCode() !== 200) {
-      Logger.log('AVISO: %s respondeu %s — usando LIMITE_PADRAO para todos.', META_URL, resp.getResponseCode());
+      Logger.log('AVISO: %s respondeu %s — sem vagas; nenhum form será fechado.', META_URL, resp.getResponseCode());
       return mapa;
     }
     dados = JSON.parse(resp.getContentText());
   } catch (e) {
-    Logger.log('AVISO: falha ao buscar/ler %s (%s) — usando LIMITE_PADRAO para todos.', META_URL, e && e.message);
+    Logger.log('AVISO: falha ao buscar/ler %s (%s) — sem vagas; nenhum form será fechado.', META_URL, e && e.message);
     return mapa;
   }
   const eventos = (dados && dados.eventos) || {};
@@ -248,9 +260,32 @@ function _mapaVagasPorPasta() {
     const m = eventos[chave] || {};
     if (m.ignore) return; // entrada legada marcada como ignore
     const pasta = String(chave).split('/').slice(0, -1).join('/'); // tira "/participantes.xlsx"
-    mapa[_normPath(pasta)] = { vagas: Number(m.vagas) || 0, id: m.id || '', title: m.title || '' };
+    const norm = _normPath(pasta);
+    const reg = { vagas: Number(m.vagas) || 0, id: m.id || '', title: m.title || '' };
+    mapa.exato[norm] = reg;
+    // Índice tolerante: mesma pasta SEM o sufixo de data "-aaaa-mm" no fim. Cobre
+    // divergência de ANO/MÊS entre a pasta do Drive e a chave do meta (ex.: Drive
+    // "inteligencia-emocional-2026-06" x meta "...-2025-06"). Só vale se o slug
+    // base for ÚNICO; em caso de colisão, anula (não arrisca casar errado).
+    const base = norm.replace(/-\d{4}-\d{2}$/, '');
+    if (base !== norm) {
+      if (!(base in mapa.base)) mapa.base[base] = reg;
+      else mapa.base[base] = null; // colisão -> não confiar no fallback por base
+    }
   });
   return mapa;
+}
+
+// Resolve as vagas de uma pasta do Drive: tenta casar EXATO; se não, tenta pelo
+// slug base (sem o sufixo de data "-aaaa-mm"), o que tolera divergência de
+// ano/mês entre o Drive e o eventos-meta.json. Retorna null se não houver match
+// confiável (e, nesse caso, o form NÃO é fechado).
+function _vagasDaPasta(mapa, folder) {
+  const norm = _normPath(folder);
+  if (mapa.exato && mapa.exato[norm]) return mapa.exato[norm];
+  const base = norm.replace(/-\d{4}-\d{2}$/, '');
+  if (mapa.base && mapa.base[base]) return mapa.base[base];
+  return null;
 }
 
 // Normaliza um caminho de pasta para casar Drive x meta (sem acento, minúsculo,
@@ -262,8 +297,10 @@ function _normPath(p) {
 
 // ============ CONTAGEM DE INSCRITOS ============
 
-// Conta inscritos = linhas com e-mail preenchido (mesma regra de leitura do
-// confirmacaoInscricao.gs, para o número bater com o painel).
+// Conta inscritos = PESSOAS distintas com e-mail preenchido (e-mail único,
+// case-insensitive). Deduplicar evita que inscrições repetidas da mesma pessoa
+// ou linhas de teste fechem o form antes de atingir as vagas reais. Mesma regra
+// de "uma pessoa = uma vaga" que o painel usa (servirInscricoes._lerInscricao).
 function _contarInscritos(sheetId) {
   const values = SpreadsheetApp.openById(sheetId).getSheets()[0].getDataRange().getValues();
   if (values.length < 2) return 0;
@@ -272,12 +309,15 @@ function _contarInscritos(sheetId) {
   for (let i = 0; i < headers.length; i++) {
     if (headers[i].indexOf('mail') >= 0) { emailCol = i; break; }
   }
+  const vistos = {};
   let n = 0;
   for (let i = 1; i < values.length; i++) {
-    const email = emailCol >= 0
+    const email = (emailCol >= 0
       ? String(values[i][emailCol] || '').trim()
-      : String(values[i][1] || values[i][0] || '').trim();
-    if (email) n++;
+      : String(values[i][1] || values[i][0] || '').trim()).toLowerCase();
+    if (!email || vistos[email]) continue; // vazio ou mesma pessoa: não conta de novo
+    vistos[email] = true;
+    n++;
   }
   return n;
 }
@@ -326,8 +366,8 @@ function diagnosticarFormsLotados() {
   catch (e) { Logger.log('ERRO acessando ROOT_FOLDER_ID: ' + (e && e.message)); return; }
 
   const vagasPorPasta = _mapaVagasPorPasta();
-  Logger.log('Pasta raiz: "%s" | Eventos com vagas no meta: %s | LIMITE_PADRAO: %s | DRY_RUN: %s',
-    raiz, Object.keys(vagasPorPasta).length, LIMITE_PADRAO, DRY_RUN);
+  Logger.log('Pasta raiz: "%s" | Eventos com vagas no meta: %s | DRY_RUN: %s',
+    raiz, Object.keys(vagasPorPasta.exato).length, DRY_RUN);
 
   const sheets = _planilhasInscricao();
   Logger.log('Planilhas "Inscrição" encontradas: %s', sheets.length);
@@ -337,9 +377,9 @@ function diagnosticarFormsLotados() {
     let total = '?';
     try { total = _contarInscritos(info.id); } catch (e) { total = 'ERRO: ' + (e && e.message); }
 
-    const ev = vagasPorPasta[_normPath(info.folder)];
-    const limite = (ev && ev.vagas > 0) ? ev.vagas : LIMITE_PADRAO;
-    const origem = (ev && ev.vagas > 0) ? ('evento "' + ev.id + '"') : 'PADRÃO (sem match)';
+    const ev = _vagasDaPasta(vagasPorPasta, info.folder);
+    const limite = (ev && ev.vagas > 0) ? ev.vagas : 0;
+    const origem = (ev && ev.vagas > 0) ? ('evento "' + ev.id + '"') : 'SEM match (não fecha)';
 
     let estado = '';
     try {
@@ -351,10 +391,10 @@ function diagnosticarFormsLotados() {
       }
     } catch (e) { estado = 'ERRO form: ' + (e && e.message); }
 
-    const acao = (typeof total === 'number' && total >= limite && estado === 'ABERTO')
+    const acao = (typeof total === 'number' && limite > 0 && total >= limite && estado === 'ABERTO')
       ? '>>> FECHARIA' : '(mantém)';
     Logger.log('- "%s": %s/%s inscritos [%s] | form: %s | %s',
-      info.folder, total, limite, origem, estado, acao);
+      info.folder, total, (limite || '?'), origem, estado, acao);
   }
 }
 
