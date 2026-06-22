@@ -79,10 +79,16 @@ export default async function handler(req, res) {
         .then((d) => (d && d.ok && d.base64 ? Buffer.from(d.base64, "base64") : null))
         .catch(() => null);
 
-    // Baixa participantes + satisfação em paralelo.
+    // Satisfação é SECUNDÁRIA e mais cara (planilhas Google são exportadas como
+    // xlsx on-the-fly no Apps Script). Para não estourar os 30s e derrubar o
+    // endpoint (504), cada download de satisfação tem um teto de tempo: o que não
+    // chegar a tempo é ignorado (o build estático já cobre a satisfação completa).
+    const comTimeout = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);
+
+    // Baixa participantes (como antes) + satisfação (best-effort, com timeout).
     const [buffers, satBuffers] = await Promise.all([
       Promise.all(arquivos.map(baixar)),
-      Promise.all(satArquivos.map(baixar)),
+      Promise.all(satArquivos.map((f) => comTimeout(baixar(f), 12000))),
     ]);
 
     // Mapa pasta → satisfação já parseada.
