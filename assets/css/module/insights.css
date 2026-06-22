@@ -118,6 +118,16 @@
   white-space: nowrap;
   min-width: 0;
 }
+/* Chip-resumo "+N outro(s)": discreto, sem badge numérico. */
+.insight-chip--more {
+  padding: 4px 10px;
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-secondary);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-xs);
+  align-self: flex-start;
+}
 .insight-action {
   display: block;
   margin-top: 4px;

@@ -127,26 +127,33 @@ export function gerarInsightsGlobais(data) {
   if (comVagas.length) {
     const lotados = comVagas.filter((e) => taxaOcupacao(e) !== null && taxaOcupacao(e) >= 90);
     const vazios = comVagas.filter((e) => taxaOcupacao(e) !== null && taxaOcupacao(e) < 50);
-    if (lotados.length) {
-      const chips = lotados
+    // Limita os chips para o card não crescer sem fim: mostra os N mais
+    // relevantes (ordenados por ocupação) e resume o restante em "+N outro(s)".
+    const MAX_CHIPS = 5;
+    const chipsOcupacao = (arr, dir) => {
+      const ord = arr.slice().sort((a, b) => dir * (taxaOcupacao(a) - taxaOcupacao(b)));
+      const top = ord.slice(0, MAX_CHIPS);
+      const resto = ord.length - top.length;
+      const chips = top
         .map((e) => `<span class="insight-chip"><b>${pct(taxaOcupacao(e))}</b><span>${e.title}</span></span>`)
         .join("");
+      const mais = resto > 0 ? `<span class="insight-chip insight-chip--more">+${resto} outro(s)</span>` : "";
+      return chips + mais;
+    };
+    if (lotados.length) {
       out.push({
         type: "positive",
         icon: "fa-fire",
         title: "Alta procura (≥ 90%) Avaliar abrir vagas extras.",
-        html: `<div class="insight-chips">${chips}</div>`,
+        html: `<div class="insight-chips">${chipsOcupacao(lotados, -1)}</div>`,
       });
     }
     if (vazios.length) {
-      const chips = vazios
-        .map((e) => `<span class="insight-chip"><b>${pct(taxaOcupacao(e))}</b><span>${e.title}</span></span>`)
-        .join("");
       out.push({
         type: "warn",
         icon: "fa-chair",
         title: "Vagas ociosas (< 50%) Reforçar divulgação ou ajustar oferta.",
-        html: `<div class="insight-chips">${chips}</div>`,
+        html: `<div class="insight-chips">${chipsOcupacao(vazios, 1)}</div>`,
       });
     }
   }
