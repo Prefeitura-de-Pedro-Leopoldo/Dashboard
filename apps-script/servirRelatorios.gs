@@ -11,8 +11,15 @@
  * proprio. Espelha a estrutura de subpastas da pasta raiz.
  *
  * Endpoints (GET):
- *   ?action=manifest&token=...      -> { ok, files: [{ path, id, size }] }
+ *   ?action=manifest&token=...      -> { ok, files: [{ path, id, size, gsheet? }] }
  *   ?action=file&token=...&id=<id>  -> { ok, name, base64 }
+ *
+ * Google Sheets NATIVOS de satisfacao/pesquisa: alem dos .xlsx/.xls, o manifesto
+ * tambem lista planilhas Google (sem extensao) cujo nome comeca com "satisfacao"
+ * ou "pesquisa", expondo o path com ".xlsx" no fim. O action=file exporta essas
+ * planilhas como .xlsx on-the-fly (via Drive export). Assim o build e as APIs
+ * tratam a pesquisa do Google Forms (que vive como Google Sheets) igual a um
+ * arquivo .xlsx, sem precisar baixar/converter manualmente.
  */
 
 // ============ CONFIGURACOES ============
@@ -63,6 +70,12 @@ function _walk(folder, prefix, out) {
     const nome = f.getName();
     if (_temExtensao(nome)) {
       out.push({ path: prefix + nome, id: f.getId(), size: f.getSize() });
+    } else if (f.getMimeType() === MimeType.GOOGLE_SHEETS && _ehSatisfacaoNome(nome)) {
+      // Planilha Google nativa de satisfacao/pesquisa (sem extensao no nome):
+      // expoe como ".xlsx" para o build e as APIs tratarem como arquivo; o
+      // action=file exporta on-the-fly. Evita listar OUTROS Google Sheets
+      // (ex.: "Inscricao", "Presente") que nao sao pesquisa.
+      out.push({ path: prefix + nome + '.xlsx', id: f.getId(), size: 0, gsheet: true });
     }
   }
   const subs = folder.getFolders();
@@ -75,11 +88,40 @@ function _walk(folder, prefix, out) {
 function _file(id) {
   if (!id) return { ok: false, error: 'id ausente.' };
   const f = DriveApp.getFileById(id);
-  const blob = f.getBlob();
+  // Google Sheets nativo: exporta como .xlsx (getBlob() devolveria PDF). Demais
+  // arquivos (.xlsx/.xls reais): bytes diretos.
+  const blob = (f.getMimeType() === MimeType.GOOGLE_SHEETS)
+    ? _exportarXlsx(id)
+    : f.getBlob();
   return { ok: true, name: f.getName(), base64: Utilities.base64Encode(blob.getBytes()) };
 }
 
 // ============ HELPERS ============
+
+// Exporta uma planilha Google (id) como .xlsx via Drive export. Usa o token
+// OAuth do proprio script (escopo Drive, ja concedido pelo DriveApp). Requer a
+// permissao de "conexoes externas" (UrlFetch) na 1a autorizacao apos publicar.
+const _XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+function _exportarXlsx(id) {
+  const url = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) +
+    '/export?mimeType=' + encodeURIComponent(_XLSX_MIME);
+  const resp = UrlFetchApp.fetch(url, {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() !== 200) {
+    throw new Error('Falha ao exportar planilha como xlsx (HTTP ' + resp.getResponseCode() + ').');
+  }
+  return resp.getBlob();
+}
+
+// Nome (sem extensao) de planilha Google que e pesquisa de satisfacao: comeca
+// com "satisfacao" ou "pesquisa" (ignora acentos/maiusculas). Mesma regra do
+// build (mapaSatisfacao) e das APIs (ehSatisfacao).
+function _ehSatisfacaoNome(nome) {
+  const b = String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return b.indexOf('satisfacao') === 0 || b.indexOf('pesquisa') === 0;
+}
 
 function _temExtensao(nome) {
   const lower = String(nome).toLowerCase();
