@@ -67,14 +67,7 @@ export default async function handler(req, res) {
     if (!hit) return res.status(404).json({ ok: false, error: `Sem satisfacao na pasta "${folder}".` });
 
     const data = await getJson(`${WEBAPP_URL}?action=file&token=${encodeURIComponent(TOKEN)}&id=${encodeURIComponent(hit.id)}`);
-    if (!data.ok || !data.base64) {
-      return res.status(502).json({
-        ok: false,
-        error: "Falha ao baixar do Drive.",
-        upstream: (data && data.error) || null, // erro real do servirRelatorios (ex.: export do Google Sheet)
-        file: hit.rel,
-      });
-    }
+    if (!data.ok || !data.base64) return res.status(502).json({ ok: false, error: "Falha ao baixar do Drive." });
 
     const buf = Buffer.from(data.base64, "base64");
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
