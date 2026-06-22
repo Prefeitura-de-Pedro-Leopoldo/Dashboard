@@ -159,10 +159,26 @@ function _presentesById(id) {
 // aceita respostas; null se a planilha não tem form vinculado (getFormUrl vazio)
 // ou se houve erro/sem permissão. Usado pelo painel para diferenciar "inscrições
 // abertas" de "encerradas" quando o Form é fechado manualmente.
+//
+// Cacheado por 5 min (CacheService): o manifesto varre TODAS as planilhas
+// "Inscrição" da árvore, e abrir um Form por planilha em toda chamada seria
+// lento (risco de timeout). O estado de "aceitando respostas" muda raramente,
+// então 5 min de cache é seguro e o painel reflete um fechamento manual em até
+// esse tempo (a 1ª leitura após o fechamento já vem fresca, pois o cache expira).
 function _formAceitando(sheetId) {
-  var url = SpreadsheetApp.openById(sheetId).getFormUrl();
-  if (!url) return null;
-  return FormApp.openByUrl(url).isAcceptingResponses();
+  var cache = CacheService.getScriptCache();
+  var key = 'aceita_' + sheetId;
+  var hit = cache.get(key);
+  if (hit === 'true') return true;
+  if (hit === 'false') return false;
+  if (hit === 'null') return null;
+  var val = null;
+  try {
+    var url = SpreadsheetApp.openById(sheetId).getFormUrl();
+    val = url ? FormApp.openByUrl(url).isAcceptingResponses() : null;
+  } catch (e) { val = null; }
+  cache.put(key, String(val), 300); // 5 min
+  return val;
 }
 
 // ============ LEITURA DA PLANILHA ============
