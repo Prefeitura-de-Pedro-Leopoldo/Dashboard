@@ -66,6 +66,35 @@ function doGet(e) {
   }
 }
 
+// ============ DIAGNOSTICO / AUTORIZACAO ============
+
+// Rode UMA vez no editor (selecione esta função e clique em Executar) DEPOIS de
+// publicar. Ela usa o FormApp e por isso dispara o pedido de AUTORIZAÇÃO do
+// escopo de FORMULÁRIOS (aceite em "Revisar permissões"). Em seguida loga, para
+// cada planilha "Inscrição", se há Form vinculado e se ele aceita respostas —
+// explicando por que "aceitando" viria null no manifesto:
+//   ACEITANDO / FECHADO         -> tudo certo (o painel vai refletir)
+//   SEM form vinculado          -> a planilha "Inscrição" não é a destinatária
+//                                  de respostas do Form daquela pasta
+//   ERRO (... permission ...)   -> a conta dona deste script não tem acesso de
+//                                  EDIÇÃO ao Form (FormApp.openByUrl exige edição)
+// Veja o resultado em "Execuções" -> "Registros".
+function autorizarEDiagnosticarForms() {
+  var root = DriveApp.getFolderById(ROOT_FOLDER_ID);
+  var out = [];
+  _varrerPasta(root, '', out, 0);
+  Logger.log('Planilhas "Inscrição" encontradas: %s', out.length);
+  for (var i = 0; i < out.length; i++) {
+    var s = out[i], url = '', estado = '';
+    try {
+      url = SpreadsheetApp.openById(s.id).getFormUrl() || '';
+      if (!url) estado = 'SEM form vinculado (getFormUrl vazio)';
+      else estado = FormApp.openByUrl(url).isAcceptingResponses() ? 'ACEITANDO' : 'FECHADO';
+    } catch (e) { estado = 'ERRO (' + (e && e.message) + ')'; }
+    Logger.log('- "%s" [%s inscritos]: %s', s.folder, s.total, estado);
+  }
+}
+
 // ============ ACOES ============
 
 // Lista as planilhas "Inscrição" varrendo a árvore de pastas a partir da raiz.
