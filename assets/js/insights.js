@@ -129,7 +129,7 @@ export function gerarInsightsGlobais(data) {
     const vazios = comVagas.filter((e) => taxaOcupacao(e) !== null && taxaOcupacao(e) < 50);
     // Limita os chips para o card não crescer sem fim: mostra os N mais
     // relevantes (ordenados por ocupação) e resume o restante em "+N outro(s)".
-    const MAX_CHIPS = 5;
+    const MAX_CHIPS = 3;
     const chipsOcupacao = (arr, dir) => {
       const ord = arr.slice().sort((a, b) => dir * (taxaOcupacao(a) - taxaOcupacao(b)));
       const top = ord.slice(0, MAX_CHIPS);
