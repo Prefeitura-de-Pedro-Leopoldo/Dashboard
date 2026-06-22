@@ -97,11 +97,11 @@ export async function eventosComInscricaoAberta(eventosExistentes) {
       city: m.city || "",
       status: "inscricoes-abertas",
       inscricaoAberta: true,
-      // aceitandoInscricoes = o Form ainda recebe respostas? Vem do manifesto
-      // (s.aceitando). Quando o Form foi fechado manualmente (false), o card
-      // segue em modo inscrição, mas o rótulo vira "Inscrições encerradas".
-      // null/ausente (sem form vinculado ou erro) é tratado como aberto.
-      aceitandoInscricoes: s.aceitando === false ? false : true,
+      // aceitandoInscricoes = o Form ainda recebe respostas? Override explícito
+      // no eventos-meta.json (`inscricoesEncerradas: true`) força "encerradas"
+      // sem depender da leitura ao vivo do Form. Senão, usa o manifesto
+      // (s.aceitando): false = Form fechado manualmente. null/ausente = aberto.
+      aceitandoInscricoes: m.inscricoesEncerradas === true ? false : (s.aceitando === false ? false : true),
       cargaHoraria: m.cargaHoraria ?? null,
       // total ao vivo vindo do manifesto (nº de inscritos). Permite o painel
       // detectar "inscrições lotadas" (total >= vagas) sem buscar evento a evento.
