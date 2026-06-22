@@ -552,7 +552,13 @@ function _overlayParticipantesAoVivo(rawEventos) {
   const usados = new Set()
   const out = lista.map(ev => {
     const p = ev && ev.fonte && ao[ev.fonte]
-    if (p) { usados.add(ev.fonte); return p }
+    if (p) {
+      usados.add(ev.fonte)
+      // O evento ao vivo (/api/participantes) NÃO traz `satisfacao`. Sem
+      // preservar a do estático, a satisfação "aparece e some" quando o evento
+      // é promovido ao vivo. Mantém a satisfação existente se a ao vivo não tem.
+      return (!p.satisfacao && ev && ev.satisfacao) ? { ...p, satisfacao: ev.satisfacao } : p
+    }
     return ev
   })
   for (const fonte in ao) {
