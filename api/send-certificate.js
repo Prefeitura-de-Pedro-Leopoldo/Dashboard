@@ -7,6 +7,10 @@
  *   CERT_WEBAPP_URL  URL /exec do Apps Script (sobrescreve o default)
  */
 
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("send-certificate");
+
 const APPS_SCRIPT_URL =
   process.env.CERT_WEBAPP_URL ||
   "https://script.google.com/macros/s/AKfycbwAVbJ8bKzBpKSlSwPEsX815JJrTkhZu0mXwDccL6H9FrIc_g0kd3GCLiVtzZA29-Kc/exec";
@@ -51,7 +55,7 @@ export default async function handler(req, res) {
     }
     return res.status(upstream.ok ? 200 : 502).json(data);
   } catch (err) {
-    console.error("[send-certificate] erro:", err);
+    log.error("erro no proxy de envio de certificado", { err: err?.message });
     return res.status(500).json({ ok: false, error: err.message || "Erro interno." });
   }
 }

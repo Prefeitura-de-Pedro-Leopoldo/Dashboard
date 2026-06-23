@@ -157,8 +157,6 @@ export function renderEventCard(ev) {
   // Evento agendado ainda não ocorreu → presença não se aplica (N/A), mesmo
   // que já tenha inscritos (inscrições abertas).
   const tx = ev.status === "agendado" ? null : taxaPresenca(ev);
-  const statusLabel = ev.status === "agendado" ? "Agendado" : "Realizado";
-  const statusClass = ev.status === "agendado" ? "agendado" : tx !== null && tx < 60 ? "atencao" : "realizado";
   const tone = ev.status === "agendado"
     ? "scheduled"
     : tx === null ? "muted" : toneFromTaxa(tx);
@@ -345,7 +343,6 @@ export function renderEventDetail(ev) {
   const tone = tx === null ? "muted" : toneFromTaxa(tx);
   const dateLine = `${formatDateBR(ev.date)}${ev.time ? " · " + escapeHtml(ev.time) : ""}`;
   const localLine = ev.local ? escapeHtml(shortLocal(ev.local)) : "";
-  const txClass = progressClass(tx);
   const vagasVal = totalVagasOuIngressos(ev);
 
   const ocupCls = ocup == null ? "na" : ocup >= 90 ? "green" : ocup >= 50 ? "" : "red";

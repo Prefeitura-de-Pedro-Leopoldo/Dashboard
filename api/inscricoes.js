@@ -13,6 +13,10 @@
  * Env vars (Vercel e .env): INSCRICOES_WEBAPP_URL, INSCRICOES_TOKEN.
  */
 
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("inscricoes");
+
 const WEBAPP_URL = process.env.INSCRICOES_WEBAPP_URL || "";
 const TOKEN = process.env.INSCRICOES_TOKEN || "";
 
@@ -74,7 +78,7 @@ export default async function handler(req, res) {
     res.setHeader("X-Inscricoes-Cache", "miss");
     return res.status(200).json(data);
   } catch (err) {
-    console.error("[inscricoes] erro:", err);
+    log.error("erro ao ler inscrições", { cacheKey, err: err?.message });
     if (hit) {
       res.setHeader("X-Inscricoes-Cache", "stale");
       return res.status(200).json(hit.data);

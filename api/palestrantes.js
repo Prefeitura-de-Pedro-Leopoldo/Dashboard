@@ -11,6 +11,10 @@
  * Ações aceitas no corpo JSON: create | list | update | delete.
  */
 
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("palestrantes");
+
 const WEBAPP_URL = process.env.PALESTRANTES_WEBAPP_URL || "";
 const TOKEN = process.env.PALESTRANTES_TOKEN || "";
 
@@ -31,7 +35,7 @@ export default async function handler(req, res) {
   }
 
   if (!WEBAPP_URL || !TOKEN) {
-    console.error("[palestrantes] env ausente: defina PALESTRANTES_WEBAPP_URL e PALESTRANTES_TOKEN");
+    log.error("env ausente: defina PALESTRANTES_WEBAPP_URL e PALESTRANTES_TOKEN");
     return res.status(503).json({ ok: false, error: "Serviço de palestrantes não configurado." });
   }
 
@@ -72,7 +76,7 @@ export default async function handler(req, res) {
     }
     return res.status(upstream.ok ? 200 : 502).json(data);
   } catch (err) {
-    console.error("[palestrantes] erro:", err);
+    log.error("erro no proxy de palestrantes", { action, err: err?.message });
     return res.status(500).json({ ok: false, error: err.message || "Erro interno." });
   }
 }

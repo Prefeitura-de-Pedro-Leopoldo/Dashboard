@@ -22,6 +22,9 @@
 
 import XLSX from "xlsx";
 import { parsePlanilhaFromWorkbook, buildEvento } from "../scripts/build-data.mjs";
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("participantes");
 
 const WEBAPP_URL = process.env.RELATORIOS_WEBAPP_URL || "";
 const TOKEN = process.env.RELATORIOS_TOKEN || "";
@@ -134,7 +137,7 @@ export default async function handler(req, res) {
     res.setHeader("X-Participantes-Cache", "miss");
     return res.status(200).json(payload);
   } catch (err) {
-    console.error("[participantes] erro:", err);
+    log.error("erro ao ler participantes", { folder, err: err?.message });
     if (hit) {
       res.setHeader("X-Participantes-Cache", "stale");
       return res.status(200).json(hit.payload);

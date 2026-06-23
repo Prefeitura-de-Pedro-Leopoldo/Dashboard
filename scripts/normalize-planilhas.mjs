@@ -31,6 +31,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import XLSX from "xlsx";
+import { matchSecretariaCanon } from "../lib/secretarias.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -114,66 +115,11 @@ const fmtChk = (v) => {
   return isSimVal(v) ? "Sim" : "Não";
 };
 
-// ---------- Mapa de normalização de Secretarias ----------
-const SECRETARIA_MAP = [
-  [["vice-prefeito", "vice prefeito", "gabinete do vice"], "Gabinete do Vice-Prefeito"],
-  [["chefia de gabinete"], "Chefia de Gabinete"],
-  [["gabinete do prefeito", "gabinete prefeito"], "Gabinete do Prefeito"],
-  [[
-    " governo ", "secretaria de governo", "secretaria municipal de governo", "smg",
-    "assessoria executiva", "ase ", " ase", "ase,", "satd",
-    "comunicacao institucional", "comunicacao social",
-  ], "Secretaria Municipal de Governo"],
-  [["controladoria", "cgm", "auditoria interna"], "Controladoria Geral do Município"],
-  [[
-    "gestao e financas", "gestao e administracao", "gestao financas",
-    "gertao e financas", "smgf", "gefin", "saga", "transformacao digital",
-    "dirgep", "dirgerp", "digerp", "diretoria de gestao de pessoas",
-    "diretoria de pessoas", "dca ",
-    "arquivo e patrimonio", "patrimonio", "almoxarifado",
-    "protocolo", "compras", "licitacao", "pregao",
-    "tributos", "tributaria", "divida ativa", "cadastro de imoveis",
-    "iptu", "receita municipal", "tesouraria", "contabilidade",
-    "tecnologia da informacao", " ti ",
-  ], "Secretaria Municipal de Gestão e Finanças"],
-  [["educacao", "smed", "escola municipal", "creche", "cmei", "ensino fundamental", "ensino infantil"],
-    "Secretaria Municipal de Educação"],
-  [[
-    "saude", "sms ", "ses", "secretaria municipal de saude",
-    "hospital municipal", "hmfg", "francisco goncal",
-    "pa central", "pa lagoa", "pronto atendimento", "pronto-atendimento",
-    "caps ", "centro de atencao psicossocial",
-    "esf ", "estrategia saude da familia",
-    "ubs ", "unidade basica de saude", "posto de saude",
-    "vigilancia em saude", "vigilancia sanitaria", "vigilancia epidemiologica",
-    "samu", "siate", "farmacia municipal", "cemai", "epidemiologia",
-    "saude mental", "secretaria de saude",
-  ], "Secretaria Municipal de Saúde"],
-  [["desenvolvimento social", "smds", "assistencia social", "cras", "creas", "centro pop", "casa da cidadania", "abrigo institucional", "conselho tutelar"],
-    "Secretaria Municipal de Desenvolvimento Social"],
-  [["desenvolvimento economico", "smde", "agricultura", "turismo", "trabalho e renda", "industria e comercio"],
-    "Secretaria Municipal de Desenvolvimento Econômico"],
-  [["bem estar", "bem-estar", "esporte", "esportes", "lazer", "juventude", "cultura", "biblioteca municipal", "teatro municipal"],
-    "Secretaria Municipal de Bem Estar"],
-  [["meio ambiente", "smma"], "Secretaria Municipal de Meio Ambiente"],
-  [["obras", "servicos publicos", "limpeza urbana", "iluminacao publica", "manutencao urbana", "engenharia"],
-    "Secretaria Municipal de Obras"],
-  [["seguranca publica", "seguranca", "guarda municipal", "defesa civil", "transito"],
-    "Secretaria Municipal de Segurança Pública"],
-];
-
-function matchSecretariaCanon(value) {
-  if (!value) return null;
-  const s = String(value).trim().replace(/\s*\([^)]*\)\s*$/, "").trim();
-  if (!s) return null;
-  const key = " " + stripAccents(s).toLowerCase().replace(/\s+/g, " ") + " ";
-  for (const [chaves, canon] of SECRETARIA_MAP) {
-    if (chaves.some((c) => key.includes(c))) return canon;
-  }
-  return null;
-}
-
-function normalizeSecretaria(sec, lot) {
+// ---------- Normalização de Secretarias ----------
+// O mapa canônico e o casador vivem em ../lib/secretarias.mjs (fonte única,
+// compartilhada com build-data.mjs). Aqui fica só o fallback próprio deste
+// script: quando NADA casa, devolve a string crua (sem re-casing).
+export function normalizeSecretaria(sec, lot) {
   return (
     matchSecretariaCanon(sec) ||
     matchSecretariaCanon(lot) ||

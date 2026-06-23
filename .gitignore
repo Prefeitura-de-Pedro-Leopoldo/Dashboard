@@ -11,3 +11,6 @@ assets/docs/relatorios/**/*.xls
 # Grandes (PDF ~27MB) e com dados de participantes -> nao versionar nem publicar.
 /Relatorio Satisfacao - *.pdf
 /Relatorio Satisfacao - *.docx
+
+# Backups locais (one-off) - podem conter dados de participantes; nao versionar.
+backups/

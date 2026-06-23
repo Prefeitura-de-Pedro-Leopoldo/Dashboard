@@ -248,7 +248,7 @@ const barDataLabelsPlugin = {
   id: "barDataLabels",
   afterDatasetsDraw(chart, _args, opts) {
     if (!opts || opts.enabled === false) return;
-    const { ctx, scales } = chart;
+    const { ctx } = chart;
     const isHorizontal = chart.options.indexAxis === "y";
     const suffix = opts.suffix || "";
     const color = opts.color || (getComputedStyle(document.documentElement).getPropertyValue("--text-primary").trim() || "#161f36");
@@ -263,7 +263,7 @@ const barDataLabelsPlugin = {
         const value = ds.data[i];
         if (value == null) return;
         const label = (opts.format ? opts.format(value) : value) + suffix;
-        const { x, y, base } = bar.getProps(["x", "y", "base"], true);
+        const { x, y } = bar.getProps(["x", "y"], true);
         ctx.fillStyle = color;
         if (isHorizontal) {
           ctx.textAlign = "left";
@@ -274,33 +274,6 @@ const barDataLabelsPlugin = {
         }
       });
     });
-    ctx.restore();
-  },
-};
-
-// Plugin: texto central no donut (% ou contagem)
-const donutCenterPlugin = {
-  id: "donutCenter",
-  afterDraw(chart, _args, opts) {
-    if (!opts || !opts.text) return;
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-    const cx = (chartArea.left + chartArea.right) / 2;
-    const cy = (chartArea.top + chartArea.bottom) / 2;
-    const css = getComputedStyle(document.documentElement);
-    const primary = css.getPropertyValue("--text-primary").trim() || "#161f36";
-    const muted = css.getPropertyValue("--text-muted").trim() || "#6b7180";
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = primary;
-    ctx.font = `700 ${opts.size || 22}px "Fraunces", "Manrope", sans-serif`;
-    ctx.fillText(opts.text, cx, cy - (opts.subtitle ? 8 : 0));
-    if (opts.subtitle) {
-      ctx.fillStyle = muted;
-      ctx.font = "600 10px Manrope, sans-serif";
-      ctx.fillText(opts.subtitle.toUpperCase(), cx, cy + 14);
-    }
     ctx.restore();
   },
 };
@@ -400,9 +373,6 @@ export function shortenOrg(s, n = 28) {
     { re: /^Conselho\s+(?:Municipal|de|do|da|dos|das)?\s*(.+)$/i, prefix: "Cons. " },
   ];
 
-  // Stopwords pt-BR que não agregam significado e podem ser removidas em apertos
-  const stop = new Set(["de", "da", "do", "das", "dos", "e", "a", "o", "para", "por", "em", "no", "na", "nos", "nas", "com"]);
-
   // Remove preposições/artigos do INÍCIO do tail (case-insensitive)
   // Ex.: "de Desenvolvimento Econômico" → "Desenvolvimento Econômico"
   const stripLeadingPreps = (t) => {
@@ -467,21 +437,6 @@ function shortenEvent(s) {
   out = out.replace(/\s{2,}/g, " ");
 
   return out.trim();
-}
-
-// Quebra string em array de linhas (Chart.js renderiza array como múltiplas linhas)
-function wrapLabel(s, maxPerLine = 18) {
-  if (!s) return "";
-  const words = String(s).split(/\s+/);
-  const lines = [];
-  let cur = "";
-  for (const w of words) {
-    if (!cur) { cur = w; continue; }
-    if ((cur + " " + w).length <= maxPerLine) cur += " " + w;
-    else { lines.push(cur); cur = w; }
-  }
-  if (cur) lines.push(cur);
-  return lines.length > 1 ? lines : s;
 }
 
 function formatShortDate(iso) {

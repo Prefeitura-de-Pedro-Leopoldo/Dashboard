@@ -24,7 +24,7 @@ function ehColunaNota(data, idx) {
   return total > 0 && nums / total >= 0.8;
 }
 
-export function parseSatisfacaoFromWorkbook(wb) {
+function parseSatisfacaoFromWorkbook(wb) {
   if (!wb || !Array.isArray(wb.SheetNames) || !wb.SheetNames.length) return null;
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });

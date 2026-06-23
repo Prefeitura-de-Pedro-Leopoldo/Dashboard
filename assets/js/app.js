@@ -3,12 +3,9 @@
  * comparacao, filtros e tela de certificados com upload dinamico.
  */
 
-import { loadData, getEvento } from "./data.js"
+import { loadData } from "./data.js"
 import {
   resumoGlobal,
-  rankingSecretarias,
-  rankingEvasaoSecretarias,
-  taxaPresenca,
   participacaoPorSecretaria,
   evasaoPorSecretariaEvento,
   distribuicaoPorTurma,
@@ -32,8 +29,6 @@ import {
   destroyAll
 } from "./charts.js"
 import {
-  fmt,
-  pct,
   escapeHtml,
   formatDateBR,
   renderKPIs,
@@ -41,9 +36,6 @@ import {
   renderCourseCard,
   renderEventDetail,
   renderInsights,
-  renderParticipantsTable,
-  renderEventsTable,
-  renderSecretariasTable,
   turmaLabel,
   inscricaoFechada,
   inscricaoRecebendo
@@ -95,15 +87,15 @@ const userData = (() => {
 // ================ State ================
 // O estado compartilhado agora vive em ./core/state.js (importado acima).
 
-// Modelos disponiveis em assets/img/modelos_certificados/. Declarado no topo
+// Modelos disponiveis em assets/img/modelos-certificados/. Declarado no topo
 // pois preloadTemplate() roda em init() antes da secao CERTIFICADOS ser definida.
 const CERT_TEMPLATES = [
-  { id: "modelo-1", label: "Modelo 1", src: "assets/img/modelos_certificados/modelo.png" },
-  { id: "modelo-2", label: "Modelo 2", src: "assets/img/modelos_certificados/modelo2.png" },
-  { id: "modelo-3", label: "Modelo 3", src: "assets/img/modelos_certificados/modelo3.png" },
-  { id: "modelo-4", label: "Modelo 4", src: "assets/img/modelos_certificados/modelo4.png" },
-  { id: "modelo-5", label: "Modelo 5", src: "assets/img/modelos_certificados/modelo5.png" },
-  { id: "modelo-6", label: "Modelo 6", src: "assets/img/modelos_certificados/modelo6.jpeg", hint: "Ideal para cursos com 2 datas" }
+  { id: "modelo-1", label: "Modelo 1", src: "assets/img/modelos-certificados/modelo.png" },
+  { id: "modelo-2", label: "Modelo 2", src: "assets/img/modelos-certificados/modelo2.png" },
+  { id: "modelo-3", label: "Modelo 3", src: "assets/img/modelos-certificados/modelo3.png" },
+  { id: "modelo-4", label: "Modelo 4", src: "assets/img/modelos-certificados/modelo4.png" },
+  { id: "modelo-5", label: "Modelo 5", src: "assets/img/modelos-certificados/modelo5.png" },
+  { id: "modelo-6", label: "Modelo 6", src: "assets/img/modelos-certificados/modelo6.jpeg", hint: "Ideal para cursos com 2 datas" }
 ]
 const _certTemplateCache = {}
 
@@ -277,21 +269,6 @@ function saveCertPosOverrides() {
 loadCertPosOverrides()
 function getCertPos(templateId) {
   return CERT_POS_BY_TEMPLATE[templateId] || CERT_POS_BY_TEMPLATE["modelo-1"]
-}
-
-const VIEW_TITLES = {
-  dashboard: ["Visão Geral", "Resumo executivo, gráficos consolidados e insights estratégicos."],
-  eventos: ["Eventos", "Detalhamento operacional e demográfico de cada evento."],
-  comparar: ["Comparar Eventos", "Compare dois ou mais eventos lado a lado."],
-  participantes: ["Participantes", "Busca e filtros sobre todos os inscritos."],
-  servidores: ["Servidores em Destaque", "Lista completa de servidores ordenada por participação."],
-  faltas: ["Faltas Recorrentes", "Quem inscreve e falta com frequência."],
-  cargos: ["Cargos", "Distribuição da capacitação por cargo."],
-  secretarias: ["Secretarias", "Ranking e participação por pasta."],
-  relatorios: ["Relatórios", "Filtros, KPIs do recorte e exportação."],
-  autoreport: ["Auto-Relatório de Satisfação", "Geração automática do PDF no padrão institucional."],
-  certificados: ["Certificados", "Emita certificados em lote a partir do check-in."],
-  qrcode: ["QR Code", "Gere QR Codes em alta resolução para divulgação."]
 }
 
 // Grupos da sidebar. `title` e `subtitle` alimentam o topbar - ficam fixos
@@ -1469,7 +1446,6 @@ function renderEventBlock(ev) {
 
 // ================ PARTICIPANTES ================
 function renderViewParticipantes() {
-  const { data } = state
   const view = document.getElementById("view-participantes")
   view.innerHTML = `<div id="participantesPanel"></div>`
   renderParticipantesTodos()
@@ -2047,13 +2023,6 @@ const REL_DESC = {
   vinculoPresentes: "Presentes por tipo de vínculo (comissionado x efetivo), classificado pelo cargo. Valor estimado a partir da nomenclatura do cargo."
 }
 
-// Descrição do gráfico de vínculo, divulgando quantos presentes ficaram sem
-// classificação por não terem cargo informado (transparência).
-function relVinculoDesc(st) {
-  const base = REL_DESC.vinculoPresentes
-  return st && st.vinculoSemInfo ? `${base} Observação: ${st.vinculoSemInfo} presente(s) sem cargo informado não foram classificados.` : base
-}
-
 // Estatísticas de um conjunto de participantes (um evento ou o geral).
 function statsFromParts(parts) {
   const presentes = parts.filter(p => p.presente)
@@ -2243,43 +2212,6 @@ async function chartBarSecretarias(entries, titulo, eixo) {
     },
     1100,
     Math.max(360, 100 + t.length * 36)
-  )
-}
-
-async function chartVinculo(entries, titulo) {
-  const vinc = entries || []
-  if (!vinc.length) return null
-  const cor = { Comissionado: MODELO_CHART.navy, Efetivo: MODELO_CHART.blueMid }
-  return await renderChartToImage(
-    "doughnut",
-    {
-      data: {
-        labels: vinc.map(v => v.nome),
-        datasets: [{ data: vinc.map(v => v.qtd), backgroundColor: vinc.map(v => cor[v.nome] || MODELO_CHART.blueLight), borderWidth: 2, borderColor: "#fff" }]
-      },
-      options: {
-        plugins: {
-          legend: { position: "bottom", labels: { font: { family: MODELO_CHART.font, size: 13 }, color: MODELO_CHART.text } },
-          title: {
-            display: true,
-            text: titulo,
-            font: { size: 16, weight: "bold", family: MODELO_CHART.font },
-            color: MODELO_CHART.navy,
-            padding: { bottom: 12 }
-          },
-          datalabels: {
-            color: "#fff",
-            font: { weight: "bold", size: 13, family: MODELO_CHART.font },
-            formatter: (v, ctx) => {
-              const tt = ctx.dataset.data.reduce((a, b) => a + b, 0)
-              return tt ? `${v}\n${((v / tt) * 100).toFixed(0)}%` : v
-            }
-          }
-        }
-      }
-    },
-    700,
-    520
   )
 }
 
@@ -5900,21 +5832,6 @@ function extractThemes(responses, max = 10) {
 }
 
 // ---------------- Geração do PDF ----------------
-function parseCategorias(txt) {
-  // Aceita "Nome: 5" ou "Nome - 5" por linha
-  return String(txt || "")
-    .split("\n")
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(l => {
-      const m = l.match(/^(.+?)\s*[:\-]\s*(\d+)\s*$/)
-      if (m) return { label: m[1].trim(), value: parseInt(m[2], 10) }
-      return null
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.value - a.value)
-}
-
 async function renderChartToImage(type, config, width = 700, height = 400) {
   return new Promise(resolve => {
     const canvas = document.createElement("canvas")
@@ -6052,97 +5969,6 @@ const EGOV_BRAND = {
   font: "Calibri"
 }
 
-// Pizza/donut com efeito 3D (perspectiva) via ApexCharts.
-// `tipo`: "pie" ou "donut". Devolve a instância (para destruir/atualizar).
-function render3DPie(containerId, labels, valores, opts = {}) {
-  const host = document.getElementById(containerId)
-  if (!host) return null
-  host.innerHTML = ""
-  if (!window.ApexCharts || !labels.length) {
-    host.innerHTML = `<div class="empty-state"><i class="fas fa-circle-info"></i><h3>Sem dados</h3><p>${opts.emptyMessage || "Nada para exibir."}</p></div>`
-    return null
-  }
-  const PALETA = opts.cores || ["#1B2A4E", "#3B5BA5", "#5B9BD5", "#9DC3E6", "#2F86C9", "#57C7E0", "#D69A1F", "#C0392B", "#7E57C2", "#F0A35E"]
-  const isDonut = (opts.tipo || "pie") === "donut"
-  const options = {
-    chart: {
-      type: isDonut ? "donut" : "pie",
-      height: opts.height || 360,
-      fontFamily: "Manrope, sans-serif",
-      // Sombra forte + filtro de borda dá perspectiva 3D em SVG
-      dropShadow: {
-        enabled: true,
-        top: 6,
-        left: 0,
-        blur: 12,
-        color: "#000",
-        opacity: 0.28
-      },
-      animations: { enabled: true, speed: 600 }
-    },
-    series: valores,
-    labels,
-    colors: PALETA,
-    stroke: { width: 2, colors: ["#fff"] },
-    plotOptions: {
-      pie: {
-        // Efeito de "perspectiva" via offset Y e ampliação
-        offsetY: 6,
-        expandOnClick: true,
-        startAngle: -90,
-        endAngle: 270,
-        customScale: 0.92,
-        donut: isDonut ? { size: "55%", labels: { show: false } } : undefined,
-        dataLabels: {
-          offset: -8,
-          minAngleToShowLabel: 12
-        }
-      }
-    },
-    dataLabels: {
-      enabled: true,
-      style: { fontSize: "13px", fontWeight: 700, colors: ["#fff"] },
-      dropShadow: { enabled: true, blur: 3, opacity: 0.6 },
-      formatter: val => `${val.toFixed(1).replace(".", ",")}%`
-    },
-    legend: {
-      position: opts.legendPosition || "right",
-      fontSize: "12px",
-      labels: { colors: "#1B2A4E" },
-      itemMargin: { horizontal: 4, vertical: 3 }
-    },
-    tooltip: {
-      y: {
-        formatter: (val, { seriesIndex, w }) => {
-          const total = w.config.series.reduce((a, b) => a + b, 0)
-          const pct = total ? ((val / total) * 100).toFixed(1).replace(".", ",") : "0,0"
-          return `${val} (${pct}%)`
-        }
-      }
-    },
-    responsive: [
-      {
-        breakpoint: 768,
-        options: { legend: { position: "bottom" } }
-      }
-    ]
-  }
-  const chart = new window.ApexCharts(host, options)
-  chart.render()
-  return chart
-}
-
-// Donut 3D padronizado de presença consolidada.
-function render3DDonutPresenca(containerId, presentes, ausentes) {
-  return render3DPie(containerId, ["Presentes", "Ausentes"], [presentes, ausentes], {
-    tipo: "donut",
-    cores: ["#5AA9E6", "#C0392B"],
-    height: 340,
-    legendPosition: "bottom",
-    emptyMessage: "Sem dados de presença consolidada."
-  })
-}
-
 // Paleta institucional do Modelo.docx (azuis Pedro Leopoldo)
 const MODELO_CHART = {
   navy: "#1F3864",
@@ -6193,7 +6019,7 @@ async function loadBrasao() {
       im.src = dataUrl
     })
     _brasaoCache = { dataUrl, ratio }
-  } catch (e) {
+  } catch {
     _brasaoCache = false // marca como tentado-e-falhou; cabeçalho cai p/ só texto
   }
   return _brasaoCache
@@ -7210,7 +7036,6 @@ async function generateSatisfacaoPptx() {
   const inscritos = s.participantes.totalInscritos
   const presentes = s.participantes.totalPresentes
   const ausentes = s.participantes.totalAusentes
-  const naoAdquiridos = cap - inscritos
   const taxaPresenca = ((presentes / inscritos) * 100).toFixed(1).replace(".", ",")
   const criterios = s.pesquisa.criterios || []
   if (!criterios.length) {

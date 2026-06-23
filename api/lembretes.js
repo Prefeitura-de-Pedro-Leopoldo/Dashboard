@@ -7,6 +7,10 @@
  * Env vars (Vercel e .env): LEMBRETES_WEBAPP_URL, LEMBRETES_TOKEN.
  */
 
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("lembretes");
+
 const WEBAPP_URL = process.env.LEMBRETES_WEBAPP_URL || "";
 const TOKEN = process.env.LEMBRETES_TOKEN || "";
 
@@ -46,7 +50,7 @@ export default async function handler(req, res) {
     }
     return res.status(upstream.ok ? 200 : 502).json(data);
   } catch (err) {
-    console.error("[lembretes] erro:", err);
+    log.error("erro no proxy de lembretes", { action, err: err?.message });
     return res.status(500).json({ ok: false, error: err.message || "Erro interno." });
   }
 }

@@ -9,7 +9,11 @@
  *     {"email":"...","password":"...","name":"..."}.
  */
 
-function normalizeUser(u) {
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("login");
+
+export function normalizeUser(u) {
   if (!u || typeof u.email !== "string" || typeof u.password !== "string") return null;
   return {
     email: u.email.trim().toLowerCase(),
@@ -18,14 +22,14 @@ function normalizeUser(u) {
   };
 }
 
-function parseSingleEntry(raw) {
+export function parseSingleEntry(raw) {
   const trimmed = String(raw).trim();
   if (trimmed.startsWith("{")) {
     try {
       const obj = JSON.parse(trimmed);
       return normalizeUser(obj);
     } catch (e) {
-      console.error("[login] entry JSON inválido:", e.message);
+      log.warn("entrada de usuário com JSON inválido", { err: e.message });
       return null;
     }
   }
@@ -51,10 +55,10 @@ function parseUsers() {
           if (n) out.push(n);
         }
       } else {
-        console.error("[login] AUTH_USERS não é um array JSON");
+        log.warn("AUTH_USERS não é um array JSON");
       }
     } catch (e) {
-      console.error("[login] Falha ao parsear AUTH_USERS:", e.message);
+      log.warn("falha ao parsear AUTH_USERS", { err: e.message });
     }
   }
 
@@ -63,7 +67,7 @@ function parseUsers() {
     if (!value) continue;
     const u = parseSingleEntry(value);
     if (u) out.push(u);
-    else console.error(`[login] env ${key} inválida (use "email|senha|Nome")`);
+    else log.warn('env de usuário inválida (use "email|senha|Nome")', { env: key });
   }
 
   const seen = new Set();
@@ -75,12 +79,12 @@ function parseUsers() {
   }
 
   if (dedup.length === 0) {
-    console.error("[login] nenhum usuário configurado (defina AUTH_USERS ou AUTH_USER_*)");
+    log.error("nenhum usuário configurado (defina AUTH_USERS ou AUTH_USER_*)");
   }
   return dedup;
 }
 
-function safeEqual(a, b) {
+export function safeEqual(a, b) {
   if (typeof a !== "string" || typeof b !== "string") return false;
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -122,7 +126,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, email: user.email, name: user.name });
   } catch (e) {
-    console.error("[login] erro inesperado:", e);
+    log.error("erro inesperado", { err: e?.message });
     return res.status(500).json({ ok: false, error: "Erro interno." });
   }
 }

@@ -23,6 +23,9 @@ import {
   slugify,
 } from "../scripts/build-data.mjs";
 import { parseSatisfacaoFromBuffer } from "../scripts/satisfacao.mjs";
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("eventos");
 
 const WEBAPP_URL = process.env.RELATORIOS_WEBAPP_URL || "";
 const TOKEN = process.env.RELATORIOS_TOKEN || "";
@@ -33,6 +36,10 @@ const CACHE_TTL_MS = 30 * 1000; // 30s
 export const config = { maxDuration: 30 };
 
 // Cache em memoria (sobrevive entre invocacoes "quentes" da mesma lambda).
+// LIMITACAO: e POR INSTANCIA - cada lambda quente tem o seu, entao instancias
+// diferentes podem servir versoes ligeiramente distintas dentro do TTL.
+// Aceitavel para este volume; invalidacao manual via ?fresh=1. Para coerencia
+// forte entre instancias seria preciso um cache distribuido (ex.: KV/Redis).
 let _cache = { at: 0, data: null };
 
 export default async function handler(req, res) {
@@ -127,7 +134,7 @@ export default async function handler(req, res) {
             eventos.push(anexarSat(buildEvento(arquivo, { ...defaults, ...metaEntry }, []), arquivo));
           } catch (_) { /* ignora */ }
         } else if (!semCabecalho) {
-          console.error(`[eventos] ${arquivo}: ${err.message}`);
+          log.warn("falha ao processar planilha", { arquivo, err: err.message });
         }
       }
     }
@@ -166,7 +173,7 @@ export default async function handler(req, res) {
     res.setHeader("X-Eventos-Cache", "miss");
     return res.status(200).json(data);
   } catch (err) {
-    console.error("[eventos] erro:", err);
+    log.error("erro ao montar eventos", { err: err?.message });
     // Se temos cache antigo, melhor servir velho do que nada.
     if (_cache.data) {
       res.setHeader("X-Eventos-Cache", "stale");

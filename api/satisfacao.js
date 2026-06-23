@@ -13,6 +13,10 @@
  * Env vars: RELATORIOS_WEBAPP_URL, RELATORIOS_TOKEN.
  */
 
+import { createLogger } from "../lib/logger.mjs";
+
+const log = createLogger("satisfacao");
+
 const WEBAPP_URL = process.env.RELATORIOS_WEBAPP_URL || "";
 const TOKEN = process.env.RELATORIOS_TOKEN || "";
 const PREFIXO = "assets/docs/relatorios/";
@@ -75,7 +79,7 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).send(buf);
   } catch (err) {
-    console.error("[satisfacao] erro:", err);
+    log.error("erro ao buscar satisfação", { folder, err: err?.message });
     return res.status(502).json({ ok: false, error: err.message || "Erro ao buscar satisfacao." });
   }
 }

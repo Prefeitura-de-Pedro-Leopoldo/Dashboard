@@ -36,14 +36,14 @@ function sign(payloadB64) {
 }
 
 // Gera o código assinado a partir dos campos do certificado.
-function makeCode(cert) {
+export function makeCode(cert) {
   const payload = { n: cert.nome, c: cert.curso, h: cert.carga, d: cert.data };
   const pB64 = b64url(JSON.stringify(payload));
   return `${pB64}.${sign(pB64)}`;
 }
 
 // Verifica um código. Retorna { valido, cert? }.
-function verifyCode(code) {
+export function verifyCode(code) {
   if (!code || typeof code !== "string" || code.indexOf(".") < 0) return { valido: false };
   const dot = code.lastIndexOf(".");
   const pB64 = code.slice(0, dot);
