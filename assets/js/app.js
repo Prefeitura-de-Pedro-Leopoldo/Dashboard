@@ -170,21 +170,21 @@ const CERT_POS_BY_TEMPLATE = {
 
 // ====================================================================
 // CERTIFICADO DE PALESTRANTES (fluxo proprio, isolado dos inscritos)
-// Modelo: assets/img/modelos-certificados/palestrante.jpeg (1600x1132).
+// Modelo: assets/img/modelos-certificados/palestrante.png (1676x1186, ~A4).
 // Campos (texto fixo ja impresso no modelo):
 //   "[nome], / ... como palestrante no evento "[titulo]", realizado no
 //    dia [diaR] de [mesR] de [anoR]. ... Pedro Leopoldo/MG, [diaEm] de
 //    [mesEm] de 2026."
 // Coordenadas (fracao 0-1) calibradas pelo usuario no preview de arrasta-solta.
 // ====================================================================
-const CERT_PAL_TEMPLATE_SRC = "assets/img/modelos-certificados/palestrante.jpeg"
+const CERT_PAL_TEMPLATE_SRC = "assets/img/modelos-certificados/palestrante.png"
 const CERT_PAL_POS = {
   nome:   { x: 0.1268, y: 0.3052, align: "left" },
   titulo: { x: 0.6194, y: 0.3302, align: "center" },
   diaR:   { x: 0.2079, y: 0.3626, align: "center" },
-  mesR:   { x: 0.3306, y: 0.3583, align: "center" },
-  anoR:   { x: 0.4883, y: 0.359,  align: "center" },
-  diaEm:  { x: 0.294,  y: 0.503,  align: "center" },
+  mesR:   { x: 0.3306, y: 0.3609, align: "center" },
+  anoR:   { x: 0.4883, y: 0.3603, align: "center" },
+  diaEm:  { x: 0.294,  y: 0.4991, align: "center" },
   mesEm:  { x: 0.3973, y: 0.4993, align: "center" }
 }
 const CERT_PAL_MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
@@ -196,10 +196,12 @@ const CERT_PAL_FONT_PT = 14
 const CERT_PAL_WEBAPP_URL = "/api/send-certificate-palestrante"
 // Tipografia por campo do certificado de palestrante (escala 0.5-1.5, salva no
 // localStorage). Espelha o painel dos inscritos, com os campos do palestrante.
-const PAL_TYPO_KEY = "egov-cert-palestrante-typo-v1"
-const PAL_POS_KEY = "egov-cert-palestrante-pos-dash-v1"
+const PAL_TYPO_KEY = "egov-cert-palestrante-typo-v2"
+const PAL_POS_KEY = "egov-cert-palestrante-pos-dash-v2"
 const PAL_TYPO_MIN = 0.5
 const PAL_TYPO_MAX = 1.5
+// Tamanho padrao por campo: 1.2 = 120% do 14pt (ajuste calibrado pelo usuario).
+const PAL_SCALE_DEFAULT = 1.2
 const PAL_TYPO_FIELDS = [
   { key: "nome",   label: "Nome do(a) palestrante", icon: "fa-user" },
   { key: "titulo", label: "Título da palestra",     icon: "fa-graduation-cap" },
@@ -4871,7 +4873,7 @@ function wireCertModeSwitch() {
 
 function loadPalScales() {
   const scales = {}
-  PAL_TYPO_FIELDS.forEach(f => (scales[f.key] = 1))
+  PAL_TYPO_FIELDS.forEach(f => (scales[f.key] = PAL_SCALE_DEFAULT))
   try {
     const s = JSON.parse(localStorage.getItem(PAL_TYPO_KEY) || "{}")
     PAL_TYPO_FIELDS.forEach(f => {
@@ -5043,7 +5045,7 @@ function renderPalDragLayer() {
         pal.pos[k].x = CERT_PAL_POS[k].x
         pal.pos[k].y = CERT_PAL_POS[k].y
       })
-      PAL_TYPO_FIELDS.forEach(f => (pal.scales[f.key] = 1))
+      PAL_TYPO_FIELDS.forEach(f => (pal.scales[f.key] = PAL_SCALE_DEFAULT))
       pal.typoLink = false
       savePalPos()
       savePalScales()
