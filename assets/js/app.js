@@ -168,6 +168,31 @@ const CERT_POS_BY_TEMPLATE = {
   "modelo-6": _defaultPos6
 }
 
+// ====================================================================
+// CERTIFICADO DE PALESTRANTES (fluxo proprio, isolado dos inscritos)
+// Modelo: assets/img/modelos-certificados/palestrante.jpeg (1600x1132).
+// Campos (texto fixo ja impresso no modelo):
+//   "[nome], / ... como palestrante no evento "[titulo]", realizado no
+//    dia [diaR] de [mesR] de [anoR]. ... Pedro Leopoldo/MG, [diaEm] de
+//    [mesEm] de 2026."
+// Coordenadas (fracao 0-1) calibradas pelo usuario no preview de arrasta-solta.
+// ====================================================================
+const CERT_PAL_TEMPLATE_SRC = "assets/img/modelos-certificados/palestrante.jpeg"
+const CERT_PAL_POS = {
+  nome:   { x: 0.1268, y: 0.3052, align: "left" },
+  titulo: { x: 0.6194, y: 0.3302, align: "center" },
+  diaR:   { x: 0.2079, y: 0.3626, align: "center" },
+  mesR:   { x: 0.3306, y: 0.3583, align: "center" },
+  anoR:   { x: 0.4883, y: 0.359,  align: "center" },
+  diaEm:  { x: 0.294,  y: 0.503,  align: "center" },
+  mesEm:  { x: 0.3973, y: 0.4993, align: "center" }
+}
+const CERT_PAL_MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+// Envio de palestrantes usa Apps Script PRÓPRIO (separado dos inscritos), via
+// proxy interno /api/send-certificate-palestrante. Texto de e-mail específico e
+// cópia oculta para a Escola de Governo e a Fabiana (definidos no .gs).
+const CERT_PAL_WEBAPP_URL = "/api/send-certificate-palestrante"
+
 // Escalas manuais de fonte por campo e por modelo. 1.0 = tamanho base.
 // Campos suportados: nome, curso, dia, mes, ano, carga. Persistido no
 // localStorage. Modelos 3 e 4 compartilham (edição em um aplica nos dois).
@@ -1074,6 +1099,7 @@ function renderDashboard() {
         const ev = resolverEvento(b.dataset.event)
         state.certPendingArquivo = b.dataset.fonte || (ev ? ev.fonte : null)
         state.certSource = "evento"
+        state.certMode = "inscritos"
         navigate("certificados")
       })
     )
@@ -3214,6 +3240,13 @@ function renderCertPosEditor() {
 
 function renderViewCertificados() {
   if (!state.certStep) state.certStep = 1
+  if (!state.certMode) state.certMode = "inscritos"
+
+  // Modo "palestrante": fluxo proprio, isolado do wizard de inscritos.
+  if (state.certMode === "palestrante") {
+    renderCertPalestrante()
+    return
+  }
 
   // Carrega o índice de planilhas do sistema (relatorios/manifest.json) uma vez.
   if (state.certManifest === null && !state._certManifestLoading) {
@@ -3255,6 +3288,7 @@ function renderViewCertificados() {
 
   const view = document.getElementById("view-certificados")
   view.innerHTML = `
+    ${certModeSwitchHtml()}
     <div class="wizard">
       <ol class="wizard__steps" role="tablist">
         <li class="wizard__step ${state.certStep === 1 ? "is-active" : ""} ${state.certStep > 1 ? "is-done" : ""}" data-step="1" role="tab">
@@ -3518,6 +3552,8 @@ function renderViewCertificados() {
       </div>
     </div>
   `
+
+  wireCertModeSwitch()
 
   // Step nav (cliques na trilha)
   view.querySelectorAll(".wizard__step").forEach(s => s.addEventListener("click", () => goToCertStep(parseInt(s.dataset.step, 10))))
@@ -4783,6 +4819,561 @@ async function enviarCertificadosLote() {
   }
   btnZip.disabled = false
   refreshCertSendBtn()
+}
+
+// ====================================================================
+// CERTIFICADO DE PALESTRANTES - fluxo proprio (toggle, form, preview,
+// emissao e envio). Isolado do wizard de inscritos; reaproveita os
+// helpers de QR/PDF/envio (_certQrFor, _qrTransparent, _addCertLink,
+// _blobToBase64, slug) e o endpoint /api/send-certificate.
+// ====================================================================
+
+function certModeSwitchHtml() {
+  const m = state.certMode || "inscritos"
+  return `
+    <div class="cert-mode-switch" role="tablist" aria-label="Tipo de certificado">
+      <button type="button" class="cert-mode-btn ${m === "inscritos" ? "is-active" : ""}" data-mode="inscritos" role="tab">
+        <i class="fas fa-users"></i> Inscritos
+      </button>
+      <button type="button" class="cert-mode-btn ${m === "palestrante" ? "is-active" : ""}" data-mode="palestrante" role="tab">
+        <i class="fas fa-chalkboard-user"></i> Palestrantes
+      </button>
+    </div>`
+}
+
+function wireCertModeSwitch() {
+  document.querySelectorAll(".cert-mode-btn").forEach(b =>
+    b.addEventListener("click", () => {
+      const mode = b.dataset.mode
+      if (mode === state.certMode) return
+      state.certMode = mode
+      renderViewCertificados()
+    })
+  )
+}
+
+function ensurePalState() {
+  if (!state.palestrante) {
+    const now = new Date()
+    state.palestrante = {
+      form: {
+        titulo: "",
+        diaR: "",
+        mesR: "",
+        anoR: String(now.getFullYear()),
+        diaEm: String(now.getDate()),
+        mesEm: CERT_PAL_MESES[now.getMonth()]
+      },
+      list: [{ nome: "", email: "" }],
+      previewIdx: 0
+    }
+  }
+  return state.palestrante
+}
+
+// Carrega o modelo do palestrante (uma vez) e redesenha quando pronto.
+function ensurePalTemplate() {
+  if (state.palTemplateImg && state.palTemplateImg.complete) return
+  if (state._palTemplateLoading) return
+  state._palTemplateLoading = true
+  const img = new Image()
+  img.onload = () => {
+    state.palTemplateImg = img
+    state._palTemplateLoading = false
+    if (state.view === "certificados" && state.certMode === "palestrante") renderPalPreview()
+  }
+  img.onerror = () => {
+    state._palTemplateLoading = false
+  }
+  img.src = CERT_PAL_TEMPLATE_SRC
+}
+
+// Palestrantes com nome preenchido (1 certificado por palestrante).
+function getPalSpeakers() {
+  return ((state.palestrante && state.palestrante.list) || []).filter(p => p.nome && p.nome.trim())
+}
+
+function getPalFormData(nomeOverride = null) {
+  const f = (state.palestrante && state.palestrante.form) || {}
+  const v = (k, ph) => String(f[k] || "").trim() || ph
+  return {
+    nome: nomeOverride || "NOME DO(A) PALESTRANTE",
+    titulo: v("titulo", "TÍTULO DA PALESTRA"),
+    diaR: v("diaR", "XX"),
+    mesR: v("mesR", "XXXX"),
+    anoR: v("anoR", "XXXX"),
+    diaEm: v("diaEm", "XX"),
+    mesEm: v("mesEm", "XXXX")
+  }
+}
+
+// Desenha o modelo do palestrante + campos (Calibri, igual aos inscritos) + QR.
+function drawPalestranteInto(canvas, fields) {
+  if (!state.palTemplateImg) return
+  const w = canvas.width,
+    h = canvas.height
+  const c = canvas.getContext("2d")
+  c.clearRect(0, 0, w, h)
+  c.drawImage(state.palTemplateImg, 0, 0, w, h)
+  const fontFamily = "'Calibri', 'Carlito', 'Segoe UI', Arial, sans-serif"
+  const baseSize = w * 0.026
+  c.fillStyle = "#000000"
+  c.textBaseline = "middle"
+  c.font = `700 ${baseSize}px ${fontFamily}`
+
+  const drawField = (key, text) => {
+    const pos = CERT_PAL_POS[key]
+    if (!pos) return
+    c.textAlign = pos.align || "center"
+    c.fillText(String(text ?? ""), w * pos.x, h * pos.y)
+  }
+  drawField("nome", fields.nome)
+  drawField("titulo", fields.titulo)
+  drawField("diaR", fields.diaR)
+  drawField("mesR", fields.mesR)
+  drawField("anoR", fields.anoR)
+  drawField("diaEm", fields.diaEm)
+  drawField("mesEm", fields.mesEm)
+
+  // QR de validação no canto inferior direito (mesmo padrão dos inscritos).
+  if (fields.qr && fields.qr.img) {
+    const margin = Math.round(w * 0.022)
+    const qrSize = Math.round(w * 0.082)
+    const codigo = String(fields.qr.codigo || "")
+    const origin = typeof location !== "undefined" ? location.origin : ""
+    const linkUrl = `${origin}/validar?c=${codigo}`
+    const qrX = w - qrSize - margin
+    const qrY = h - qrSize - margin
+    const qr = _qrTransparent(fields.qr.img)
+    c.save()
+    c.drawImage(qr || fields.qr.img, qrX, qrY, qrSize, qrSize)
+    c.restore()
+    fields.certLink = { url: linkUrl, x: qrX, y: qrY, w: qrSize, h: qrSize }
+  }
+}
+
+// Pede ao servidor os códigos assinados dos palestrantes (mesmo /api/certificado).
+async function _prepPalCodes(speakers, fd) {
+  if (!CERT_QR_ENABLED) return null
+  try {
+    const dataLabel = `${fd.diaR} de ${fd.mesR} de ${fd.anoR}`
+    const certs = speakers.map(p => ({ nome: p.nome, curso: fd.titulo, carga: "", data: dataLabel }))
+    const resp = await fetch("/api/certificado", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ certs })
+    })
+    if (!resp.ok) return null
+    const j = await resp.json()
+    return j && j.ok && Array.isArray(j.items) ? j.items.map(it => it.codigo) : null
+  } catch (_) {
+    return null
+  }
+}
+
+function renderPalPreview() {
+  const canvas = document.getElementById("palCanvas")
+  if (!canvas || !state.palTemplateImg) return
+  canvas.width = state.palTemplateImg.naturalWidth
+  canvas.height = state.palTemplateImg.naturalHeight
+  const list = getPalSpeakers()
+  const idx = Math.min(state.palestrante.previewIdx || 0, Math.max(0, list.length - 1))
+  const nome = list.length ? list[idx].nome : null
+  const fields = getPalFormData(nome)
+  if (state._palPreviewQr) fields.qr = state._palPreviewQr
+  drawPalestranteInto(canvas, fields)
+  if (!state._palPreviewQr) ensurePalPreviewQr()
+
+  const nameEl = document.getElementById("palPreviewName")
+  const counterEl = document.getElementById("palPreviewCounter")
+  const prevBtn = document.getElementById("palPrev")
+  const nextBtn = document.getElementById("palNext")
+  if (nameEl) nameEl.textContent = nome || "Sem palestrante preenchido"
+  if (counterEl) counterEl.textContent = list.length ? `(${idx + 1} de ${list.length})` : ""
+  if (prevBtn) prevBtn.disabled = list.length < 2
+  if (nextBtn) nextBtn.disabled = list.length < 2
+}
+
+// QR de demonstração na prévia (só para visualizar posição/aparência).
+async function ensurePalPreviewQr() {
+  if (state._palPreviewQr || state._palPreviewQrLoading) return
+  state._palPreviewQrLoading = true
+  try {
+    const codes = await _prepPalCodes([{ nome: "NOME DO(A) PALESTRANTE" }], getPalFormData())
+    const qr = codes && codes[0] ? await _certQrFor(codes[0]) : null
+    if (qr) {
+      state._palPreviewQr = qr
+      renderPalPreview()
+    }
+  } catch (_) {
+  } finally {
+    state._palPreviewQrLoading = false
+  }
+}
+
+function stepPalPreview(delta) {
+  const list = getPalSpeakers()
+  if (!list.length) return
+  const n = list.length
+  state.palestrante.previewIdx = ((((state.palestrante.previewIdx || 0) + delta) % n) + n) % n
+  renderPalPreview()
+}
+
+function updatePalCounts() {
+  const n = getPalSpeakers().length
+  const e = document.getElementById("palEmitCount")
+  if (e) e.textContent = n ? `(${n})` : ""
+  const s = document.getElementById("palSendCount")
+  if (s) s.textContent = n ? `(${n})` : ""
+  const emit = document.getElementById("palEmit")
+  if (emit) emit.disabled = n === 0
+  const send = document.getElementById("palSend")
+  if (send) send.disabled = n === 0
+}
+
+function _palFormError(fd) {
+  if (!fd.titulo || fd.titulo === "TÍTULO DA PALESTRA") return "Informe o título da palestra ou curso."
+  if (fd.diaR === "XX" || fd.mesR === "XXXX" || fd.anoR === "XXXX") return "Preencha a data de realização (dia, mês e ano)."
+  return null
+}
+
+function renderCertPalestrante() {
+  const pal = ensurePalState()
+  ensurePalTemplate()
+  const f = pal.form
+  const view = document.getElementById("view-certificados")
+
+  const mesSelect = (id, val) => `
+    <select id="${id}">
+      <option value="">Selecione</option>
+      ${CERT_PAL_MESES.map(m => `<option ${val === m ? "selected" : ""}>${m}</option>`).join("")}
+    </select>`
+
+  const speakerRows = pal.list
+    .map(
+      (p, i) => `
+    <div class="pal-speaker" data-idx="${i}">
+      <input class="pal-sp-nome" data-idx="${i}" placeholder="Nome do(a) palestrante" value="${escapeHtml(p.nome || "")}" />
+      <input class="pal-sp-email" data-idx="${i}" type="email" placeholder="email@exemplo.gov.br" value="${escapeHtml(p.email || "")}" />
+      <button type="button" class="btn btn--sm pal-sp-del" data-idx="${i}" title="Remover" ${pal.list.length <= 1 ? "disabled" : ""}><i class="fas fa-trash"></i></button>
+    </div>`
+    )
+    .join("")
+
+  view.innerHTML = `
+    ${certModeSwitchHtml()}
+    <div class="cert-emit-layout pal-layout">
+      <div class="pal-form-col">
+        <div class="card">
+          <div class="card__header"><div><h3>Dados do certificado</h3><p>Aplicado a todos os palestrantes.</p></div></div>
+          <div class="filter" style="margin-bottom:10px;">
+            <label for="palTitulo">Título da palestra ou curso</label>
+            <input type="text" id="palTitulo" placeholder="Ex.: Comunicação que aproxima" value="${escapeHtml(f.titulo || "")}" />
+          </div>
+          <label class="pal-fieldset-label">Realizado em</label>
+          <div class="filters" style="margin-bottom:10px; padding:0; background:transparent; border:0;">
+            <div class="filter"><label for="palDiaR">Dia</label><input type="number" id="palDiaR" min="1" max="31" placeholder="12" value="${escapeHtml(f.diaR || "")}" /></div>
+            <div class="filter"><label for="palMesR">Mês</label>${mesSelect("palMesR", f.mesR)}</div>
+            <div class="filter"><label for="palAnoR">Ano</label><input type="number" id="palAnoR" min="2024" max="2099" placeholder="2026" value="${escapeHtml(f.anoR || "")}" /></div>
+          </div>
+          <label class="pal-fieldset-label">Data de emissão <span style="color:var(--text-muted);font-weight:400">(rodapé)</span></label>
+          <div class="filters" style="padding:0; background:transparent; border:0;">
+            <div class="filter"><label for="palDiaEm">Dia</label><input type="number" id="palDiaEm" min="1" max="31" value="${escapeHtml(f.diaEm || "")}" /></div>
+            <div class="filter"><label for="palMesEm">Mês</label>${mesSelect("palMesEm", f.mesEm)}</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__header"><div><h3><i class="fas fa-chalkboard-user"></i> Palestrantes</h3><p>Um certificado por palestrante. E-mail é obrigatório só para envio.</p></div></div>
+          <div class="pal-speakers" id="palSpeakers">${speakerRows}</div>
+          <button type="button" class="btn btn--sm" id="palAdd" style="margin-top:10px;"><i class="fas fa-plus"></i> Adicionar palestrante</button>
+        </div>
+      </div>
+
+      <div class="cert-emit-side pal-preview-col">
+        <div class="card cert-preview-card">
+          <div class="card__header">
+            <div><h3><i class="fas fa-eye"></i> Pré-visualização</h3><p>Modelo exclusivo de palestrante.</p></div>
+            <span class="cert-preview-badge"><i class="fas fa-bolt"></i> Ao vivo</span>
+          </div>
+          <div class="cert-preview-toolbar">
+            <button class="btn btn--sm" id="palPrev" title="Anterior"><i class="fas fa-chevron-left"></i></button>
+            <div class="cert-preview-name">
+              <span class="cert-preview-name__label">Mostrando</span>
+              <strong id="palPreviewName">-</strong>
+              <span class="cert-preview-name__counter" id="palPreviewCounter"></span>
+            </div>
+            <button class="btn btn--sm" id="palNext" title="Próximo"><i class="fas fa-chevron-right"></i></button>
+          </div>
+          <div class="canvas-frame canvas-frame--lg"><canvas id="palCanvas" width="1600" height="1132"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card__header"><div><h3>Emitir</h3></div></div>
+          <button class="btn btn--accent btn--lg" id="palEmit" disabled style="width:100%;">
+            <i class="fas fa-award"></i> Baixar certificado(s) <span id="palEmitCount"></span>
+          </button>
+          <button class="btn btn--primary btn--lg" id="palSend" disabled style="width:100%; margin-top: var(--space-3);">
+            <i class="fas fa-envelope"></i> Enviar por e-mail <span id="palSendCount"></span>
+          </button>
+          <div class="cert-progress" id="palProgress" hidden style="margin-top: var(--space-3);">
+            <div class="cert-progress__head"><span id="palProgressLabel">Gerando</span><strong id="palProgressPct">0%</strong></div>
+            <div class="cert-progress__bar"><div class="cert-progress__fill" id="palProgressFill"></div></div>
+            <div class="cert-status" id="palStatus"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+
+  wireCertModeSwitch()
+
+  // Form (título + datas): salva no state e redesenha a prévia.
+  const bindForm = (id, key) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const h = () => {
+      pal.form[key] = el.value
+      renderPalPreview()
+    }
+    el.addEventListener("input", h)
+    el.addEventListener("change", h)
+  }
+  bindForm("palTitulo", "titulo")
+  bindForm("palDiaR", "diaR")
+  bindForm("palMesR", "mesR")
+  bindForm("palAnoR", "anoR")
+  bindForm("palDiaEm", "diaEm")
+  bindForm("palMesEm", "mesEm")
+
+  // Palestrantes: editar nome/email sem reconstruir a lista (preserva foco).
+  document.querySelectorAll(".pal-sp-nome").forEach(el =>
+    el.addEventListener("input", () => {
+      pal.list[+el.dataset.idx].nome = el.value
+      updatePalCounts()
+      renderPalPreview()
+    })
+  )
+  document.querySelectorAll(".pal-sp-email").forEach(el =>
+    el.addEventListener("input", () => {
+      pal.list[+el.dataset.idx].email = el.value
+    })
+  )
+  document.querySelectorAll(".pal-sp-del").forEach(el =>
+    el.addEventListener("click", () => {
+      pal.list.splice(+el.dataset.idx, 1)
+      if (!pal.list.length) pal.list.push({ nome: "", email: "" })
+      state.palestrante.previewIdx = 0
+      renderCertPalestrante()
+    })
+  )
+  document.getElementById("palAdd").addEventListener("click", () => {
+    pal.list.push({ nome: "", email: "" })
+    renderCertPalestrante()
+  })
+  document.getElementById("palPrev").addEventListener("click", () => stepPalPreview(-1))
+  document.getElementById("palNext").addEventListener("click", () => stepPalPreview(1))
+  document.getElementById("palEmit").addEventListener("click", emitPalestrantesLote)
+  document.getElementById("palSend").addEventListener("click", enviarPalestrantesLote)
+
+  updatePalCounts()
+  renderPalPreview()
+}
+
+async function emitPalestrantesLote() {
+  if (!state.palTemplateImg) {
+    showAlert({ title: "Aguarde", message: "O modelo do certificado ainda está carregando. Tente novamente em alguns segundos.", type: "info" })
+    return
+  }
+  const fd = getPalFormData()
+  const err = _palFormError(fd)
+  if (err) {
+    showAlert({ title: "Campos obrigatórios", message: err, type: "warn" })
+    return
+  }
+  const speakers = getPalSpeakers()
+  if (!speakers.length) {
+    showAlert({ title: "Nenhum palestrante", message: "Adicione ao menos um palestrante com o nome preenchido.", type: "warn" })
+    return
+  }
+
+  const btn = document.getElementById("palEmit")
+  btn.disabled = true
+  const progress = document.getElementById("palProgress")
+  const fill = document.getElementById("palProgressFill")
+  const pctEl = document.getElementById("palProgressPct")
+  const labelEl = document.getElementById("palProgressLabel")
+  const statusEl = document.getElementById("palStatus")
+  progress.hidden = false
+  statusEl.className = "cert-status"
+  statusEl.textContent = ""
+  fill.style.width = "0%"
+
+  const { jsPDF } = window.jspdf
+  const zip = new window.JSZip()
+  const tmp = document.createElement("canvas")
+  tmp.width = state.palTemplateImg.naturalWidth
+  tmp.height = state.palTemplateImg.naturalHeight
+  const codes = await _prepPalCodes(speakers, fd)
+
+  let singlePdf = null
+  let singleName = null
+  for (let i = 0; i < speakers.length; i++) {
+    const p = speakers[i]
+    const fields = getPalFormData(p.nome)
+    fields.qr = codes ? await _certQrFor(codes[i]) : null
+    drawPalestranteInto(tmp, fields)
+    const imgData = tmp.toDataURL("image/jpeg", 0.92)
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
+    pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
+    _addCertLink(pdf, tmp, fields)
+    const fname = `certificado-palestrante-${slug(p.nome)}-${slug(fd.titulo)}.pdf`
+    if (speakers.length === 1) {
+      singlePdf = pdf
+      singleName = fname
+    } else {
+      zip.file(fname, pdf.output("blob"))
+    }
+    const pctVal = Math.round(((i + 1) / speakers.length) * 100)
+    fill.style.width = pctVal + "%"
+    pctEl.textContent = pctVal + "%"
+    labelEl.textContent = `Gerando ${i + 1} de ${speakers.length}`
+    await new Promise(r => setTimeout(r, 0))
+  }
+
+  if (singlePdf) {
+    singlePdf.save(singleName)
+    statusEl.classList.add("is-success")
+    statusEl.textContent = "Certificado gerado e baixado."
+  } else {
+    labelEl.textContent = "Compactando..."
+    const zipBlob = await zip.generateAsync({ type: "blob" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(zipBlob)
+    a.download = `certificados-palestrantes-${new Date().toISOString().slice(0, 10)}.zip`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+    statusEl.classList.add("is-success")
+    statusEl.textContent = `${speakers.length} certificado(s) gerado(s) em ZIP.`
+  }
+  btn.disabled = false
+}
+
+async function enviarPalestrantesLote() {
+  if (!state.palTemplateImg) {
+    showAlert({ title: "Aguarde", message: "O modelo do certificado ainda está carregando. Tente novamente em alguns segundos.", type: "info" })
+    return
+  }
+  const fd = getPalFormData()
+  const err = _palFormError(fd)
+  if (err) {
+    showAlert({ title: "Campos obrigatórios", message: err, type: "warn" })
+    return
+  }
+  const url = CERT_PAL_WEBAPP_URL
+  const token = CERT_WEBAPP_TOKEN
+  if (!url || url.startsWith("COLE_AQUI") || !token) {
+    showAlert({ title: "Configuração ausente", message: "Endpoint de envio não configurado (CERT_PAL_WEBAPP_URL em assets/js/app.js).", type: "error" })
+    return
+  }
+  const speakers = getPalSpeakers()
+  if (!speakers.length) {
+    showAlert({ title: "Nenhum palestrante", message: "Adicione ao menos um palestrante com o nome preenchido.", type: "warn" })
+    return
+  }
+  const semEmail = speakers.filter(p => !p.email || !CERT_EMAIL_RE.test(p.email.trim()))
+  if (semEmail.length) {
+    const nomes = semEmail
+      .slice(0, 5)
+      .map(p => p.nome || "(sem nome)")
+      .join(", ")
+    showAlert({ title: "E-mails inválidos", message: `${semEmail.length} palestrante(s) sem e-mail válido. Ex.: ${nomes}.\n\nPreencha o e-mail de cada um antes de enviar.`, type: "warn" })
+    return
+  }
+
+  const ok = await showConfirm({
+    title: "Confirmar envio de e-mails",
+    message: `Você está prestes a gerar e ENVIAR ${speakers.length} certificado(s) de palestrante por e-mail.\n\nCada destinatário receberá apenas o seu PDF. Continuar?`,
+    confirmLabel: `Enviar ${speakers.length} e-mail(s)`,
+    cancelLabel: "Cancelar",
+    type: "confirm"
+  })
+  if (!ok) return
+
+  const btnSend = document.getElementById("palSend")
+  const btnZip = document.getElementById("palEmit")
+  btnSend.disabled = true
+  btnZip.disabled = true
+  const progress = document.getElementById("palProgress")
+  const fill = document.getElementById("palProgressFill")
+  const pctEl = document.getElementById("palProgressPct")
+  const labelEl = document.getElementById("palProgressLabel")
+  const statusEl = document.getElementById("palStatus")
+  progress.hidden = false
+  statusEl.className = "cert-status"
+  statusEl.textContent = ""
+  fill.style.width = "0%"
+
+  const { jsPDF } = window.jspdf
+  const tmp = document.createElement("canvas")
+  tmp.width = state.palTemplateImg.naturalWidth
+  tmp.height = state.palTemplateImg.naturalHeight
+  const codes = await _prepPalCodes(speakers, fd)
+
+  let okCount = 0
+  const erros = []
+  for (let i = 0; i < speakers.length; i++) {
+    const p = speakers[i]
+    const fields = getPalFormData(p.nome)
+    fields.qr = codes ? await _certQrFor(codes[i]) : null
+    const filename = `certificado-palestrante-${slug(p.nome)}-${slug(fd.titulo)}.pdf`
+    try {
+      drawPalestranteInto(tmp, fields)
+      const imgData = tmp.toDataURL("image/jpeg", 0.92)
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
+      pdf.addImage(imgData, "JPEG", 0, 0, 297, 210)
+      _addCertLink(pdf, tmp, fields)
+      const pdfBase64 = await _blobToBase64(pdf.output("blob"))
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          token,
+          tipo: "palestrante",
+          nome: p.nome,
+          email: p.email.trim(),
+          pdfName: filename,
+          pdfBase64,
+          curso: fd.titulo,
+          dia: fd.diaR,
+          mes: fd.mesR,
+          ano: fd.anoR
+        }),
+        redirect: "follow"
+      })
+      if (!resp.ok) throw new Error("HTTP " + resp.status)
+      const res = await resp.json()
+      if (res.ok) okCount++
+      else erros.push(`${p.email}: ${res.error}`)
+    } catch (e) {
+      erros.push(`${p.email}: ${e.message || e}`)
+    }
+    const pctVal = Math.round(((i + 1) / speakers.length) * 100)
+    fill.style.width = pctVal + "%"
+    pctEl.textContent = pctVal + "%"
+    labelEl.textContent = `Enviando ${i + 1} de ${speakers.length}`
+  }
+
+  if (erros.length === 0) {
+    statusEl.classList.add("is-success")
+    statusEl.textContent = `${okCount} e-mail(s) enviado(s) com sucesso.`
+  } else {
+    statusEl.classList.add("is-error")
+    statusEl.textContent = `${okCount} ok, ${erros.length} erro(s). Detalhes no console.`
+    console.error("Erros no envio (palestrantes):", erros)
+  }
+  btnZip.disabled = false
+  updatePalCounts()
 }
 
 // ================ AUTO-RELATÓRIO DE SATISFAÇÃO ================

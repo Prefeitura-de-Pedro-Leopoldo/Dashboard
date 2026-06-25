@@ -189,3 +189,88 @@
 }
 .source-tab:hover:not(.is-active) { color: var(--text-secondary); }
 
+/* ================================================================
+   Toggle Inscritos / Palestrantes + fluxo de palestrantes
+   ================================================================ */
+.cert-mode-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-4);
+}
+.cert-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-xs);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.cert-mode-btn.is-active {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  box-shadow: var(--shadow-xs);
+}
+.cert-mode-btn:hover:not(.is-active) { color: var(--text-secondary); }
+
+/* Layout do fluxo de palestrantes */
+.pal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.pal-form-col, .pal-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .pal-layout { grid-template-columns: 1fr; }
+}
+
+.pal-fieldset-label {
+  display: block;
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+  margin: 4px 0 6px;
+}
+
+/* Lista de palestrantes */
+.pal-speakers { display: flex; flex-direction: column; gap: 8px; }
+.pal-speaker {
+  display: grid;
+  grid-template-columns: 1.2fr 1.4fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.pal-speaker input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.pal-speaker input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-soft-bg);
+}
+.pal-sp-del { color: var(--red); }
+.pal-sp-del:disabled { color: var(--text-muted); opacity: 0.5; cursor: not-allowed; }
+
