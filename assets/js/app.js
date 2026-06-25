@@ -4924,6 +4924,7 @@ function ensurePalState() {
     const typo = loadPalScales()
     state.palestrante = {
       form: {
+        eventoId: "",
         titulo: "",
         diaR: "",
         mesR: "",
@@ -5232,6 +5233,26 @@ function _palFormError(fd) {
   return null
 }
 
+// Eventos já existentes no sistema, para o select que autopreenche título/datas.
+function getPalEventos() {
+  const evs = (state.data && state.data.eventos) || (state.dataRaw && state.dataRaw.eventos) || []
+  return evs.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+}
+// Ao escolher um evento: preenche título e a data de realização (dia/mês/ano).
+function palFillFromEvento(evId) {
+  const ev = getPalEventos().find(e => String(e.id) === String(evId))
+  if (!ev) return
+  const form = state.palestrante.form
+  if (ev.title) form.titulo = ev.title
+  if (ev.date) {
+    const [y, m, d] = String(ev.date).split("-")
+    if (d) form.diaR = String(parseInt(d, 10))
+    if (m) form.mesR = CERT_PAL_MESES[parseInt(m, 10) - 1] || ""
+    if (y) form.anoR = y
+  }
+  renderCertPalestrante()
+}
+
 function palTypoPanelHtml() {
   const pal = state.palestrante
   const controls = PAL_TYPO_FIELDS.map(f => {
@@ -5327,23 +5348,36 @@ function renderCertPalestrante() {
     )
     .join("")
 
+  const eventos = getPalEventos()
+  const eventoOptions = eventos
+    .map(e => `<option value="${escapeHtml(String(e.id))}" ${pal.form.eventoId === String(e.id) ? "selected" : ""}>${escapeHtml(e.title || "(sem título)")}${e.date ? " · " + formatDateBR(e.date) : ""}</option>`)
+    .join("")
+
   const dadosCard = `
         <div class="card">
-          <div class="card__header"><div><h3>Dados do certificado</h3><p>Aplicado a todos os palestrantes.</p></div></div>
-          <div class="filter" style="margin-bottom:10px;">
-            <label for="palTitulo">Título da palestra ou curso</label>
+          <div class="card__header"><div><h3>Dados do certificado</h3><p>Escolha o evento: título e data de realização preenchem sozinhos.</p></div></div>
+          <div class="pal-field">
+            <label for="palEventoSel">Evento</label>
+            <select id="palEventoSel">
+              <option value="">Selecione um evento...</option>
+              ${eventoOptions}
+              <option value="__custom__" ${pal.form.eventoId === "__custom__" ? "selected" : ""}>Outro (digitar manualmente)</option>
+            </select>
+          </div>
+          <div class="pal-field">
+            <label for="palTitulo">Título no certificado</label>
             <input type="text" id="palTitulo" placeholder="Ex.: Comunicação que aproxima" value="${escapeHtml(f.titulo || "")}" />
           </div>
           <label class="pal-fieldset-label">Realizado em</label>
-          <div class="filters" style="margin-bottom:10px; padding:0; background:transparent; border:0;">
-            <div class="filter"><label for="palDiaR">Dia</label><input type="number" id="palDiaR" min="1" max="31" placeholder="12" value="${escapeHtml(f.diaR || "")}" /></div>
-            <div class="filter"><label for="palMesR">Mês</label>${mesSelect("palMesR", f.mesR)}</div>
-            <div class="filter"><label for="palAnoR">Ano</label><input type="number" id="palAnoR" min="2024" max="2099" placeholder="2026" value="${escapeHtml(f.anoR || "")}" /></div>
+          <div class="pal-grid-3">
+            <div class="pal-field"><label for="palDiaR">Dia</label><input type="number" id="palDiaR" min="1" max="31" placeholder="12" value="${escapeHtml(f.diaR || "")}" /></div>
+            <div class="pal-field"><label for="palMesR">Mês</label>${mesSelect("palMesR", f.mesR)}</div>
+            <div class="pal-field"><label for="palAnoR">Ano</label><input type="number" id="palAnoR" min="2024" max="2099" placeholder="2026" value="${escapeHtml(f.anoR || "")}" /></div>
           </div>
           <label class="pal-fieldset-label">Data de emissão <span style="color:var(--text-muted);font-weight:400">(rodapé)</span></label>
-          <div class="filters" style="padding:0; background:transparent; border:0;">
-            <div class="filter"><label for="palDiaEm">Dia</label><input type="number" id="palDiaEm" min="1" max="31" value="${escapeHtml(f.diaEm || "")}" /></div>
-            <div class="filter"><label for="palMesEm">Mês</label>${mesSelect("palMesEm", f.mesEm)}</div>
+          <div class="pal-grid-2">
+            <div class="pal-field"><label for="palDiaEm">Dia</label><input type="number" id="palDiaEm" min="1" max="31" value="${escapeHtml(f.diaEm || "")}" /></div>
+            <div class="pal-field"><label for="palMesEm">Mês</label>${mesSelect("palMesEm", f.mesEm)}</div>
           </div>
         </div>`
 
@@ -5475,6 +5509,14 @@ function renderCertPalestrante() {
   bindForm("palAnoR", "anoR")
   bindForm("palDiaEm", "diaEm")
   bindForm("palMesEm", "mesEm")
+
+  // Select de evento: ao escolher, autopreenche título + data de realização.
+  const evSel = document.getElementById("palEventoSel")
+  if (evSel) evSel.addEventListener("change", () => {
+    pal.form.eventoId = evSel.value
+    if (evSel.value && evSel.value !== "__custom__") palFillFromEvento(evSel.value)
+    else renderPalPreview()
+  })
 
   // Palestrantes: editar nome/email sem reconstruir a lista (preserva foco).
   document.querySelectorAll(".pal-sp-nome").forEach(el =>

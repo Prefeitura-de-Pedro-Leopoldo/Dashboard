@@ -248,16 +248,56 @@
   margin: 4px 0 6px;
 }
 
+/* Campos do formulário de palestrante (apresentação sem cortes) */
+.pal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+.pal-field > label {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+}
+.pal-field input,
+.pal-field select {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.pal-field select { text-overflow: ellipsis; }
+.pal-field input:focus,
+.pal-field select:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-soft-bg);
+}
+.pal-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pal-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pal-grid-3 .pal-field, .pal-grid-2 .pal-field { margin-bottom: 0; }
+@media (max-width: 540px) { .pal-grid-3 { grid-template-columns: 1fr 1fr; } }
+
 /* Lista de palestrantes */
 .pal-speakers { display: flex; flex-direction: column; gap: 8px; }
 .pal-speaker {
   display: grid;
-  grid-template-columns: 1.2fr 1.4fr auto;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) auto;
   gap: 8px;
   align-items: center;
 }
 .pal-speaker input {
   width: 100%;
+  min-width: 0;
   padding: 8px 10px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -270,6 +310,10 @@
   outline: none;
   border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px var(--brand-soft-bg);
+}
+@media (max-width: 560px) {
+  .pal-speaker { grid-template-columns: 1fr auto; }
+  .pal-speaker .pal-sp-email { grid-column: 1 / -1; }
 }
 .pal-sp-del { color: var(--red); }
 .pal-sp-del:disabled { color: var(--text-muted); opacity: 0.5; cursor: not-allowed; }
