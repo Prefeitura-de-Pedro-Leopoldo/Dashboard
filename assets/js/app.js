@@ -188,10 +188,27 @@ const CERT_PAL_POS = {
   mesEm:  { x: 0.3973, y: 0.4993, align: "center" }
 }
 const CERT_PAL_MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+// Tamanho da fonte dos campos inseridos: Calibri 14pt (negrito) no PDF A4.
+const CERT_PAL_FONT_PT = 14
 // Envio de palestrantes usa Apps Script PRÓPRIO (separado dos inscritos), via
 // proxy interno /api/send-certificate-palestrante. Texto de e-mail específico e
 // cópia oculta para a Escola de Governo e a Fabiana (definidos no .gs).
 const CERT_PAL_WEBAPP_URL = "/api/send-certificate-palestrante"
+// Tipografia por campo do certificado de palestrante (escala 0.5-1.5, salva no
+// localStorage). Espelha o painel dos inscritos, com os campos do palestrante.
+const PAL_TYPO_KEY = "egov-cert-palestrante-typo-v1"
+const PAL_POS_KEY = "egov-cert-palestrante-pos-dash-v1"
+const PAL_TYPO_MIN = 0.5
+const PAL_TYPO_MAX = 1.5
+const PAL_TYPO_FIELDS = [
+  { key: "nome",   label: "Nome do(a) palestrante", icon: "fa-user" },
+  { key: "titulo", label: "Título da palestra",     icon: "fa-graduation-cap" },
+  { key: "diaR",   label: "Dia (realização)",       icon: "fa-calendar-day" },
+  { key: "mesR",   label: "Mês (realização)",       icon: "fa-calendar" },
+  { key: "anoR",   label: "Ano (realização)",        icon: "fa-hashtag" },
+  { key: "diaEm",  label: "Dia (emissão)",          icon: "fa-calendar-day" },
+  { key: "mesEm",  label: "Mês (emissão)",          icon: "fa-calendar" }
+]
 
 // Escalas manuais de fonte por campo e por modelo. 1.0 = tamanho base.
 // Campos suportados: nome, curso, dia, mes, ano, carga. Persistido no
@@ -4852,9 +4869,57 @@ function wireCertModeSwitch() {
   )
 }
 
+function loadPalScales() {
+  const scales = {}
+  PAL_TYPO_FIELDS.forEach(f => (scales[f.key] = 1))
+  try {
+    const s = JSON.parse(localStorage.getItem(PAL_TYPO_KEY) || "{}")
+    PAL_TYPO_FIELDS.forEach(f => {
+      const v = parseFloat(s[f.key])
+      if (Number.isFinite(v) && v >= PAL_TYPO_MIN && v <= PAL_TYPO_MAX) scales[f.key] = v
+    })
+    return { scales, link: !!s.__linked }
+  } catch (_) {
+    return { scales, link: false }
+  }
+}
+function savePalScales() {
+  const pal = state.palestrante
+  if (!pal) return
+  const out = { __linked: !!pal.typoLink }
+  PAL_TYPO_FIELDS.forEach(f => (out[f.key] = pal.scales[f.key]))
+  try {
+    localStorage.setItem(PAL_TYPO_KEY, JSON.stringify(out))
+  } catch (_) {}
+}
+
+function loadPalPos() {
+  const base = JSON.parse(JSON.stringify(CERT_PAL_POS))
+  try {
+    const s = JSON.parse(localStorage.getItem(PAL_POS_KEY) || "null")
+    if (s) Object.keys(base).forEach(k => {
+      if (s[k] && Number.isFinite(s[k].x) && Number.isFinite(s[k].y)) {
+        base[k].x = s[k].x
+        base[k].y = s[k].y
+      }
+    })
+  } catch (_) {}
+  return base
+}
+function savePalPos() {
+  const pos = state.palestrante && state.palestrante.pos
+  if (!pos) return
+  const slim = {}
+  Object.keys(pos).forEach(k => (slim[k] = { x: pos[k].x, y: pos[k].y }))
+  try {
+    localStorage.setItem(PAL_POS_KEY, JSON.stringify(slim))
+  } catch (_) {}
+}
+
 function ensurePalState() {
   if (!state.palestrante) {
     const now = new Date()
+    const typo = loadPalScales()
     state.palestrante = {
       form: {
         titulo: "",
@@ -4865,10 +4930,132 @@ function ensurePalState() {
         mesEm: CERT_PAL_MESES[now.getMonth()]
       },
       list: [{ nome: "", email: "" }],
-      previewIdx: 0
+      previewIdx: 0,
+      step: 1,
+      scales: typo.scales,
+      typoLink: typo.link,
+      pos: loadPalPos(),
+      dragEnabled: true
     }
   }
+  if (!state.palestrante.scales) {
+    const t = loadPalScales()
+    state.palestrante.scales = t.scales
+    state.palestrante.typoLink = t.link
+  }
+  if (!state.palestrante.pos) state.palestrante.pos = loadPalPos()
+  if (!state.palestrante.step) state.palestrante.step = 1
   return state.palestrante
+}
+
+// Atualiza só o texto exibido em cada handle (sem reconstruir o overlay).
+function syncPalDragText() {
+  const layer = document.getElementById("palDragLayer")
+  if (!layer) return
+  const list = getPalSpeakers()
+  const idx = Math.min(state.palestrante.previewIdx || 0, Math.max(0, list.length - 1))
+  const fields = getPalFormData(list.length ? list[idx].nome : null)
+  layer.querySelectorAll(".cert-drag-handle").forEach(el => {
+    const t = el.querySelector(".cert-drag-handle__text")
+    if (t) t.textContent = String(fields[el.dataset.field] ?? "").trim() || "-"
+  })
+}
+
+// (Re)constrói os handles de arrasto e liga o drag por campo.
+function renderPalDragLayer() {
+  const layer = document.getElementById("palDragLayer")
+  const toggle = document.getElementById("palPosToggle")
+  if (!layer) return
+  const pal = state.palestrante
+  const P = pal.pos
+  const labels = {}
+  PAL_TYPO_FIELDS.forEach(f => (labels[f.key] = f.label))
+  const list = getPalSpeakers()
+  const idx = Math.min(pal.previewIdx || 0, Math.max(0, list.length - 1))
+  const fields = getPalFormData(list.length ? list[idx].nome : null)
+
+  layer.innerHTML = Object.keys(P)
+    .map(key => {
+      const value = String(fields[key] ?? "").trim() || "-"
+      return `
+      <div class="cert-drag-handle" data-field="${key}"
+           style="left:${(P[key].x * 100).toFixed(3)}%; top:${(P[key].y * 100).toFixed(3)}%"
+           title="${escapeHtml(labels[key] || key)}">
+        <span class="cert-drag-handle__grip"><i class="fas fa-up-down-left-right"></i></span>
+        <span class="cert-drag-handle__text">${escapeHtml(value)}</span>
+      </div>`
+    })
+    .join("")
+
+  layer.querySelectorAll(".cert-drag-handle").forEach(el => {
+    const fkey = el.dataset.field
+    let dragging = false,
+      dx = 0,
+      dy = 0
+    el.addEventListener("pointerdown", e => {
+      e.preventDefault()
+      dragging = true
+      el.setPointerCapture(e.pointerId)
+      el.classList.add("is-dragging")
+      const rect = el.getBoundingClientRect()
+      dx = e.clientX - (rect.left + rect.width / 2)
+      dy = e.clientY - (rect.top + rect.height / 2)
+    })
+    el.addEventListener("pointermove", e => {
+      if (!dragging) return
+      const stage = document.getElementById("palCanvasStage")
+      const sb = stage.getBoundingClientRect()
+      const xc = Math.max(0, Math.min(1, (e.clientX - dx - sb.left) / sb.width))
+      const yc = Math.max(0, Math.min(1, (e.clientY - dy - sb.top) / sb.height))
+      P[fkey].x = xc
+      P[fkey].y = yc
+      el.style.left = (xc * 100).toFixed(3) + "%"
+      el.style.top = (yc * 100).toFixed(3) + "%"
+      renderPalPreview()
+    })
+    const end = e => {
+      if (!dragging) return
+      dragging = false
+      el.classList.remove("is-dragging")
+      try {
+        el.releasePointerCapture(e.pointerId)
+      } catch (_) {}
+      savePalPos()
+    }
+    el.addEventListener("pointerup", end)
+    el.addEventListener("pointercancel", end)
+  })
+
+  if (toggle) {
+    toggle.checked = pal.dragEnabled !== false
+    const sync = () => {
+      pal.dragEnabled = toggle.checked
+      layer.hidden = !toggle.checked
+    }
+    toggle.onchange = sync
+    sync()
+  }
+
+  const resetBtn = document.getElementById("palPosReset")
+  if (resetBtn) {
+    resetBtn.onclick = () => {
+      Object.keys(CERT_PAL_POS).forEach(k => {
+        pal.pos[k].x = CERT_PAL_POS[k].x
+        pal.pos[k].y = CERT_PAL_POS[k].y
+      })
+      PAL_TYPO_FIELDS.forEach(f => (pal.scales[f.key] = 1))
+      pal.typoLink = false
+      savePalPos()
+      savePalScales()
+      renderCertPalestrante()
+    }
+  }
+}
+
+function goToPalStep(n) {
+  const pal = ensurePalState()
+  pal.step = Math.max(1, Math.min(2, n))
+  renderCertPalestrante()
 }
 
 // Carrega o modelo do palestrante (uma vez) e redesenha quando pronto.
@@ -4916,14 +5103,19 @@ function drawPalestranteInto(canvas, fields) {
   c.clearRect(0, 0, w, h)
   c.drawImage(state.palTemplateImg, 0, 0, w, h)
   const fontFamily = "'Calibri', 'Carlito', 'Segoe UI', Arial, sans-serif"
-  const baseSize = w * 0.026
+  // Calibri 14pt (negrito) sobre A4 paisagem: o canvas (largura w) ocupa 297mm
+  // no PDF, então 14pt = 14*(25.4/72) mm convertidos para px do canvas.
+  const baseSize = CERT_PAL_FONT_PT * (25.4 / 72) * (w / 297)
   c.fillStyle = "#000000"
   c.textBaseline = "middle"
   c.font = `700 ${baseSize}px ${fontFamily}`
 
+  const P = (state.palestrante && state.palestrante.pos) || CERT_PAL_POS
+  const scales = (state.palestrante && state.palestrante.scales) || {}
   const drawField = (key, text) => {
-    const pos = CERT_PAL_POS[key]
+    const pos = P[key]
     if (!pos) return
+    c.font = `700 ${baseSize * (scales[key] || 1)}px ${fontFamily}`
     c.textAlign = pos.align || "center"
     c.fillText(String(text ?? ""), w * pos.x, h * pos.y)
   }
@@ -4986,12 +5178,13 @@ function renderPalPreview() {
 
   const nameEl = document.getElementById("palPreviewName")
   const counterEl = document.getElementById("palPreviewCounter")
-  const prevBtn = document.getElementById("palPrev")
-  const nextBtn = document.getElementById("palNext")
+  const prevBtn = document.getElementById("palPreviewPrev")
+  const nextBtn = document.getElementById("palPreviewNext")
   if (nameEl) nameEl.textContent = nome || "Sem palestrante preenchido"
   if (counterEl) counterEl.textContent = list.length ? `(${idx + 1} de ${list.length})` : ""
   if (prevBtn) prevBtn.disabled = list.length < 2
   if (nextBtn) nextBtn.disabled = list.length < 2
+  syncPalDragText()
 }
 
 // QR de demonstração na prévia (só para visualizar posição/aparência).
@@ -5037,10 +5230,82 @@ function _palFormError(fd) {
   return null
 }
 
+function palTypoPanelHtml() {
+  const pal = state.palestrante
+  const controls = PAL_TYPO_FIELDS.map(f => {
+    const pct = Math.round((pal.scales[f.key] || 1) * 100)
+    return `
+      <div class="cert-typo-control">
+        <div class="cert-typo-control__head">
+          <span class="cert-typo-control__label"><i class="fas ${f.icon}"></i> ${f.label}</span>
+          <span class="cert-typo-control__value" data-typo-val="${f.key}">${pct}%</span>
+        </div>
+        <input type="range" class="cert-typo-control__range" data-typo="${f.key}" min="50" max="150" step="1" value="${pct}">
+      </div>`
+  }).join("")
+  return `
+    <div class="card cert-typo-panel cert-typo-panel--side" id="palTypoPanel">
+      <div class="cert-typo-panel__head">
+        <div class="cert-typo-panel__title">
+          <strong><i class="fas fa-text-height"></i> Tipografia do modelo</strong>
+          <span class="cert-typo-panel__hint">Ajuste o tamanho de cada texto. Salvo no navegador.</span>
+        </div>
+        <button type="button" class="cert-typo-panel__toggle" id="palTypoToggle" title="Mostrar/ocultar">
+          <i class="fas fa-chevron-up"></i>
+        </button>
+      </div>
+      <div class="cert-typo-panel__actions-row">
+        <label class="cert-typo-link" title="Quando ativo, mover um slider ajusta todos juntos - evita discrepância tipográfica">
+          <input type="checkbox" id="palTypoLink" ${pal.typoLink ? "checked" : ""}>
+          <i class="fas fa-link"></i>
+          <span>Manter proporções entre os campos</span>
+        </label>
+      </div>
+      <div class="cert-typo-panel__grid" id="palTypoGrid">${controls}</div>
+    </div>`
+}
+
+function wirePalTypo() {
+  const grid = document.getElementById("palTypoGrid")
+  if (!grid) return
+  const setLabel = (key, pct) => {
+    const l = grid.querySelector(`[data-typo-val="${key}"]`)
+    if (l) l.textContent = pct + "%"
+  }
+  grid.querySelectorAll("[data-typo]").forEach(range => {
+    range.addEventListener("input", () => {
+      const pal = state.palestrante
+      const pct = Math.max(50, Math.min(150, parseInt(range.value, 10) || 100))
+      const val = pct / 100
+      if (pal.typoLink) {
+        PAL_TYPO_FIELDS.forEach(f => (pal.scales[f.key] = val))
+        grid.querySelectorAll("[data-typo]").forEach(r => (r.value = pct))
+        PAL_TYPO_FIELDS.forEach(f => setLabel(f.key, pct))
+      } else {
+        pal.scales[range.dataset.typo] = val
+        setLabel(range.dataset.typo, pct)
+      }
+      savePalScales()
+      renderPalPreview()
+    })
+  })
+  const link = document.getElementById("palTypoLink")
+  if (link) link.addEventListener("change", () => {
+    state.palestrante.typoLink = link.checked
+    savePalScales()
+  })
+  const toggle = document.getElementById("palTypoToggle")
+  if (toggle) toggle.addEventListener("click", () => {
+    const panel = document.getElementById("palTypoPanel")
+    if (panel) panel.classList.toggle("is-collapsed")
+  })
+}
+
 function renderCertPalestrante() {
   const pal = ensurePalState()
   ensurePalTemplate()
   const f = pal.form
+  const step = pal.step || 1
   const view = document.getElementById("view-certificados")
 
   const mesSelect = (id, val) => `
@@ -5060,10 +5325,7 @@ function renderCertPalestrante() {
     )
     .join("")
 
-  view.innerHTML = `
-    ${certModeSwitchHtml()}
-    <div class="cert-emit-layout pal-layout">
-      <div class="pal-form-col">
+  const dadosCard = `
         <div class="card">
           <div class="card__header"><div><h3>Dados do certificado</h3><p>Aplicado a todos os palestrantes.</p></div></div>
           <div class="filter" style="margin-bottom:10px;">
@@ -5081,52 +5343,118 @@ function renderCertPalestrante() {
             <div class="filter"><label for="palDiaEm">Dia</label><input type="number" id="palDiaEm" min="1" max="31" value="${escapeHtml(f.diaEm || "")}" /></div>
             <div class="filter"><label for="palMesEm">Mês</label>${mesSelect("palMesEm", f.mesEm)}</div>
           </div>
-        </div>
+        </div>`
 
+  const palestrantesCard = `
         <div class="card">
           <div class="card__header"><div><h3><i class="fas fa-chalkboard-user"></i> Palestrantes</h3><p>Um certificado por palestrante. E-mail é obrigatório só para envio.</p></div></div>
           <div class="pal-speakers" id="palSpeakers">${speakerRows}</div>
           <button type="button" class="btn btn--sm" id="palAdd" style="margin-top:10px;"><i class="fas fa-plus"></i> Adicionar palestrante</button>
+        </div>`
+
+  view.innerHTML = `
+    ${certModeSwitchHtml()}
+    <div class="wizard">
+      <ol class="wizard__steps" role="tablist">
+        <li class="wizard__step ${step === 1 ? "is-active" : ""} ${step > 1 ? "is-done" : ""}" data-palstep="1" role="tab">
+          <span class="wizard__step-num">1</span>
+          <span class="wizard__step-label"><strong>Dados & Palestrantes</strong><em>Preencha o certificado</em></span>
+        </li>
+        <li class="wizard__step ${step === 2 ? "is-active" : ""}" data-palstep="2" role="tab">
+          <span class="wizard__step-num">2</span>
+          <span class="wizard__step-label"><strong>Pré-visualizar & Enviar</strong><em>Ajuste, confira e emita</em></span>
+        </li>
+      </ol>
+
+      <!-- ETAPA 1: Dados + Palestrantes -->
+      <div class="wizard__panel" data-panel="1" ${step === 1 ? "" : "hidden"}>
+        <div class="grid-2">
+          ${dadosCard}
+          ${palestrantesCard}
         </div>
       </div>
 
-      <div class="cert-emit-side pal-preview-col">
-        <div class="card cert-preview-card">
-          <div class="card__header">
-            <div><h3><i class="fas fa-eye"></i> Pré-visualização</h3><p>Modelo exclusivo de palestrante.</p></div>
-            <span class="cert-preview-badge"><i class="fas fa-bolt"></i> Ao vivo</span>
-          </div>
-          <div class="cert-preview-toolbar">
-            <button class="btn btn--sm" id="palPrev" title="Anterior"><i class="fas fa-chevron-left"></i></button>
-            <div class="cert-preview-name">
-              <span class="cert-preview-name__label">Mostrando</span>
-              <strong id="palPreviewName">-</strong>
-              <span class="cert-preview-name__counter" id="palPreviewCounter"></span>
+      <!-- ETAPA 2: Preview + Emitir -->
+      <div class="wizard__panel" data-panel="2" ${step === 2 ? "" : "hidden"}>
+        <div class="cert-emit-layout">
+          <div class="card cert-preview-card">
+            <div class="card__header">
+              <div><h3><i class="fas fa-eye"></i> Pré-visualização</h3><p>Modelo exclusivo de palestrante. Arraste os campos para posicionar.</p></div>
+              <span class="cert-preview-badge"><i class="fas fa-bolt"></i> Ao vivo</span>
             </div>
-            <button class="btn btn--sm" id="palNext" title="Próximo"><i class="fas fa-chevron-right"></i></button>
+            <div class="cert-preview-toolbar">
+              <button class="btn btn--sm" id="palPreviewPrev" title="Anterior"><i class="fas fa-chevron-left"></i></button>
+              <div class="cert-preview-name">
+                <span class="cert-preview-name__label">Mostrando</span>
+                <strong id="palPreviewName">-</strong>
+                <span class="cert-preview-name__counter" id="palPreviewCounter"></span>
+              </div>
+              <button class="btn btn--sm" id="palPreviewNext" title="Próximo"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="canvas-frame canvas-frame--lg cert-canvas-stage" id="palCanvasStage">
+              <canvas id="palCanvas" width="1600" height="1132"></canvas>
+              <div class="cert-drag-layer" id="palDragLayer" hidden></div>
+            </div>
           </div>
-          <div class="canvas-frame canvas-frame--lg"><canvas id="palCanvas" width="1600" height="1132"></canvas></div>
-        </div>
 
-        <div class="card">
-          <div class="card__header"><div><h3>Emitir</h3></div></div>
-          <button class="btn btn--accent btn--lg" id="palEmit" disabled style="width:100%;">
-            <i class="fas fa-award"></i> Baixar certificado(s) <span id="palEmitCount"></span>
-          </button>
-          <button class="btn btn--primary btn--lg" id="palSend" disabled style="width:100%; margin-top: var(--space-3);">
-            <i class="fas fa-envelope"></i> Enviar por e-mail <span id="palSendCount"></span>
-          </button>
-          <div class="cert-progress" id="palProgress" hidden style="margin-top: var(--space-3);">
-            <div class="cert-progress__head"><span id="palProgressLabel">Gerando</span><strong id="palProgressPct">0%</strong></div>
-            <div class="cert-progress__bar"><div class="cert-progress__fill" id="palProgressFill"></div></div>
-            <div class="cert-status" id="palStatus"></div>
+          <div class="cert-emit-side">
+            <div class="card">
+              <div class="card__header"><div><h3>Emitir</h3></div></div>
+              <button class="btn btn--accent btn--lg" id="palEmit" disabled style="width:100%;">
+                <i class="fas fa-award"></i> Baixar certificado(s) <span id="palEmitCount"></span>
+              </button>
+              <button class="btn btn--primary btn--lg" id="palSend" disabled style="width:100%; margin-top: var(--space-3);">
+                <i class="fas fa-envelope"></i> Enviar por e-mail <span id="palSendCount"></span>
+              </button>
+              <div class="cert-progress" id="palProgress" hidden style="margin-top: var(--space-3);">
+                <div class="cert-progress__head"><span id="palProgressLabel">Gerando</span><strong id="palProgressPct">0%</strong></div>
+                <div class="cert-progress__bar"><div class="cert-progress__fill" id="palProgressFill"></div></div>
+                <div class="cert-status" id="palStatus"></div>
+              </div>
+            </div>
+
+            <!-- Arrastar e soltar (posições) -->
+            <div class="card cert-pos-card">
+              <div class="cert-pos-card__row">
+                <label class="cert-pos-card__toggle">
+                  <input type="checkbox" id="palPosToggle" checked />
+                  <span class="cert-pos-card__switch" aria-hidden="true"></span>
+                  <span class="cert-pos-card__text">
+                    <strong><i class="fas fa-arrows-up-down-left-right"></i> Arrastar e soltar</strong>
+                    <small>Reposicione cada campo no certificado</small>
+                  </span>
+                </label>
+                <button type="button" class="btn btn--sm cert-pos-card__reset" id="palPosReset" title="Restaurar posições e fontes padrão">
+                  <i class="fas fa-rotate-left"></i>
+                </button>
+              </div>
+              <span class="cert-pos-card__hint">Modelo de palestrante</span>
+            </div>
+
+            <!-- Tipografia -->
+            ${palTypoPanelHtml()}
           </div>
         </div>
+      </div>
+
+      <!-- Navegação -->
+      <div class="wizard__nav">
+        <button class="btn" id="palWizPrev" ${step === 1 ? "disabled" : ""}><i class="fas fa-arrow-left"></i> Voltar</button>
+        <div class="wizard__nav-meta"></div>
+        ${step === 1 ? `<button class="btn btn--accent" id="palWizNext">Próximo <i class="fas fa-arrow-right"></i></button>` : ""}
       </div>
     </div>
   `
 
   wireCertModeSwitch()
+
+  // Navegação do wizard
+  view.querySelectorAll(".wizard__step[data-palstep]").forEach(s =>
+    s.addEventListener("click", () => goToPalStep(parseInt(s.dataset.palstep, 10)))
+  )
+  document.getElementById("palWizPrev").addEventListener("click", () => goToPalStep(step - 1))
+  const wizNext = document.getElementById("palWizNext")
+  if (wizNext) wizNext.addEventListener("click", () => goToPalStep(step + 1))
 
   // Form (título + datas): salva no state e redesenha a prévia.
   const bindForm = (id, key) => {
@@ -5163,7 +5491,7 @@ function renderCertPalestrante() {
     el.addEventListener("click", () => {
       pal.list.splice(+el.dataset.idx, 1)
       if (!pal.list.length) pal.list.push({ nome: "", email: "" })
-      state.palestrante.previewIdx = 0
+      pal.previewIdx = 0
       renderCertPalestrante()
     })
   )
@@ -5171,10 +5499,16 @@ function renderCertPalestrante() {
     pal.list.push({ nome: "", email: "" })
     renderCertPalestrante()
   })
-  document.getElementById("palPrev").addEventListener("click", () => stepPalPreview(-1))
-  document.getElementById("palNext").addEventListener("click", () => stepPalPreview(1))
+
+  // Etapa 2: navegação da prévia, emissão, arrastar-e-soltar e tipografia.
+  const pPrev = document.getElementById("palPreviewPrev")
+  if (pPrev) pPrev.addEventListener("click", () => stepPalPreview(-1))
+  const pNext = document.getElementById("palPreviewNext")
+  if (pNext) pNext.addEventListener("click", () => stepPalPreview(1))
   document.getElementById("palEmit").addEventListener("click", emitPalestrantesLote)
   document.getElementById("palSend").addEventListener("click", enviarPalestrantesLote)
+  wirePalTypo()
+  renderPalDragLayer()
 
   updatePalCounts()
   renderPalPreview()
