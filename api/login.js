@@ -81,7 +81,12 @@ export default async function handler(req, res) {
       return res.status(401).json({ ok: false, error: "Credenciais inválidas." });
     }
 
-    return res.status(200).json({ ok: true, email: allowed.email, name: allowed.name });
+    return res.status(200).json({
+      ok: true,
+      email: allowed.email,
+      name: allowed.name,
+      mustChangePassword: !!allowed.mustChangePassword,
+    });
   } catch (e) {
     log.error("erro inesperado", { err: e?.message });
     return res.status(500).json({ ok: false, error: "Erro interno." });
