@@ -577,10 +577,18 @@
             <div class="err" id="err" role="alert"></div>
           </form>
 
+          <div class="social-sep" role="separator" aria-label="ou" style="display:flex;align-items:center;gap:12px;margin:20px 0 14px;color:var(--muted,#94a3b8);font-size:13px;">
+            <span style="flex:1;height:1px;background:currentColor;opacity:.25;"></span>
+            <span>ou</span>
+            <span style="flex:1;height:1px;background:currentColor;opacity:.25;"></span>
+          </div>
+          <div id="googleBtn" style="display:flex;justify-content:center;min-height:44px;"></div>
+
         </div>
       </main>
     </div>
 
+    <script src="https://accounts.google.com/gsi/client" async></script>
     <script>
       const form = document.getElementById("loginForm");
       const err = document.getElementById("err");
@@ -670,6 +678,56 @@
         document.documentElement.setAttribute("data-theme", next);
         try { localStorage.setItem("egovpl-theme", next); } catch (_) {}
       });
+
+      // Login social com Google (Google Identity Services).
+      // O CLIENT_ID é público; o e-mail ainda é validado no servidor contra a
+      // allowlist (/api/auth/google) antes de liberar o painel.
+      const GOOGLE_CLIENT_ID = "237676994992-pohe63acdm9bb7idbmtvslpmbhf4hlkr.apps.googleusercontent.com";
+
+      async function handleGoogleCredential(response) {
+        err.textContent = "";
+        try {
+          const res = await fetch("/api/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: response.credential }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            const payload = JSON.stringify({
+              email: data.email,
+              name: data.name || "Administrador EGov-PL",
+              ts: Date.now(),
+            });
+            sessionStorage.setItem("egov_admin_session", payload);
+            try { localStorage.setItem("egov_admin_session", payload); } catch (_) {}
+            window.location.href = "dashboard.html";
+          } else {
+            showError(data.error || "Não foi possível entrar com o Google.");
+          }
+        } catch (_) {
+          showError("Falha de conexão ao entrar com o Google.");
+        }
+      }
+
+      (function initGoogle(tries) {
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredential,
+          });
+          google.accounts.id.renderButton(document.getElementById("googleBtn"), {
+            theme: "outline",
+            size: "large",
+            shape: "pill",
+            text: "continue_with",
+            logo_alignment: "center",
+            width: 320,
+          });
+          return;
+        }
+        if (tries > 0) setTimeout(() => initGoogle(tries - 1), 250);
+      })(20);
 
       // PWA: registra o service worker (cache do shell + uso offline)
       if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
