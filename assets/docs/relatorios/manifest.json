@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-06-19T19:01:49.197Z",
+  "geradoEm": "2026-06-30T17:34:21.461Z",
   "fonte": "assets/docs/relatorios/**/*.xlsx",
   "planilhas": [
     {
@@ -51,6 +51,11 @@
       "id": "introducao-a-contabilidade-publica",
       "arquivo": "introducao-a-contabilidade-publica-2026-06/participantes.xlsx",
       "titulo": "Introdução à Contabilidade Pública"
+    },
+    {
+      "id": "elaboracao-de-estudo-tecnico-preliminar",
+      "arquivo": "elaboracao-de-estudo-tecnico-preliminar-2026-06/participantes.xlsx",
+      "titulo": "Elaboração de Estudo Técnico Preliminar"
     }
   ]
 }

@@ -186,7 +186,6 @@
     },
     "elaboracao-de-estudo-tecnico-preliminar-2026-06/participantes.xlsx": {
       "id": "elaboracao-de-estudo-tecnico-preliminar",
-      "placeholder": true,
       "cargaHoraria": 3,
       "title": "Elaboração de Estudo Técnico Preliminar",
       "tituloCurto": "Elaboração de Estudo Técnico Preliminar",
@@ -197,6 +196,48 @@
       "city": "Pedro Leopoldo",
       "vagas": 40,
       "grupo": null
+    },
+    "pl-por-todos-2026-06/turma 1/participantes.xlsx": {
+      "id": "pl-por-todos-turma-1",
+      "placeholder": true,
+      "cargaHoraria": 15,
+      "title": "PL por Todos",
+      "tituloCurto": "PL por Todos - Turma 1",
+      "date": "2026-06-30",
+      "dateFim": "2026-07-28",
+      "dateRaw": "Data: 30/06/2026 a 28/07/2026 (terças) - 5 encontros, 3h/dia (15h)",
+      "time": "08h",
+      "duracaoHoras": 3,
+      "local": "Local: Secretaria de Segurança Pública",
+      "city": "Pedro Leopoldo",
+      "vagas": 30,
+      "grupo": {
+        "id": "pl-por-todos-2026-06",
+        "titulo": "PL por Todos",
+        "turma": 1,
+        "modulo": null
+      }
+    },
+    "pl-por-todos-2026-06/turma 2/participantes.xlsx": {
+      "id": "pl-por-todos-turma-2",
+      "placeholder": true,
+      "cargaHoraria": 15,
+      "title": "PL por Todos",
+      "tituloCurto": "PL por Todos - Turma 2",
+      "date": "2026-07-01",
+      "dateFim": "2026-07-29",
+      "dateRaw": "Data: 01/07/2026 a 29/07/2026 (quartas) - 5 encontros, 3h/dia (15h)",
+      "time": "08h",
+      "duracaoHoras": 3,
+      "local": "Local: Secretaria de Segurança Pública",
+      "city": "Pedro Leopoldo",
+      "vagas": 30,
+      "grupo": {
+        "id": "pl-por-todos-2026-06",
+        "titulo": "PL por Todos",
+        "turma": 2,
+        "modulo": null
+      }
     }
   }
 }
