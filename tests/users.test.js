@@ -2,14 +2,26 @@ import { describe, it, expect } from "vitest";
 import { hashPassword, verifyPassword, parseEnvUsers, validatePasswordChange } from "../lib/users.mjs";
 
 describe("validatePasswordChange", () => {
-  it("aceita senha nova válida e diferente da atual", () => {
-    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "novaSenhaForte" }).ok).toBe(true);
+  it("aceita senha forte (8+, maiúscula, minúscula, número e especial)", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "NovaSenha1!" }).ok).toBe(true);
   });
   it("rejeita senha curta (< 8)", () => {
-    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "curta" }).ok).toBe(false);
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "Aa1!" }).ok).toBe(false);
+  });
+  it("rejeita sem maiúscula", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "novasenha1!" }).ok).toBe(false);
+  });
+  it("rejeita sem minúscula", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "NOVASENHA1!" }).ok).toBe(false);
+  });
+  it("rejeita sem número", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "NovaSenha!" }).ok).toBe(false);
+  });
+  it("rejeita sem caractere especial", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "NovaSenha1" }).ok).toBe(false);
   });
   it("rejeita senha igual à atual", () => {
-    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "egov2026" }).ok).toBe(false);
+    expect(validatePasswordChange({ currentPassword: "NovaSenha1!", newPassword: "NovaSenha1!" }).ok).toBe(false);
   });
 });
 

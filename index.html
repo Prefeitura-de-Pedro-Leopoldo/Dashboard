@@ -584,30 +584,6 @@
           </div>
           <div id="googleBtn" style="display:flex;justify-content:center;min-height:44px;"></div>
 
-          <form id="changeForm" autocomplete="off" novalidate hidden>
-            <p class="form-subtitle" style="margin-top:0;">Primeiro acesso: defina uma nova senha para continuar.</p>
-            <div class="field">
-              <label for="newPassword">Nova senha</label>
-              <div class="input-wrap">
-                <i class="fas fa-lock" aria-hidden="true"></i>
-                <input id="newPassword" type="password" placeholder="Mínimo 8 caracteres" required autocomplete="new-password" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="confirmPassword">Confirmar nova senha</label>
-              <div class="input-wrap">
-                <i class="fas fa-lock" aria-hidden="true"></i>
-                <input id="confirmPassword" type="password" placeholder="Repita a nova senha" required autocomplete="new-password" />
-              </div>
-            </div>
-            <button type="submit" id="changeBtn">
-              <i class="fas fa-circle-notch spin" aria-hidden="true"></i>
-              <span class="label">Salvar e entrar</span>
-              <i class="fas fa-arrow-right arrow" aria-hidden="true"></i>
-            </button>
-            <div class="err" id="changeErr" role="alert"></div>
-          </form>
-
         </div>
       </main>
     </div>
@@ -641,8 +617,17 @@
           const data = await res.json().catch(() => ({}));
           if (res.ok && data.ok) {
             if (data.mustChangePassword) {
-              // Primeiro acesso por senha: obriga a definir uma nova antes de entrar.
-              enterChangeMode(email, pass, remember);
+              // Primeiro acesso por senha: leva para a página de troca obrigatória.
+              // Handoff temporário (limpo após a troca) - sem sessão ainda.
+              try {
+                sessionStorage.setItem("egov_pwchange", JSON.stringify({
+                  email: data.email,
+                  name: data.name || "",
+                  currentPassword: pass,
+                  remember,
+                }));
+              } catch (_) {}
+              window.location.href = "trocar-senha.html";
             } else {
               finishSession(data, remember);
             }
@@ -670,59 +655,6 @@
         }
         window.location.href = "dashboard.html";
       }
-
-      // Troca obrigatória de senha no primeiro acesso (login por e-mail/senha).
-      let pendingEmail = "", pendingPassword = "", pendingRemember = false;
-      const changeForm = document.getElementById("changeForm");
-      const changeErr = document.getElementById("changeErr");
-      const changeBtn = document.getElementById("changeBtn");
-
-      function showChangeError(msg) {
-        changeErr.innerHTML = '<i class="fas fa-circle-exclamation"></i> ' + msg;
-      }
-
-      function enterChangeMode(email, currentPassword, remember) {
-        pendingEmail = email;
-        pendingPassword = currentPassword;
-        pendingRemember = remember;
-        form.hidden = true;
-        document.getElementById("socialSep").style.display = "none";
-        document.getElementById("googleBtn").style.display = "none";
-        changeForm.hidden = false;
-        document.getElementById("newPassword").focus();
-      }
-
-      changeForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        changeErr.textContent = "";
-        const newPassword = document.getElementById("newPassword").value;
-        const confirmPassword = document.getElementById("confirmPassword").value;
-        if (newPassword.length < 8) { showChangeError("A nova senha deve ter pelo menos 8 caracteres."); return; }
-        if (newPassword !== confirmPassword) { showChangeError("As senhas não conferem."); return; }
-        if (newPassword === pendingPassword) { showChangeError("A nova senha deve ser diferente da atual."); return; }
-
-        changeBtn.classList.add("is-loading");
-        changeBtn.disabled = true;
-        try {
-          const res = await fetch("/api/change-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: pendingEmail, currentPassword: pendingPassword, newPassword }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (res.ok && data.ok) {
-            finishSession(data, pendingRemember);
-          } else {
-            changeBtn.classList.remove("is-loading");
-            changeBtn.disabled = false;
-            showChangeError(data.error || "Não foi possível alterar a senha.");
-          }
-        } catch (_) {
-          changeBtn.classList.remove("is-loading");
-          changeBtn.disabled = false;
-          showChangeError("Falha de conexão. Tente novamente.");
-        }
-      });
 
       // sessão persistida (remember)
       const persisted = (() => {
