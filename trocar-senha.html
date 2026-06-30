@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Definir nova senha · Painel · EGov-PL</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+      :root {
+        --bg: #0f172a; --card: #ffffff; --text: #0f172a; --muted: #64748b;
+        --border: #e2e8f0; --primary: #2563eb; --primary-d: #1d4ed8;
+        --ok: #16a34a; --err: #dc2626;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100dvh; display: grid; place-items: center;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #1e293b, #0f172a); color: var(--text); padding: 24px;
+      }
+      .card {
+        width: 100%; max-width: 420px; background: var(--card); border-radius: 16px;
+        padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      }
+      .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+      .brand__logo {
+        width: 40px; height: 40px; border-radius: 10px; background: var(--primary);
+        color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 20px;
+      }
+      .brand small { color: var(--muted); display: block; }
+      h1 { font-size: 20px; margin: 0 0 6px; }
+      .sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+      label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+      .field { margin-bottom: 16px; }
+      .input-wrap { position: relative; }
+      .input-wrap i.fa-lock { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+      input[type="password"], input[type="text"] {
+        width: 100%; padding: 12px 40px 12px 38px; border: 1px solid var(--border);
+        border-radius: 10px; font-size: 15px; outline: none;
+      }
+      input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+      .toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; }
+      .rules { list-style: none; padding: 0; margin: 0 0 18px; font-size: 13px; }
+      .rules li { display: flex; align-items: center; gap: 8px; color: var(--muted); padding: 2px 0; }
+      .rules li.ok { color: var(--ok); }
+      .rules li i { width: 16px; text-align: center; }
+      button.primary {
+        width: 100%; padding: 13px; border: 0; border-radius: 10px; background: var(--primary);
+        color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; display: flex;
+        align-items: center; justify-content: center; gap: 8px;
+      }
+      button.primary:hover { background: var(--primary-d); }
+      button.primary:disabled { opacity: .6; cursor: not-allowed; }
+      .err { color: var(--err); font-size: 13px; margin-top: 14px; min-height: 18px; }
+      .spin { display: none; } .is-loading .spin { display: inline-block; animation: spin 1s linear infinite; }
+      .is-loading .label-txt { opacity: .8; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="brand">
+        <div class="brand__logo">E</div>
+        <div><strong>Escola de Governo</strong><small>Pedro Leopoldo · MG</small></div>
+      </div>
+      <h1>Definir nova senha</h1>
+      <p class="sub">Primeiro acesso: crie uma nova senha para continuar.</p>
+
+      <form id="form" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="newPassword">Nova senha</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+            <input id="newPassword" type="password" placeholder="Nova senha" autocomplete="new-password" required />
+            <button type="button" class="toggle" id="toggle1" aria-label="Mostrar senha"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+
+        <ul class="rules" id="rules">
+          <li data-rule="len"><i class="fas fa-circle"></i> Pelo menos 8 caracteres</li>
+          <li data-rule="upper"><i class="fas fa-circle"></i> Uma letra maiúscula</li>
+          <li data-rule="lower"><i class="fas fa-circle"></i> Uma letra minúscula</li>
+          <li data-rule="num"><i class="fas fa-circle"></i> Um número</li>
+          <li data-rule="spec"><i class="fas fa-circle"></i> Um caractere especial</li>
+        </ul>
+
+        <div class="field">
+          <label for="confirmPassword">Confirmar nova senha</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+            <input id="confirmPassword" type="password" placeholder="Repita a nova senha" autocomplete="new-password" required />
+          </div>
+        </div>
+
+        <button type="submit" class="primary" id="submitBtn">
+          <i class="fas fa-circle-notch spin" aria-hidden="true"></i>
+          <span class="label-txt">Salvar e entrar</span>
+        </button>
+        <div class="err" id="err" role="alert"></div>
+      </form>
+    </div>
+
+    <script>
+      // Recupera o handoff do login (e-mail + senha atual). Sem ele, volta ao login.
+      const pending = (() => {
+        try { return JSON.parse(sessionStorage.getItem("egov_pwchange") || "null"); } catch (_) { return null; }
+      })();
+      if (!pending || !pending.email || !pending.currentPassword) {
+        window.location.replace("index.html");
+      }
+
+      const form = document.getElementById("form");
+      const npEl = document.getElementById("newPassword");
+      const cpEl = document.getElementById("confirmPassword");
+      const err = document.getElementById("err");
+      const submitBtn = document.getElementById("submitBtn");
+
+      const rules = {
+        len: (v) => v.length >= 8,
+        upper: (v) => /[A-Z]/.test(v),
+        lower: (v) => /[a-z]/.test(v),
+        num: (v) => /[0-9]/.test(v),
+        spec: (v) => /[^A-Za-z0-9]/.test(v),
+      };
+
+      function refreshRules() {
+        const v = npEl.value;
+        let allOk = true;
+        document.querySelectorAll("#rules li").forEach((li) => {
+          const ok = rules[li.dataset.rule](v);
+          if (!ok) allOk = false;
+          li.classList.toggle("ok", ok);
+          li.querySelector("i").className = ok ? "fas fa-check-circle" : "fas fa-circle";
+        });
+        return allOk;
+      }
+      npEl.addEventListener("input", refreshRules);
+
+      document.getElementById("toggle1").addEventListener("click", () => {
+        const t = npEl.type === "password" ? "text" : "password";
+        npEl.type = t;
+        document.querySelector("#toggle1 i").className = t === "text" ? "fas fa-eye-slash" : "fas fa-eye";
+      });
+
+      function showError(msg) {
+        err.innerHTML = '<i class="fas fa-circle-exclamation"></i> ' + msg;
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        err.textContent = "";
+        const newPassword = npEl.value;
+        if (!refreshRules()) { showError("A senha não atende a todos os requisitos."); return; }
+        if (newPassword !== cpEl.value) { showError("As senhas não conferem."); return; }
+        if (newPassword === pending.currentPassword) { showError("A nova senha deve ser diferente da atual."); return; }
+
+        submitBtn.classList.add("is-loading");
+        submitBtn.disabled = true;
+        try {
+          const res = await fetch("/api/change-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: pending.email,
+              currentPassword: pending.currentPassword,
+              newPassword,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            try { sessionStorage.removeItem("egov_pwchange"); } catch (_) {}
+            const payload = JSON.stringify({
+              email: data.email,
+              name: data.name || "Administrador EGov-PL",
+              ts: Date.now(),
+            });
+            sessionStorage.setItem("egov_admin_session", payload);
+            if (pending.remember) {
+              try { localStorage.setItem("egov_admin_session", payload); } catch (_) {}
+            }
+            window.location.href = "dashboard.html";
+          } else {
+            submitBtn.classList.remove("is-loading");
+            submitBtn.disabled = false;
+            showError(data.error || "Não foi possível alterar a senha.");
+          }
+        } catch (_) {
+          submitBtn.classList.remove("is-loading");
+          submitBtn.disabled = false;
+          showError("Falha de conexão. Tente novamente.");
+        }
+      });
+    </script>
+  </body>
+</html>

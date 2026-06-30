@@ -1,96 +1,35 @@
 /**
  * POST /api/login
- * Valida credenciais contra env vars configuradas na Vercel.
+ * Login por e-mail/senha. A allowlist (quem pode entrar) vem do banco
+ * (tabela app_users, via migrations) quando DATABASE_URL está configurado;
+ * senão, das envs legadas AUTH_USERS / AUTH_USER_*.
  *
- * Aceita dois formatos:
- *  1) Uma única env AUTH_USERS contendo array JSON.
- *  2) Várias envs com prefixo AUTH_USER_ (ex: AUTH_USER_FABIANA), cada uma
- *     no formato "email|senha|Nome Completo" OU um JSON
- *     {"email":"...","password":"...","name":"..."}.
+ * Verificação da senha:
+ *  - se o usuário tem password_hash no banco → confere com scrypt;
+ *  - senão → cai na senha legada em AUTH_USER_* (compat na transição).
+ *
+ * Convive com o login social (Google) em /api/auth/google, que usa a MESMA
+ * allowlist.
+ *
+ * Os helpers normalizeUser/parseSingleEntry/safeEqual são reexportados de
+ * lib/users.mjs para manter a compatibilidade com os testes existentes.
  */
-
 import { createLogger } from "../lib/logger.mjs";
+import {
+  normalizeUser,
+  parseSingleEntry,
+  parseEnvUsers,
+  safeEqual,
+  verifyPassword,
+  getAllowedUser,
+  hasUserSource,
+} from "../lib/users.mjs";
+
+export { normalizeUser, parseSingleEntry, safeEqual };
 
 const log = createLogger("login");
 
-export function normalizeUser(u) {
-  if (!u || typeof u.email !== "string" || typeof u.password !== "string") return null;
-  return {
-    email: u.email.trim().toLowerCase(),
-    password: u.password,
-    name: u.name || u.email.split("@")[0],
-  };
-}
-
-export function parseSingleEntry(raw) {
-  const trimmed = String(raw).trim();
-  if (trimmed.startsWith("{")) {
-    try {
-      const obj = JSON.parse(trimmed);
-      return normalizeUser(obj);
-    } catch (e) {
-      log.warn("entrada de usuário com JSON inválido", { err: e.message });
-      return null;
-    }
-  }
-  const parts = trimmed.split("|");
-  if (parts.length < 2) return null;
-  return normalizeUser({
-    email: parts[0],
-    password: parts[1],
-    name: parts[2] || "",
-  });
-}
-
-function parseUsers() {
-  const out = [];
-
-  const bulk = process.env.AUTH_USERS;
-  if (bulk) {
-    try {
-      const arr = JSON.parse(bulk);
-      if (Array.isArray(arr)) {
-        for (const u of arr) {
-          const n = normalizeUser(u);
-          if (n) out.push(n);
-        }
-      } else {
-        log.warn("AUTH_USERS não é um array JSON");
-      }
-    } catch (e) {
-      log.warn("falha ao parsear AUTH_USERS", { err: e.message });
-    }
-  }
-
-  for (const [key, value] of Object.entries(process.env)) {
-    if (!key.startsWith("AUTH_USER_")) continue;
-    if (!value) continue;
-    const u = parseSingleEntry(value);
-    if (u) out.push(u);
-    else log.warn('env de usuário inválida (use "email|senha|Nome")', { env: key });
-  }
-
-  const seen = new Set();
-  const dedup = [];
-  for (const u of out) {
-    if (seen.has(u.email)) continue;
-    seen.add(u.email);
-    dedup.push(u);
-  }
-
-  if (dedup.length === 0) {
-    log.error("nenhum usuário configurado (defina AUTH_USERS ou AUTH_USER_*)");
-  }
-  return dedup;
-}
-
-export function safeEqual(a, b) {
-  if (typeof a !== "string" || typeof b !== "string") return false;
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default async function handler(req, res) {
   try {
@@ -112,19 +51,42 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "Informe e-mail e senha." });
     }
 
-    const users = parseUsers();
-    if (users.length === 0) {
+    if (!hasUserSource()) {
       return res.status(503).json({ ok: false, error: "Servidor sem usuários configurados." });
     }
 
-    const user = users.find((u) => u.email === email);
-    await new Promise((r) => setTimeout(r, 250));
+    let allowed;
+    try {
+      allowed = await getAllowedUser(email);
+    } catch (e) {
+      log.error("falha ao consultar allowlist", { err: e?.message });
+      return res.status(503).json({ ok: false, error: "Serviço de autenticação indisponível." });
+    }
 
-    if (!user || !safeEqual(password, user.password)) {
+    // Atraso fixo para não vazar (por tempo) se o e-mail existe ou não.
+    await delay(250);
+
+    let ok = false;
+    if (allowed) {
+      if (allowed.passwordHash) {
+        ok = verifyPassword(password, allowed.passwordHash);
+      } else {
+        // Sem hash no banco: usa a senha legada da env, se houver.
+        const envUser = parseEnvUsers().find((u) => u.email === email);
+        ok = envUser ? safeEqual(password, envUser.password) : false;
+      }
+    }
+
+    if (!allowed || !ok) {
       return res.status(401).json({ ok: false, error: "Credenciais inválidas." });
     }
 
-    return res.status(200).json({ ok: true, email: user.email, name: user.name });
+    return res.status(200).json({
+      ok: true,
+      email: allowed.email,
+      name: allowed.name,
+      mustChangePassword: !!allowed.mustChangePassword,
+    });
   } catch (e) {
     log.error("erro inesperado", { err: e?.message });
     return res.status(500).json({ ok: false, error: "Erro interno." });
