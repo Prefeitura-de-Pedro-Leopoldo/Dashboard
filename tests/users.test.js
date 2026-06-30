@@ -1,5 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { hashPassword, verifyPassword, parseEnvUsers } from "../lib/users.mjs";
+import { hashPassword, verifyPassword, parseEnvUsers, validatePasswordChange } from "../lib/users.mjs";
+
+describe("validatePasswordChange", () => {
+  it("aceita senha nova válida e diferente da atual", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "novaSenhaForte" }).ok).toBe(true);
+  });
+  it("rejeita senha curta (< 8)", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "curta" }).ok).toBe(false);
+  });
+  it("rejeita senha igual à atual", () => {
+    expect(validatePasswordChange({ currentPassword: "egov2026", newPassword: "egov2026" }).ok).toBe(false);
+  });
+});
 
 describe("hashPassword / verifyPassword (scrypt)", () => {
   it("gera hash no formato scrypt$salt$dk e valida a senha correta", () => {
