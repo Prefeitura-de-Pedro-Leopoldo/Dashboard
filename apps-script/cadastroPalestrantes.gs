@@ -57,10 +57,11 @@ const COL = {
   ORIGEM:        11,
   FOTO:          12,
   LINKEDIN:      13,
+  EMAIL:         14,
 };
 const HEADER = [
   'ID', 'Nome', 'Eixos', 'CursoId', 'CursoTitulo', 'MiniBio',
-  'FotoFileId', 'CriadoEm', 'AtualizadoEm', 'Status', 'Origem', 'Foto', 'Linkedin',
+  'FotoFileId', 'CriadoEm', 'AtualizadoEm', 'Status', 'Origem', 'Foto', 'Linkedin', 'Email',
 ];
 
 // Colunas da aba Convites (1-based).
@@ -174,6 +175,7 @@ function _update(payload) {
   sheet.getRange(linha, COL.MINIBIO).setValue(dados.miniBio);
   sheet.getRange(linha, COL.FOTO_FILE_ID).setValue(fotoFileId);
   sheet.getRange(linha, COL.LINKEDIN).setValue(dados.linkedin || '');
+  sheet.getRange(linha, COL.EMAIL).setValue(dados.email || '');
   sheet.getRange(linha, COL.ATUALIZADO_EM).setValue(new Date());
   _marcarFoto(sheet, linha, fotoFileId);
 
@@ -217,7 +219,8 @@ function _inserirPalestrante(dados, payload, origem) {
   // Coluna "Foto": smart chip / link clicavel para o arquivo no Drive.
   _marcarFoto(sheet, lastRow, fotoFileId);
   sheet.getRange(lastRow, COL.LINKEDIN).setValue(dados.linkedin || '');
-  // Devolve a linha completa (inclui Foto e Linkedin) para o objeto de retorno.
+  sheet.getRange(lastRow, COL.EMAIL).setValue(dados.email || '');
+  // Devolve a linha completa (inclui Foto, Linkedin e Email) para o retorno.
   return sheet.getRange(lastRow, 1, 1, HEADER.length).getValues()[0];
 }
 
@@ -329,18 +332,21 @@ function _validar(payload, opts) {
   const cursoId     = String(payload.cursoId || '').trim();
   const cursoTitulo = String(payload.cursoTitulo || '').trim();
   const miniBio     = String(payload.miniBio || '').trim();
+  const email       = String(payload.email || '').trim();
   let linkedin      = String(payload.linkedin || '').trim();
   // LinkedIn e OPCIONAL. Se vier sem esquema, prefixa https://
   if (linkedin && !/^https?:\/\//i.test(linkedin)) linkedin = 'https://' + linkedin;
 
   if (nome.length < 3)  return { erro: 'Nome completo invalido (minimo 3 caracteres).' };
+  // E-mail OBRIGATORIO (usado para enviar o certificado ao palestrante).
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { erro: 'E-mail invalido (obrigatorio para enviar o certificado).' };
   if (!eixos)           return { erro: 'Selecione ao menos um eixo tematico.' };
   if (!cursoTitulo)     return { erro: 'Curso ministrado obrigatorio.' };
   if (!miniBio)         return { erro: 'Mini bio obrigatoria.' };
   if (miniBio.length > MINIBIO_MAX) return { erro: 'Mini bio excede ' + MINIBIO_MAX + ' caracteres.' };
   if (opts.fotoObrigatoria && !payload.fotoBase64) return { erro: 'Foto obrigatoria.' };
 
-  return { nome: nome, eixos: eixos, cursoId: cursoId, cursoTitulo: cursoTitulo, miniBio: miniBio, linkedin: linkedin };
+  return { nome: nome, email: email, eixos: eixos, cursoId: cursoId, cursoTitulo: cursoTitulo, miniBio: miniBio, linkedin: linkedin };
 }
 
 // Normaliza eixos (array ou string) para "A; B; C".
@@ -472,6 +478,7 @@ function _linhaParaObjeto(row) {
     status:      String(row[COL.STATUS - 1] || STATUS_ATIVO),
     origem:      String(row[COL.ORIGEM - 1] || 'admin'),
     linkedin:    String(row[COL.LINKEDIN - 1] || '').trim(),
+    email:       String(row[COL.EMAIL - 1] || '').trim(),
   };
 }
 

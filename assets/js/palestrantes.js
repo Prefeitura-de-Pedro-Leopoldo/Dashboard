@@ -237,6 +237,11 @@ export async function openCadastroModal(id = null) {
                 <input type="text" id="palNome" required minlength="3" maxlength="120" placeholder="Use o nome completo ou profissional" value="${escapeHtml(p.nome || "")}" autocomplete="off" />
               </div>
               <div class="field">
+                <label for="palEmail">E-mail *</label>
+                <input type="email" id="palEmail" required maxlength="150" placeholder="email@exemplo.gov.br" value="${escapeHtml(p.email || "")}" autocomplete="off" />
+                <p class="pal-hint">Usado para enviar o certificado ao palestrante.</p>
+              </div>
+              <div class="field">
                 <label for="palCurso">Curso ministrado *</label>
                 <select id="palCurso" required ${cursoSelDisabled}>
                   <option value="" ${p.cursoId ? "" : "selected"} disabled>${eventos.length ? "Selecione o curso/evento" : "Nenhum evento disponível"}</option>
@@ -324,6 +329,8 @@ function wirePalModal(p) {
   const validateStep = (i) => {
     if (i === 0) {
       if (q("#palNome").value.trim().length < 3) { showErr("Informe o nome completo (mínimo 3 caracteres)."); return false }
+      const em = q("#palEmail").value.trim()
+      if (!em || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { showErr("Informe um e-mail válido (para enviar o certificado)."); return false }
       if (!q("#palCurso").value) { showErr("Selecione o curso ministrado."); return false }
     }
     if (i === 1 && !ov.querySelectorAll('#palEixos input:checked').length) { showErr("Selecione ao menos um eixo temático."); return false }
@@ -368,6 +375,7 @@ function wirePalModal(p) {
     e.preventDefault()
     showErr("")
     const nome = q("#palNome").value.trim()
+    const email = q("#palEmail").value.trim()
     const eixos = [...ov.querySelectorAll('#palEixos input[name="palEixo"]:checked')].map((c) => c.value)
     const cursoSel = q("#palCurso")
     const cursoId = cursoSel.value
@@ -377,6 +385,7 @@ function wirePalModal(p) {
     if (linkedin && !/^https?:\/\//i.test(linkedin)) linkedin = "https://" + linkedin
 
     if (nome.length < 3) { showStep(0); return showErr("Informe o nome completo (mínimo 3 caracteres).") }
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { showStep(0); return showErr("Informe um e-mail válido (para enviar o certificado).") }
     if (!cursoId || !cursoTitulo) { showStep(0); return showErr("Selecione o curso ministrado.") }
     if (!eixos.length) { showStep(1); return showErr("Selecione ao menos um eixo temático.") }
     if (!miniBio) { showStep(2); return showErr("Escreva a mini bio.") }
@@ -388,7 +397,7 @@ function wirePalModal(p) {
     const labelPrev = labelSpan ? labelSpan.textContent : ""
     if (labelSpan) labelSpan.textContent = "Salvando..."
 
-    const payload = { nome, eixos, cursoId, cursoTitulo, miniBio, linkedin }
+    const payload = { nome, email, eixos, cursoId, cursoTitulo, miniBio, linkedin }
     if (_fotoPendente) { payload.fotoBase64 = _fotoPendente.dataUrl; payload.fotoMime = _fotoPendente.mime }
     else if (_editId && _removerFoto) { payload.removerFoto = true }
 
