@@ -42,6 +42,9 @@
 
 .pal-form-card input[type="text"],
 .pal-form-card input[type="search"],
+.pal-form-card input[type="email"],
+.pal-form-card input[type="url"],
+.pal-form-card input[type="tel"],
 .pal-form-card select,
 .pal-form-card textarea {
   width: 100%;
