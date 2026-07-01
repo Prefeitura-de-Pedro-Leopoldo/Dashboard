@@ -409,15 +409,8 @@ function wirePalModal(p) {
         const data = await api("create", payload)
         if (_cache && data.palestrante) _cache.unshift(data.palestrante)
       }
-      // Cria (uma vez) o acesso do palestrante ao painel restrito e envia as
-      // credenciais por e-mail. Tolerante: falha aqui não desfaz o cadastro.
-      try {
-        await fetch("/api/palestrante-provision", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: payload.email, name: payload.nome, eventoId: payload.cursoId || "" }),
-        })
-      } catch (_) { /* silencioso */ }
+      // O acesso do palestrante (senha + e-mail com credenciais) é provisionado
+      // no servidor, dentro do /api/palestrantes (create/update). Nada a fazer aqui.
       const eraEdicao = !!_editId
       resetForm()
       fecharCadastroModal()
