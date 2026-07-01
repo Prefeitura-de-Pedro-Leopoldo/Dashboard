@@ -12,7 +12,9 @@ import {
   consolidarPorGrupo,
   inferirGruposPorPasta,
   turmasExpandidas,
-  dedupEventos
+  dedupEventos,
+  filtrarEventosRelatorio,
+  participantePassaRelatorio
 } from "./metrics.js"
 import {
   barInscritosVsPresentes,
@@ -1752,31 +1754,16 @@ function populateParticipantes() {
 // Usados por collectParticipantes (tabelas na tela) E por buildReportModel
 // (exports CSV/PDF/XLSX/PPTX), para que tela e exportações batam sempre.
 
-// Eventos após os filtros de NÍVEL DE EVENTO: evento específico, intervalo de
-// datas (por ev.date) e status (realizado/agendado/inscrição aberta).
+// Eventos após os filtros de NÍVEL DE EVENTO (evento, datas, situação). A lógica
+// pura vive em metrics.js (filtrarEventosRelatorio), aqui só liga ao estado.
 function reportEventosFiltrados() {
-  const f = state.reportFilters
-  return state.data.eventos.filter(e => {
-    if (f.eventoId && e.id !== f.eventoId) return false
-    if (f.dataIni && (!e.date || e.date < f.dataIni)) return false
-    if (f.dataFim && (!e.date || e.date > f.dataFim)) return false
-    if (f.status === "realizado" && e.status !== "realizado") return false
-    if (f.status === "agendado" && e.status !== "agendado") return false
-    if (f.status === "aberta" && !e.inscricaoAberta) return false
-    return true
-  })
+  return filtrarEventosRelatorio(state.data.eventos, state.reportFilters)
 }
 
-// Predicado de NÍVEL DE PARTICIPANTE: secretaria, turma, presença e busca.
+// Predicado de NÍVEL DE PARTICIPANTE (secretaria, turma, presença, busca) —
+// idem: lógica pura em metrics.js (participantePassaRelatorio).
 function reportParticipantePassa(p) {
-  const f = state.reportFilters
-  if (f.secretaria && p.secretaria !== f.secretaria) return false
-  if (f.turma && p.turma !== f.turma) return false
-  if (f.presenca === "presentes" && !p.presente) return false
-  if (f.presenca === "faltantes" && p.presente) return false
-  const busca = (f.busca || "").toLowerCase()
-  if (busca && !`${p.nome} ${p.email || ""} ${p.secretaria || ""}`.toLowerCase().includes(busca)) return false
-  return true
+  return participantePassaRelatorio(p, state.reportFilters)
 }
 
 function collectParticipantes() {
