@@ -76,11 +76,20 @@ async function carregarLista(force = false) {
 // Palestrantes cadastrados para um evento (por cursoId). Usado pelo gerador de
 // certificado de palestrante para já trazer os nomes ao escolher o evento.
 // Nunca lança: em falha de rede/API retorna lista vazia.
-export async function palestrantesDoEvento(evId) {
-  if (!evId) return []
+export async function palestrantesDoEvento(evId, evTitulo) {
+  if (!evId && !evTitulo) return []
+  const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim()
+  const alvoTitulo = norm(evTitulo)
   try {
     const lista = await carregarLista()
-    return lista.filter((p) => p && String(p.cursoId) === String(evId))
+    return lista.filter((p) => {
+      if (!p) return false
+      // Casa por cursoId (cadastro escolheu o evento na lista) OU pelo título do
+      // curso (cadastro via convite, onde o curso é texto livre sem cursoId).
+      if (evId && String(p.cursoId) === String(evId)) return true
+      if (alvoTitulo && norm(p.cursoTitulo) === alvoTitulo) return true
+      return false
+    })
   } catch {
     return []
   }
