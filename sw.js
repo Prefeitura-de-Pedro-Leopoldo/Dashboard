@@ -15,7 +15,7 @@
  * Versione o VERSION a cada mudança relevante de shell para invalidar caches.
  */
 
-const VERSION = "egov-pwa-v2";
+const VERSION = "egov-pwa-v3";
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 const CDN_CACHE = `${VERSION}-cdn`;
@@ -27,6 +27,7 @@ const PRECACHE = [
   "/manifest.webmanifest",
   "/assets/css/main.css",
   "/assets/css/base/_variables.css",
+  "/assets/js/api-base.js",
   "/assets/img/favicon/favicon-32.png",
   "/assets/img/favicon/android-chrome-192.png",
   "/assets/img/favicon/android-chrome-512.png",
