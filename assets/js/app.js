@@ -5336,7 +5336,7 @@ async function palFillFromEvento(evId) {
   // Se houver palestrante(s) cadastrado(s) para este evento, já traz os nomes -
   // sem sobrescrever nada que o usuário tenha digitado. Assíncrono e tolerante.
   try {
-    const pals = await palestrantesDoEvento(evId)
+    const pals = await palestrantesDoEvento(evId, ev.title)
     if (!pals.length) return
     const lista = (state.palestrante && state.palestrante.list) || []
     const vazia = lista.every(p => !p.nome || !p.nome.trim())
@@ -5484,7 +5484,7 @@ function renderCertPalestrante() {
 
   view.innerHTML = `
     ${certModeSwitchHtml()}
-    <div class="wizard">
+    <div class="wizard wizard--pal">
       <ol class="wizard__steps" role="tablist">
         <li class="wizard__step ${step === 1 ? "is-active" : ""} ${step > 1 ? "is-done" : ""}" data-palstep="1" role="tab">
           <span class="wizard__step-num">1</span>

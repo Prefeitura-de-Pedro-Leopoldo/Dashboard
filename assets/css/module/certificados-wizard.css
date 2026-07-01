@@ -167,6 +167,17 @@
   margin-bottom: 0 !important;
 }
 
+/* Fluxo de PALESTRANTE: o card "Dados do certificado" tem mais campos que o de
+   inscritos (evento, título, "Realizado em", "Data de emissão"). A altura fixa de
+   380px cortava a parte de baixo. Aqui os cards crescem conforme o conteúdo, para
+   que NENHUM campo fique escondido. */
+.wizard--pal .wizard__panel[data-panel="1"] .grid-2 { align-items: start; }
+.wizard--pal .wizard__panel[data-panel="1"] .grid-2 > .card {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
 /* Etapa 2: tabela compacta + paginação, sem scroll na página. */
 .wizard__panel[data-panel="2"] { display: flex; flex-direction: column; gap: 10px; }
 .wizard__panel[data-panel="2"][hidden] { display: none !important; }
