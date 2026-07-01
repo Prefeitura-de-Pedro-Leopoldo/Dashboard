@@ -3,6 +3,7 @@
  */
 
 import { taxaPresenca, taxaOcupacao, totalVagasOuIngressos, totalAusentes, turmasExpandidas } from "./metrics.js";
+import { unicosPorSecretariaEvento } from "./servidores.js";
 
 export const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 export const pct = (n) => (n === null || n === undefined ? "N/A" : n.toFixed(1) + "%");
@@ -355,6 +356,12 @@ export function renderEventDetail(ev) {
   const temModulos = !!(ev.modulos && ev.modulos.M1 && ev.modulos.M2 && ev.modulosCompletos);
   const aptos = temModulos ? (ev.totalAptos ?? ev.totalPresentes) : null;
 
+  // Adesão por secretaria (servidores ÚNICOS deste evento): maior e menor.
+  // Ignora "Não informado" para não distorcer o extremo de menor adesão.
+  const adesao = unicosPorSecretariaEvento(ev).filter((s) => s.nome !== "Não informado");
+  const secMaior = adesao[0] || null;
+  const secMenor = adesao.length > 1 ? adesao[adesao.length - 1] : null;
+
   return `
     <section class="event-detail" data-tone="${tone}">
       <header class="event-detail__head">
@@ -411,6 +418,20 @@ export function renderEventDetail(ev) {
           <div class="kpi__value ${ocupCls}">${ocupTxt}</div>
           <div class="kpi__delta">Presentes vs ausentes</div>
         </div>`}
+        ${secMaior ? `
+        <div class="kpi kpi--accent">
+          <div class="kpi__icon"><i class="fas fa-arrow-up-9-1"></i></div>
+          <div class="kpi__label">Secretaria de maior adesão</div>
+          <div class="kpi__value" style="font-size:1.1rem" title="${escapeHtml(secMaior.nome)}">${escapeHtml(secMaior.nome)}</div>
+          <div class="kpi__delta"><b>${fmt(secMaior.qtd)}</b> servidor(es) único(s)</div>
+        </div>` : ""}
+        ${secMenor ? `
+        <div class="kpi kpi--warn">
+          <div class="kpi__icon"><i class="fas fa-arrow-down-9-1"></i></div>
+          <div class="kpi__label">Secretaria de menor adesão</div>
+          <div class="kpi__value" style="font-size:1.1rem" title="${escapeHtml(secMenor.nome)}">${escapeHtml(secMenor.nome)}</div>
+          <div class="kpi__delta"><b>${fmt(secMenor.qtd)}</b> servidor(es) único(s)</div>
+        </div>` : ""}
       </div>
 
       ${renderModulosBreakdown(ev)}

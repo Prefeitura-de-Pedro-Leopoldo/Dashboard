@@ -39,7 +39,6 @@
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 .kpi:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--border-strong);
 }

@@ -54,7 +54,6 @@
 .event-card[data-tone="scheduled"] { --tone-color: var(--brand-primary); --tone-soft: var(--brand-soft-bg); }
 .event-card[data-tone="muted"] { --tone-color: var(--gray-300); --tone-soft: var(--surface-subtle); }
 .event-card:hover {
-  transform: translateY(-3px);
   border-color: var(--border-strong);
   box-shadow: var(--shadow-lg);
 }

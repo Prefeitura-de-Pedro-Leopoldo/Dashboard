@@ -281,7 +281,6 @@
 .modulo-card[data-tone="mid"]::before { background: var(--ind-warn); }
 .modulo-card[data-tone="low"]::before { background: var(--ind-bad); }
 .modulo-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 8px 22px -14px rgba(22, 31, 54, 0.35);
   border-color: var(--border-default);
 }

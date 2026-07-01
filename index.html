@@ -473,6 +473,21 @@
       [data-theme="dark"] input[type="text"] {
         background: var(--surface-muted);
       }
+
+      /* Botão Google: sem moldura extra (evita o efeito de "caixa dentro da
+         caixa"). O contraste no dark vem do próprio preset azul do Google. */
+      #googleBtn {
+        border-radius: 999px;
+        transition: filter 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+      }
+      /* Hover simples: só uma leve elevação, igual nos dois temas. */
+      #googleBtn:hover { transform: translateY(-1px); }
+      /* Aproxima o azul do Google do azul de marca no dark (--brand-primary
+         #6e9bd6). Saturação baixa + brilho moderado evitam estourar o canal azul
+         (o que "lava" a cor). O filtro no container atravessa o iframe do GSI. */
+      [data-theme="dark"] #googleBtn {
+        filter: saturate(0.5) brightness(1.16) hue-rotate(-4deg);
+      }
     </style>
   </head>
   <body>
@@ -582,7 +597,7 @@
             <span>ou</span>
             <span style="flex:1;height:1px;background:currentColor;opacity:.25;"></span>
           </div>
-          <div id="googleBtn" style="display:flex;justify-content:center;min-height:44px;"></div>
+          <div id="googleBtn" style="display:flex;justify-content:center;min-height:44px;width:fit-content;margin-inline:auto;"></div>
 
         </div>
       </main>
@@ -695,6 +710,7 @@
         const next = cur === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", next);
         try { localStorage.setItem("egovpl-theme", next); } catch (_) {}
+        renderGoogleButton();
       });
 
       // Login social com Google (Google Identity Services).
@@ -728,20 +744,36 @@
         }
       }
 
+      // Renderiza o botão do Google no tema (dark/light) atual da página.
+      // O GSI não acompanha o tema sozinho, então re-renderizamos ao alternar.
+      let googleReady = false;
+      function renderGoogleButton() {
+        if (!googleReady) return;
+        const btn = document.getElementById("googleBtn");
+        if (!btn) return;
+        const isDark =
+          (document.documentElement.getAttribute("data-theme") || "light") === "dark";
+        btn.innerHTML = "";
+        // filled_blue (azul do Google) contrasta bem com o card navy no dark;
+        // outline (branco) combina com o painel claro.
+        google.accounts.id.renderButton(btn, {
+          theme: isDark ? "filled_blue" : "outline",
+          size: "large",
+          shape: "pill",
+          text: "continue_with",
+          logo_alignment: "center",
+          width: 320,
+        });
+      }
+
       (function initGoogle(tries) {
         if (window.google && google.accounts && google.accounts.id) {
           google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: handleGoogleCredential,
           });
-          google.accounts.id.renderButton(document.getElementById("googleBtn"), {
-            theme: "outline",
-            size: "large",
-            shape: "pill",
-            text: "continue_with",
-            logo_alignment: "center",
-            width: 320,
-          });
+          googleReady = true;
+          renderGoogleButton();
           return;
         }
         if (tries > 0) setTimeout(() => initGoogle(tries - 1), 250);

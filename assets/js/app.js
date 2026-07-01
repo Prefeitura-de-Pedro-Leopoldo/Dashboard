@@ -42,7 +42,7 @@ import {
 } from "./ui.js"
 import { gerarInsightsGlobais, gerarInsightsEvento } from "./insights.js"
 import { chaveServidor, agregarServidores, classificarVinculo, taxaRetencao } from "./servidores.js"
-import { initPalestrantes, renderLista as renderPalestrantesLista, listarConvites } from "./palestrantes.js"
+import { initPalestrantes, renderLista as renderPalestrantesLista, listarConvites, palestrantesDoEvento } from "./palestrantes.js"
 import { initNotificacoes, refreshNotificacoes } from "./notificacoes.js"
 import { renderInscricoes, renderEncontros, renderPresenca, eventosComInscricaoAberta } from "./lembretes.js"
 import { showCover } from "./loader.js"
@@ -608,6 +608,14 @@ function _baseComInscricoes(rawEventos) {
     const extra = { totalInscritos: n, totalAprovados: n }
     // herda o estado do formulário (encerrado manualmente) do sintético
     if (s && s.aceitandoInscricoes === false) extra.aceitandoInscricoes = false
+    // Tem inscritos ao vivo e NENHUMA presença → está na fase de inscrição:
+    // liga as abas Inscrições/Encontros/Presença mesmo que a data do 1º encontro
+    // já tenha passado (eventos de vários encontros seguem em captação, ao
+    // contrário do marcarAbertasPorData, que só olha data futura). Herda a pasta
+    // de inscrição e o grupo do sintético para consolidar as turmas.
+    extra.inscricaoAberta = true
+    extra.pastaInscricao = ev.pastaInscricao || (s && s.pastaInscricao) || pastaDeEvento(ev)
+    if (!ev.grupo && s && s.grupo) extra.grupo = s.grupo
     return { ...ev, ...extra }
   })
   const pastasReais = new Set(reais.map(pastaDeEvento).filter(Boolean))
@@ -1299,7 +1307,7 @@ function renderEventBlock(ev) {
   const tabDefs = {
     resumo: { id: "resumo", label: "Resumo & Insights", icon: "fa-circle-info" },
     distribuicoes: { id: "distribuicoes", label: "Distribuições", icon: "fa-chart-pie" },
-    satisfacao: { id: "satisfacao", label: "Satisfação", icon: "fa-face-smile", badge: temSat ? ev.satisfacao.totalRespostas : undefined },
+    satisfacao: { id: "satisfacao", label: "Percepção de Qualidade", icon: "fa-face-smile", badge: temSat ? ev.satisfacao.totalRespostas : undefined },
     participantes: { id: "participantes", label: "Participantes", icon: "fa-users", badge: (ev.participantes || []).length },
     inscricoes: { id: "inscricoes", label: "Inscrições", icon: "fa-user-plus" },
     encontros: { id: "encontros", label: "Encontros & Lembretes", icon: "fa-bell" },
@@ -1386,7 +1394,7 @@ function renderEventBlock(ev) {
           <span class="sat-summary__max">de 5,0</span>
         </div>
         <div class="sat-summary__info">
-          <h3>Satisfação geral</h3>
+          <h3>Percepção de qualidade geral</h3>
           <p>Média dos ${temSat ? ev.satisfacao.indicadores.length : 0} indicadores · <b>${temSat ? ev.satisfacao.totalRespostas : 0}</b> resposta(s) da pesquisa pós-evento.</p>
         </div>
       </div>
@@ -1740,17 +1748,42 @@ function populateParticipantes() {
   document.getElementById("pCount").textContent = `${parts.length} pessoa(s)`
 }
 
-function collectParticipantes() {
+// ---- Filtros do relatório (centralizados) --------------------------------
+// Usados por collectParticipantes (tabelas na tela) E por buildReportModel
+// (exports CSV/PDF/XLSX/PPTX), para que tela e exportações batam sempre.
+
+// Eventos após os filtros de NÍVEL DE EVENTO: evento específico, intervalo de
+// datas (por ev.date) e status (realizado/agendado/inscrição aberta).
+function reportEventosFiltrados() {
   const f = state.reportFilters
-  let evs = state.data.eventos
-  if (f.eventoId) evs = evs.filter(e => e.id === f.eventoId)
-  const out = []
+  return state.data.eventos.filter(e => {
+    if (f.eventoId && e.id !== f.eventoId) return false
+    if (f.dataIni && (!e.date || e.date < f.dataIni)) return false
+    if (f.dataFim && (!e.date || e.date > f.dataFim)) return false
+    if (f.status === "realizado" && e.status !== "realizado") return false
+    if (f.status === "agendado" && e.status !== "agendado") return false
+    if (f.status === "aberta" && !e.inscricaoAberta) return false
+    return true
+  })
+}
+
+// Predicado de NÍVEL DE PARTICIPANTE: secretaria, turma, presença e busca.
+function reportParticipantePassa(p) {
+  const f = state.reportFilters
+  if (f.secretaria && p.secretaria !== f.secretaria) return false
+  if (f.turma && p.turma !== f.turma) return false
+  if (f.presenca === "presentes" && !p.presente) return false
+  if (f.presenca === "faltantes" && p.presente) return false
   const busca = (f.busca || "").toLowerCase()
-  evs.forEach(e => {
+  if (busca && !`${p.nome} ${p.email || ""} ${p.secretaria || ""}`.toLowerCase().includes(busca)) return false
+  return true
+}
+
+function collectParticipantes() {
+  const out = []
+  reportEventosFiltrados().forEach(e => {
     e.participantes.forEach(p => {
-      if (f.secretaria && p.secretaria !== f.secretaria) return
-      if (f.turma && p.turma !== f.turma) return
-      if (busca && !`${p.nome} ${p.email || ""}`.toLowerCase().includes(busca)) return
+      if (!reportParticipantePassa(p)) return
       out.push({ ...p, eventoTitle: e.title, eventoId: e.id })
     })
   })
@@ -1927,6 +1960,9 @@ function renderViewRelatorios() {
   const { data } = state
   const f = state.reportFilters
   const allSecs = [...new Set(data.eventos.flatMap(e => Object.keys(e.secretarias || {})))].sort()
+  const allTurmas = [...new Set(data.eventos.flatMap(e => Object.keys(e.turmas || {})))]
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }))
 
   const view = document.getElementById("view-relatorios")
   view.innerHTML = `
@@ -1944,6 +1980,42 @@ function renderViewRelatorios() {
           <option value="">Todas</option>
           ${allSecs.map(s => `<option ${f.secretaria === s ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}
         </select>
+      </div>
+      <div class="filter">
+        <label for="rTurma">Turma</label>
+        <select id="rTurma">
+          <option value="">Todas</option>
+          ${allTurmas.map(t => `<option ${f.turma === t ? "selected" : ""}>${escapeHtml(t)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="filter">
+        <label for="rStatus">Situação do evento</label>
+        <select id="rStatus">
+          <option value="" ${!f.status ? "selected" : ""}>Todas</option>
+          <option value="realizado" ${f.status === "realizado" ? "selected" : ""}>Realizado</option>
+          <option value="agendado" ${f.status === "agendado" ? "selected" : ""}>Agendado</option>
+          <option value="aberta" ${f.status === "aberta" ? "selected" : ""}>Inscrição aberta</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label for="rPresenca">Presença</label>
+        <select id="rPresenca">
+          <option value="" ${!f.presenca ? "selected" : ""}>Todos</option>
+          <option value="presentes" ${f.presenca === "presentes" ? "selected" : ""}>Só presentes</option>
+          <option value="faltantes" ${f.presenca === "faltantes" ? "selected" : ""}>Só faltantes</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label for="rDataIni">Data inicial</label>
+        <input type="date" id="rDataIni" value="${escapeHtml(f.dataIni || "")}" />
+      </div>
+      <div class="filter">
+        <label for="rDataFim">Data final</label>
+        <input type="date" id="rDataFim" value="${escapeHtml(f.dataFim || "")}" />
+      </div>
+      <div class="filter">
+        <label for="rBusca">Buscar</label>
+        <input type="search" id="rBusca" placeholder="nome, e-mail ou secretaria" value="${escapeHtml(f.busca || "")}" />
       </div>
       <div class="filters__actions">
         <button class="btn btn--sm" id="rClear"><i class="fas fa-rotate-left"></i> Limpar</button>
@@ -1976,18 +2048,26 @@ function renderViewRelatorios() {
     </div>
   `
 
+  const val = id => document.getElementById(id).value
   const apply = () => {
     state.reportFilters = {
-      eventoId: document.getElementById("rEvento").value,
-      secretaria: document.getElementById("rSec").value,
-      turma: "",
-      busca: ""
+      eventoId: val("rEvento"),
+      secretaria: val("rSec"),
+      turma: val("rTurma"),
+      status: val("rStatus"),
+      presenca: val("rPresenca"),
+      dataIni: val("rDataIni"),
+      dataFim: val("rDataFim"),
+      busca: val("rBusca")
     }
     populateRelatorios()
   }
-  ;["rEvento", "rSec"].forEach(id => document.getElementById(id).addEventListener("change", apply))
+  ;["rEvento", "rSec", "rTurma", "rStatus", "rPresenca", "rDataIni", "rDataFim"].forEach(id =>
+    document.getElementById(id).addEventListener("change", apply)
+  )
+  document.getElementById("rBusca").addEventListener("input", apply)
   document.getElementById("rClear").addEventListener("click", () => {
-    state.reportFilters = { eventoId: "", secretaria: "", turma: "", busca: "" }
+    state.reportFilters = { eventoId: "", secretaria: "", turma: "", busca: "", dataIni: "", dataFim: "", status: "", presenca: "" }
     renderViewRelatorios()
   })
   document.getElementById("rCsv").addEventListener("click", exportCsv)
@@ -2000,12 +2080,17 @@ function renderViewRelatorios() {
 
 function populateRelatorios() {
   const f = state.reportFilters
-  let evs = state.data.eventos
-  if (f.eventoId) evs = evs.filter(e => e.id === f.eventoId)
+  const evs = reportEventosFiltrados()
+
+  // Participantes do recorte (já com todos os filtros aplicados) — a base tanto
+  // dos KPIs quanto das tabelas, para que o resumo bata com o que é exportado.
+  const parts = collectParticipantes()
+  const presentes = parts.filter(p => p.presente)
+  const faltantes = parts.filter(p => !p.presente)
 
   // Resumo executivo do recorte (orienta o que está sendo exportado)
-  const totalIns = evs.reduce((s, e) => s + (e.totalInscritos || 0), 0)
-  const totalPres = evs.reduce((s, e) => s + (e.totalPresentes || 0), 0)
+  const totalIns = parts.length
+  const totalPres = presentes.length
   const taxa = totalIns ? ((totalPres / totalIns) * 100).toFixed(1).replace(".", ",") + "%" : "-"
   document.getElementById("rResumo").innerHTML = `
     <div class="kpi">
@@ -2034,9 +2119,6 @@ function populateRelatorios() {
     </div>
   `
 
-  const parts = collectParticipantes()
-  const presentes = parts.filter(p => p.presente)
-  const faltantes = parts.filter(p => !p.presente)
   renderPaginatedTable("rPresHost", presentes, "relatorios-presentes", { hideEmail: true, hideTurma: true })
   renderPaginatedTable("rFaltHost", faltantes, "relatorios-faltantes", { hideEmail: true, hideTurma: true })
   document.getElementById("rPresCount").textContent = `${presentes.length} pessoa(s)`
@@ -2099,10 +2181,9 @@ function statsFromParts(parts) {
 //  - Secretaria específica           → tudo filtrado por aquela secretaria.
 function buildReportModel() {
   const f = state.reportFilters
-  const all = state.data.eventos
-  const evs = f.eventoId ? all.filter(e => e.id === f.eventoId) : all
+  const evs = reportEventosFiltrados()
   const sec = f.secretaria || null
-  const partsOf = ev => (ev.participantes || []).filter(p => !sec || p.secretaria === sec)
+  const partsOf = ev => (ev.participantes || []).filter(reportParticipantePassa)
 
   const eventBlocks = evs
     .map(ev => {
@@ -5239,7 +5320,7 @@ function getPalEventos() {
   return evs.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
 }
 // Ao escolher um evento: preenche título e a data de realização (dia/mês/ano).
-function palFillFromEvento(evId) {
+async function palFillFromEvento(evId) {
   const ev = getPalEventos().find(e => String(e.id) === String(evId))
   if (!ev) return
   const form = state.palestrante.form
@@ -5251,6 +5332,19 @@ function palFillFromEvento(evId) {
     if (y) form.anoR = y
   }
   renderCertPalestrante()
+
+  // Se houver palestrante(s) cadastrado(s) para este evento, já traz os nomes -
+  // sem sobrescrever nada que o usuário tenha digitado. Assíncrono e tolerante.
+  try {
+    const pals = await palestrantesDoEvento(evId)
+    if (!pals.length) return
+    const lista = (state.palestrante && state.palestrante.list) || []
+    const vazia = lista.every(p => !p.nome || !p.nome.trim())
+    if (!vazia) return
+    state.palestrante.list = pals.map(p => ({ nome: p.nome || "", email: p.email || "" }))
+    state.palestrante.previewIdx = 0
+    renderCertPalestrante()
+  } catch { /* silencioso: cadastro de palestrantes indisponível */ }
 }
 
 function palTypoPanelHtml() {
@@ -5819,7 +5913,7 @@ function renderViewAutoReport() {
           </div>
 
           <div class="card">
-            <div class="card__header"><div><h3>2. Pesquisa de satisfação</h3><p>Use a planilha do evento (se existir) ou envie um arquivo.</p></div></div>
+            <div class="card__header"><div><h3>2. Pesquisa de percepção de qualidade</h3><p>Use a planilha do evento (se existir) ou envie um arquivo.</p></div></div>
             <div class="source-tabs" role="tablist" aria-label="Origem da pesquisa">
               <button type="button" class="source-tab is-active" data-arq-source="evento" role="tab">
                 <i class="fas fa-calendar-day"></i> Evento do sistema
@@ -7092,7 +7186,7 @@ async function generateSatisfacaoPdf() {
   }
   if (!s.pesquisa) {
     status.classList.add("is-error")
-    status.textContent = "Faça upload da pesquisa de satisfação."
+    status.textContent = "Faça upload da pesquisa de percepção de qualidade."
     return
   }
 
@@ -7272,7 +7366,7 @@ async function generateSatisfacaoPdf() {
     `Foram disponibilizados ${cap} ingressos. Destes, ${inscritos} foram adquiridos e ${naoAdquiridos} não foram retirados. Dos participantes inscritos, ${presentes} estiveram presentes e ${ausentes} não compareceram.`
   )
   justified(
-    `Sob a perspectiva dos ingressos adquiridos, a taxa de presença alcança ${taxaPresenca.replace(".", ",")}% (${presentes}/${inscritos}). O formulário de satisfação recebeu ${s.pesquisa.respostas} respostas.`
+    `Sob a perspectiva dos ingressos adquiridos, a taxa de presença alcança ${taxaPresenca.replace(".", ",")}% (${presentes}/${inscritos}). O formulário de percepção de qualidade recebeu ${s.pesquisa.respostas} respostas.`
   )
 
   // ===== PÁGINA 2: Gráfico 2 - médias =====
@@ -7354,7 +7448,7 @@ async function generateSatisfacaoPdf() {
 
   const respostas = s.pesquisa.respostas
   justified(
-    `Foram coletadas ${respostas} respostas ao formulário de satisfação. As avaliações apresentam médias elevadas nos critérios analisados (escala de 1 a 5):`
+    `Foram coletadas ${respostas} respostas ao formulário de percepção de qualidade. As avaliações apresentam médias elevadas nos critérios analisados (escala de 1 a 5):`
   )
   criterios.forEach(c => {
     bullet(`${c.label}: média de ${c.media.toFixed(2).replace(".", ",")};`)
@@ -7382,7 +7476,7 @@ async function generateSatisfacaoPdf() {
   const destaque = s.pesquisa.recomendacao || criterios.reduce((a, b) => (a.media >= b.media ? a : b))
   const destPct = ((destaque.dist[5] / Math.max(destaque.dist.total, 1)) * 100).toFixed(1).replace(".", ",")
   justified(
-    `A uniformidade dos resultados indica satisfação elevada e consistente do público em todos os aspectos avaliados. O critério "${destaque.label}" obteve ${destPct}% de notas máximas, reforçando a percepção positiva da iniciativa.`
+    `A uniformidade dos resultados indica percepção de qualidade elevada e consistente do público em todos os aspectos avaliados. O critério "${destaque.label}" obteve ${destPct}% de notas máximas, reforçando a percepção positiva da iniciativa.`
   )
 
   // ===== PÁGINAS 3-5: respostas abertas (na íntegra, sem reprocessamento) =====
@@ -7433,7 +7527,7 @@ async function generateSatisfacaoPdf() {
   newPage()
   sectionTitle("Conclusão")
   const minMedia = criterios.length ? Math.min(...criterios.map(c => c.media)) : 5
-  const conclusaoAuto = `Com base na pesquisa de satisfação aplicada ao público-alvo, os dados evidenciam que o evento alcançou elevado nível de aprovação, com médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala de 1 a 5). A taxa de presença de ${taxaPresenca.replace(".", ",")}% das inscrições reforça o engajamento do público com a iniciativa.`
+  const conclusaoAuto = `Com base na pesquisa de percepção de qualidade aplicada ao público-alvo, os dados evidenciam que o evento alcançou elevado nível de aprovação, com médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala de 1 a 5). A taxa de presença de ${taxaPresenca.replace(".", ",")}% das inscrições reforça o engajamento do público com a iniciativa.`
   justified(conclusaoAuto)
 
   justified(
@@ -7487,7 +7581,7 @@ async function generateSatisfacaoDocx() {
   }
   if (!s.pesquisa) {
     status.classList.add("is-error")
-    status.textContent = "Faça upload da pesquisa de satisfação."
+    status.textContent = "Faça upload da pesquisa de percepção de qualidade."
     return
   }
   if (!window.docx) {
@@ -7797,7 +7891,7 @@ async function generateSatisfacaoDocx() {
   )
   children.push(
     para(
-      `Sob a perspectiva dos ingressos adquiridos, a taxa de presença alcança ${taxaPresenca}% (${presentes}/${inscritos}). O formulário de satisfação recebeu ${respostas} respostas.`
+      `Sob a perspectiva dos ingressos adquiridos, a taxa de presença alcança ${taxaPresenca}% (${presentes}/${inscritos}). O formulário de percepção de qualidade recebeu ${respostas} respostas.`
     )
   )
 
@@ -7806,14 +7900,14 @@ async function generateSatisfacaoDocx() {
   children.push(imgPara(g2, 540, 320))
   children.push(
     para(
-      `Foram coletadas ${respostas} respostas ao formulário de satisfação. As avaliações apresentam médias elevadas nos critérios analisados (escala de 1 a 5):`
+      `Foram coletadas ${respostas} respostas ao formulário de percepção de qualidade. As avaliações apresentam médias elevadas nos critérios analisados (escala de 1 a 5):`
     )
   )
   criterios.forEach(c => children.push(bullet(`${c.label}: média de ${c.media.toFixed(2).replace(".", ",")};`)))
   children.push(tabelaNotas)
   children.push(
     para(
-      `A uniformidade dos resultados indica satisfação elevada e consistente do público em todos os aspectos avaliados. O critério "${destaque.label}" obteve ${destPct}% de notas máximas, reforçando a percepção positiva da iniciativa.`
+      `A uniformidade dos resultados indica percepção de qualidade elevada e consistente do público em todos os aspectos avaliados. O critério "${destaque.label}" obteve ${destPct}% de notas máximas, reforçando a percepção positiva da iniciativa.`
     )
   )
 
@@ -7923,7 +8017,7 @@ async function generateSatisfacaoDocx() {
   children.push(heading("Conclusão"))
   children.push(
     para(
-      `Com base na pesquisa de satisfação aplicada ao público-alvo, os dados evidenciam que o evento alcançou elevado nível de aprovação, com médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala de 1 a 5). A taxa de presença de ${taxaPresenca}% das inscrições reforça o engajamento do público com a iniciativa.`
+      `Com base na pesquisa de percepção de qualidade aplicada ao público-alvo, os dados evidenciam que o evento alcançou elevado nível de aprovação, com médias superiores a ${minMedia.toFixed(2).replace(".", ",")} em todos os ${criterios.length} critérios avaliados (escala de 1 a 5). A taxa de presença de ${taxaPresenca}% das inscrições reforça o engajamento do público com a iniciativa.`
     )
   )
   children.push(
@@ -7951,7 +8045,7 @@ async function generateSatisfacaoDocx() {
 
   const docDoc = new Document({
     creator: "Escola de Governo - Pedro Leopoldo",
-    title: `Relatório de Satisfação - ${evento}`,
+    title: `Relatório de Percepção de Qualidade - ${evento}`,
     sections: [
       {
         properties: { page: { margin: { top: 1100, bottom: 1100, left: 1100, right: 1100 } } },
@@ -7987,7 +8081,7 @@ async function generateSatisfacaoPptx() {
   }
   if (!s.pesquisa) {
     status.classList.add("is-error")
-    status.textContent = "Faça upload da pesquisa de satisfação."
+    status.textContent = "Faça upload da pesquisa de percepção de qualidade."
     return
   }
   if (!window.PptxGenJS) {
@@ -8182,9 +8276,9 @@ async function generateSatisfacaoPptx() {
   pptx.layout = "LAYOUT_WIDE" // 13.333 x 7.5
   pptx.author = "Escola de Governo · Pedro Leopoldo"
   pptx.company = "Prefeitura Municipal de Pedro Leopoldo"
-  pptx.title = `Relatório de Satisfação · ${evento}`
+  pptx.title = `Relatório de Percepção de Qualidade · ${evento}`
 
-  buildEgovPptxMaster(pptx, brand, "Relatório de Satisfação")
+  buildEgovPptxMaster(pptx, brand, "Relatório de Percepção de Qualidade")
 
   // ===== Slide 1: capa institucional (gradient + logo EGov) =====
   const s1 = pptx.addSlide()
@@ -8207,7 +8301,7 @@ async function generateSatisfacaoPptx() {
     charSpacing: 4
   })
   s1.addShape("line", { x: 5.4, y: 3.0, w: 2.5, h: 0, line: { color: EGOV_BRAND.green, width: 2 } })
-  s1.addText("Relatório de Satisfação", {
+  s1.addText("Relatório de Percepção de Qualidade", {
     x: 1,
     y: 3.2,
     w: 11.3,
@@ -8243,7 +8337,7 @@ async function generateSatisfacaoPptx() {
   kpiBox(s2, 3.7, "Presentes", presentes, EGOV_BRAND.green)
   kpiBox(s2, 6.7, "Ausentes", ausentes, "C0392B")
   kpiBox(s2, 9.7, "Taxa de presença", `${taxaPresenca}%`, EGOV_BRAND.navyLight)
-  s2.addText(`O evento foi avaliado por ${respostas} participantes através da pesquisa de satisfação.`, {
+  s2.addText(`O evento foi avaliado por ${respostas} participantes através da pesquisa de percepção de qualidade.`, {
     x: 0.95,
     y: 5.5,
     w: 11.5,
