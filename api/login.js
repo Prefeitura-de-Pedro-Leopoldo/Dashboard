@@ -86,6 +86,8 @@ export default async function handler(req, res) {
       email: allowed.email,
       name: allowed.name,
       mustChangePassword: !!allowed.mustChangePassword,
+      role: allowed.role || "admin",
+      eventoId: allowed.eventoId || null,
     });
   } catch (e) {
     log.error("erro inesperado", { err: e?.message });
