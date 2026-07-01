@@ -20,7 +20,7 @@
   color: var(--text-muted);
   font-weight: var(--fw-bold);
 }
-.filter select, .filter input[type="text"], .filter input[type="search"], .filter input[type="number"] {
+.filter select, .filter input[type="text"], .filter input[type="search"], .filter input[type="number"], .filter input[type="date"] {
   width: 100%;
   padding: 9px 12px;
   border: 1.5px solid var(--border-default);
@@ -32,6 +32,8 @@
   transition: var(--transition-fast);
   min-width: 0;
 }
+/* Campo de data: mesma altura dos demais (o controle nativo tende a encolher). */
+.filter input[type="date"] { height: 38px; appearance: none; -webkit-appearance: none; }
 .filter select:focus, .filter input:focus {
   outline: none;
   border-color: var(--brand-primary);

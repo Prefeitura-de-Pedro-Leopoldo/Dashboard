@@ -45,6 +45,38 @@ export const taxaPresencaPorEvento = (eventos) =>
 export const participacaoPorSecretaria = (ev) =>
   Object.entries(ev.secretarias || {}).map(([nome, qtd]) => ({ nome, qtd }));
 
+// ============================================================
+// FILTROS DO RELATÓRIO (puros e testáveis) — usados pela view de Relatórios
+// tanto nas tabelas quanto nas exportações, para que tudo bata sempre.
+// ============================================================
+
+// Filtro de NÍVEL DE EVENTO: evento específico, intervalo de datas (por e.date)
+// e situação (realizado / agendado / inscrição aberta).
+export const filtrarEventosRelatorio = (eventos, f = {}) =>
+  (eventos || []).filter((e) => {
+    if (!e) return false;
+    if (f.eventoId && e.id !== f.eventoId) return false;
+    if (f.dataIni && (!e.date || e.date < f.dataIni)) return false;
+    if (f.dataFim && (!e.date || e.date > f.dataFim)) return false;
+    if (f.status === "realizado" && e.status !== "realizado") return false;
+    if (f.status === "agendado" && e.status !== "agendado") return false;
+    if (f.status === "aberta" && !e.inscricaoAberta) return false;
+    return true;
+  });
+
+// Filtro de NÍVEL DE PARTICIPANTE: secretaria, turma, presença e busca (nome,
+// e-mail ou secretaria).
+export const participantePassaRelatorio = (p, f = {}) => {
+  if (!p) return false;
+  if (f.secretaria && p.secretaria !== f.secretaria) return false;
+  if (f.turma && p.turma !== f.turma) return false;
+  if (f.presenca === "presentes" && !p.presente) return false;
+  if (f.presenca === "faltantes" && p.presente) return false;
+  const busca = String(f.busca || "").toLowerCase().trim();
+  if (busca && !`${p.nome || ""} ${p.email || ""} ${p.secretaria || ""}`.toLowerCase().includes(busca)) return false;
+  return true;
+};
+
 /**
  * Consolida eventos do mesmo `grupo.id` em um único objeto.
  * Soma inscritos/presentes/ausentes, mescla mapas de secretarias/turmas,
@@ -103,6 +135,17 @@ export const consolidarPorGrupo = (eventos) => {
     g.cargaHoraria = Math.max(g.cargaHoraria || 0, ev.cargaHoraria || 0);
     // Pega a data mais antiga e horário/local do primeiro
     if (ev.date && (!g.date || ev.date < g.date)) g.date = ev.date;
+    // Estado de inscrição aberta: se QUALQUER turma está com inscrição aberta, o
+    // grupo também está (necessário para o filtro "Inscrição aberta" nos
+    // relatórios e para as abas Inscrições/Encontros/Presença do card consolidado).
+    if (ev.inscricaoAberta) {
+      g.inscricaoAberta = true;
+      if (!g.pastaInscricao && ev.pastaInscricao) g.pastaInscricao = ev.pastaInscricao;
+      if (!g.fonte && ev.fonte) g.fonte = ev.fonte;
+      // Aceita inscrições se pelo menos uma turma ainda aceita respostas.
+      if (ev.aceitandoInscricoes !== false) g.aceitandoInscricoes = true;
+      else if (g.aceitandoInscricoes === undefined) g.aceitandoInscricoes = false;
+    }
     // Soma secretarias
     for (const [k, v] of Object.entries(ev.secretarias || {})) {
       g.secretarias[k] = (g.secretarias[k] || 0) + v;
@@ -153,6 +196,10 @@ export const consolidarPorGrupo = (eventos) => {
         ? Math.round((g.totalInscritos / g.vagas) * 1000) / 10
         : null;
     }
+    // Segurança: um grupo que já tem presença NÃO é mais "inscrição aberta"
+    // (o evento ocorreu). Evita que uma turma já realizada seja escondida atrás
+    // da apresentação de inscrição aberta em grupos mistos.
+    if (g.inscricaoAberta && (g.totalPresentes || 0) > 0) g.inscricaoAberta = false;
   }
   return out;
 };
