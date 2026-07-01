@@ -245,7 +245,7 @@
   text-transform: uppercase;
   letter-spacing: var(--tracking-wider);
   color: var(--text-muted);
-  margin: 4px 0 6px;
+  margin: 14px 0 6px;
 }
 
 /* Campos do formulário de palestrante (apresentação sem cortes) */
@@ -267,6 +267,8 @@
 .pal-field select {
   width: 100%;
   max-width: 100%;
+  min-width: 0; /* permite encolher no grid sem o spinner cortar o número */
+  box-sizing: border-box;
   padding: 8px 10px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -282,10 +284,11 @@
   border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px var(--brand-soft-bg);
 }
-.pal-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.pal-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* Colunas responsivas: mantêm largura mínima e QUEBRAM em vez de espremer
+   (evita o dia/mês/ano ficarem cortados quando o painel é estreito). */
+.pal-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 12px; }
+.pal-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
 .pal-grid-3 .pal-field, .pal-grid-2 .pal-field { margin-bottom: 0; }
-@media (max-width: 540px) { .pal-grid-3 { grid-template-columns: 1fr 1fr; } }
 
 /* Lista de palestrantes */
 .pal-speakers { display: flex; flex-direction: column; gap: 8px; }

@@ -312,6 +312,10 @@ export function initRipple() {
 const TILT_MAX = 3.2 // graus
 
 export function initTilt() {
+  // Desativado: o tilt 3D fazia os cards "mexerem" no hover (indesejado).
+  // Mantido como no-op para não quebrar o call site em app.js.
+  return
+  // eslint-disable-next-line no-unreachable
   if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return
   const wired = new WeakSet()
 

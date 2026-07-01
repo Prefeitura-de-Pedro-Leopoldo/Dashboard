@@ -73,6 +73,19 @@ async function carregarLista(force = false) {
   return _cache
 }
 
+// Palestrantes cadastrados para um evento (por cursoId). Usado pelo gerador de
+// certificado de palestrante para já trazer os nomes ao escolher o evento.
+// Nunca lança: em falha de rede/API retorna lista vazia.
+export async function palestrantesDoEvento(evId) {
+  if (!evId) return []
+  try {
+    const lista = await carregarLista()
+    return lista.filter((p) => p && String(p.cursoId) === String(evId))
+  } catch {
+    return []
+  }
+}
+
 // ================ Utilidades ================
 // Comprime a imagem no client (redimensiona e converte p/ JPEG) antes do
 // upload, para caber no limite do proxy e poupar Drive.

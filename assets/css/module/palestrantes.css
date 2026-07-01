@@ -211,7 +211,6 @@
   opacity: 0; transition: opacity .2s ease;
 }
 .pal-card:hover {
-  transform: translateY(-3px);
   border-color: var(--brand-soft-bg-hover, var(--brand-primary));
   box-shadow: var(--shadow-lg);
 }

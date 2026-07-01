@@ -4,37 +4,48 @@
  */
 import { state } from "../core/state.js"
 import { escapeHtml } from "../ui.js"
-import { agregarServidores, agregarVinculosServidores } from "../servidores.js"
+import { agregarServidores, agregarVinculosServidores, filtrarServidoresPorPeriodo } from "../servidores.js"
 import { pieCategorias } from "../charts.js"
+
+// Períodos do ranking de servidores destaque. Janelas rolantes a partir de hoje.
+const SRV_PERIODOS = [
+  { id: "todos", label: "Todos" },
+  { id: "mensal", label: "Mensal" },
+  { id: "trimestral", label: "Trimestral" },
+  { id: "semestral", label: "Semestral" }
+]
 
 // ================ SERVIDORES (sub-aba de Participantes) ================
 export function renderViewServidores() {
   const view = document.getElementById("view-servidores")
   const eventos = state.data.eventos
 
-  // Lista completa de servidores ordenada por presenças (empates por nome
-  // em ordem alfabética). Sem pódio/medalhas - elas ficam exclusivas em
-  // Visão Geral > Insights. Aqui é a tabela completa de TODOS os servidores
-  // com inscrição, paginada.
-  const ordenados = agregarServidores(eventos)
-    .filter(s => s.totalEventos >= 1)
-    .sort((a, b) =>
-      b.totalPresentes - a.totalPresentes ||
-      b.totalEventos - a.totalEventos ||
-      (a.nome || "").localeCompare(b.nome || "", "pt-BR")
-    )
+  // Base: todos os servidores com ao menos 1 inscrição (dedup por pessoa).
+  const base = agregarServidores(eventos).filter(s => s.totalEventos >= 1)
 
-  // Anexa um dense rank baseado em totalPresentes (empatados compartilham
-  // o rank). Mesma lógica usada em Visão Geral > Insights > Top servidores.
-  let rank = 0
-  let ultimaContagem = null
-  const lista = ordenados.map(s => {
-    if (s.totalPresentes !== ultimaContagem) {
-      rank += 1
-      ultimaContagem = s.totalPresentes
-    }
-    return { ...s, rank }
-  })
+  // Monta a lista ordenada + dense rank para um dado período. O filtro por
+  // período recorta os eventos de cada servidor e recalcula os totais.
+  const montarLista = (periodo) => {
+    const ordenados = filtrarServidoresPorPeriodo(base, periodo)
+      .sort((a, b) =>
+        b.totalPresentes - a.totalPresentes ||
+        b.totalEventos - a.totalEventos ||
+        (a.nome || "").localeCompare(b.nome || "", "pt-BR")
+      )
+    // Dense rank baseado em totalPresentes (empatados compartilham o rank).
+    let rank = 0
+    let ultimaContagem = null
+    return ordenados.map(s => {
+      if (s.totalPresentes !== ultimaContagem) {
+        rank += 1
+        ultimaContagem = s.totalPresentes
+      }
+      return { ...s, rank }
+    })
+  }
+
+  let periodo = state.srvPeriodo || "todos"
+  let lista = montarLista(periodo)
 
   view.innerHTML = `
     <div class="card">
@@ -45,6 +56,9 @@ export function renderViewServidores() {
         </div>
         <span class="card__header-meta" id="srvMeta">${lista.length} servidor(es)</span>
       </div>
+      <div class="group-tabs" role="tablist" aria-label="Período do ranking" id="srvPeriodo" style="margin-bottom: var(--space-3);">
+        ${SRV_PERIODOS.map(p => `<button type="button" class="group-tab ${p.id === periodo ? "is-active" : ""}" data-periodo="${p.id}" aria-pressed="${p.id === periodo}">${p.label}</button>`).join("")}
+      </div>
       <div class="filter" style="margin-bottom: var(--space-3);">
         <label for="srvBusca">Buscar</label>
         <input type="search" id="srvBusca" placeholder="nome do servidor ou secretaria" />
@@ -53,6 +67,15 @@ export function renderViewServidores() {
     </div>
   `
 
+  const getBusca = () => (document.getElementById("srvBusca")?.value || "").toLowerCase().trim()
+  const aplicaBusca = (arr) => {
+    const q = getBusca()
+    return !q ? arr : arr.filter(s =>
+      (s.nome || "").toLowerCase().includes(q) ||
+      (s.secretaria || "").toLowerCase().includes(q)
+    )
+  }
+
   let filtroAtual = lista
   const draw = () => {
     renderDemaisServidores("srvListaHost", filtroAtual, "servidores-lista", 10)
@@ -60,13 +83,25 @@ export function renderViewServidores() {
   }
   draw()
 
-  document.getElementById("srvBusca").addEventListener("input", e => {
-    const q = e.target.value.toLowerCase().trim()
-    filtroAtual = !q ? lista : lista.filter(s =>
-      (s.nome || "").toLowerCase().includes(q) ||
-      (s.secretaria || "").toLowerCase().includes(q)
-    )
+  document.getElementById("srvBusca").addEventListener("input", () => {
+    filtroAtual = aplicaBusca(lista)
     state.pagerPages["servidores-lista"] = 1
+    draw()
+  })
+
+  document.getElementById("srvPeriodo").addEventListener("click", e => {
+    const btn = e.target.closest("[data-periodo]")
+    if (!btn) return
+    periodo = btn.dataset.periodo
+    state.srvPeriodo = periodo
+    lista = montarLista(periodo)
+    filtroAtual = aplicaBusca(lista)
+    state.pagerPages["servidores-lista"] = 1
+    document.querySelectorAll("#srvPeriodo .group-tab").forEach(b => {
+      const on = b.dataset.periodo === periodo
+      b.classList.toggle("is-active", on)
+      b.setAttribute("aria-pressed", on)
+    })
     draw()
   })
 }

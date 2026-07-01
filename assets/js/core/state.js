@@ -10,7 +10,7 @@ export const state = {
   _certDragEnabled: true, // padrão: arrasta-e-solta ligado
   selectedEventId: null,
   compareIds: new Set(),
-  reportFilters: { eventoId: "", secretaria: "", turma: "", busca: "" },
+  reportFilters: { eventoId: "", secretaria: "", turma: "", busca: "", dataIni: "", dataFim: "", status: "", presenca: "" },
   certEventId: null, // id da planilha do sistema selecionada (aba "Do sistema")
   certSource: "evento", // 'evento' (planilha do sistema) ou 'planilha' (upload)
   certUploaded: null, // dados de planilha enviada via upload

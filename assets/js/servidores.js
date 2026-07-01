@@ -258,3 +258,64 @@ export function taxaRetencao(servidores) {
     retidos
   }
 }
+
+// Contagem de SERVIDORES ÚNICOS por secretaria em todos os eventos. Cada pessoa
+// é contada uma vez (dedup por email/nome via agregarServidores), atribuída à
+// sua secretaria representativa; sem secretaria informada entra como
+// "Não informado". Retorna [{ nome, qtd }] ordenado por qtd desc — pronto para
+// barSecretarias. Diferente de rankingSecretarias, que conta inscrições.
+export function unicosPorSecretaria(eventos) {
+  const cont = new Map()
+  agregarServidores(eventos).forEach(s => {
+    const sec = (s.secretaria || "").trim() || "Não informado"
+    cont.set(sec, (cont.get(sec) || 0) + 1)
+  })
+  return [...cont.entries()]
+    .map(([nome, qtd]) => ({ nome, qtd }))
+    .sort((a, b) => b.qtd - a.qtd)
+}
+
+// Contagem de servidores ÚNICOS por secretaria dentro de UM evento. Deduplica os
+// participantes do próprio evento por chaveServidor (mesma pessoa em 2 turmas
+// conta 1 vez); sem secretaria entra como "Não informado". Retorna [{ nome, qtd }]
+// ordenado por qtd desc.
+export function unicosPorSecretariaEvento(ev) {
+  const vistos = new Map() // chave do servidor -> secretaria (a 1ª encontrada)
+  ;(ev.participantes || []).forEach(p => {
+    const chave = chaveServidor(p) || ("i:" + (p.email || p.nome || Math.random()))
+    if (vistos.has(chave)) return
+    vistos.set(chave, (p.secretaria || "").trim() || "Não informado")
+  })
+  const cont = new Map()
+  for (const sec of vistos.values()) cont.set(sec, (cont.get(sec) || 0) + 1)
+  return [...cont.entries()]
+    .map(([nome, qtd]) => ({ nome, qtd }))
+    .sort((a, b) => b.qtd - a.qtd)
+}
+
+// Filtra a lista de servidores agregados por uma janela de tempo, olhando as
+// datas dos eventos de cada servidor. Janelas rolantes a partir de hoje:
+//   "mensal" = 30 dias · "trimestral" = 90 · "semestral" = 180 · "todos" = tudo.
+// Recalcula totalEventos/totalPresentes só com os eventos dentro da janela e
+// descarta quem ficou sem nenhum evento no período. Não muta a entrada original.
+export function filtrarServidoresPorPeriodo(servidores, periodo) {
+  const dias = { mensal: 30, trimestral: 90, semestral: 180 }[periodo]
+  if (!dias) return servidores // "todos" ou valor desconhecido: sem filtro
+  const corte = Date.now() - dias * 24 * 60 * 60 * 1000
+  const out = []
+  for (const s of servidores) {
+    const eventos = (s.eventos || []).filter(ev => {
+      if (!ev.date) return false
+      const t = Date.parse(ev.date)
+      return Number.isFinite(t) && t >= corte
+    })
+    if (!eventos.length) continue
+    out.push({
+      ...s,
+      eventos,
+      totalEventos: eventos.length,
+      totalPresentes: eventos.filter(ev => ev.presente).length
+    })
+  }
+  return out
+}

@@ -486,6 +486,26 @@ function main() {
   const arquivos = listarPlanilhas(RELATORIOS_DIR);
   const satPorPasta = mapaSatisfacao(RELATORIOS_DIR);
 
+  // Casamento TOLERANTE entre o caminho da planilha (vindo do Drive) e a chave
+  // do eventos-meta.json. O Drive pode diferir em caixa/acento/espaços (ex.:
+  // "Turma 1" vs "turma 1"); sem isso a planilha perderia title/grupo e não
+  // consolidaria (bug do "PL por Todos"). Primeiro tenta match exato; senão,
+  // um índice normalizado (minúsculas, sem acento, espaços colapsados).
+  const normPath = (s) =>
+    String(s || "")
+      .replace(/\\/g, "/")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  const metaNormIndex = new Map();
+  for (const k of Object.keys(meta)) {
+    const nk = normPath(k);
+    if (!metaNormIndex.has(nk)) metaNormIndex.set(nk, k);
+  }
+  const resolveMetaKey = (arquivo) =>
+    (meta[arquivo] ? arquivo : metaNormIndex.get(normPath(arquivo))) || null;
+
   if (!arquivos.length) {
     console.warn(`[build-data] Nenhuma planilha em ${RELATORIOS_DIR}.`);
   }
@@ -495,7 +515,8 @@ function main() {
   for (const arquivo of arquivos) {
     const filePath = path.join(RELATORIOS_DIR, arquivo);
     try {
-      const m = meta[arquivo] || {};
+      const metaKey = resolveMetaKey(arquivo);
+      const m = (metaKey && meta[metaKey]) || {};
       // Planilha marcada como ignore no eventos-meta.json (ex.: arquivo legado
       // já consolidado em outra turma). Não vira evento nem entra no manifest.
       if (m.ignore) {
@@ -507,8 +528,10 @@ function main() {
         title: arquivo.replace(/\.xlsx$/i, "").replace(/\//g, " · "),
       };
       const eventoMeta = { ...defaults, ...m };
-      if (!meta[arquivo]) {
+      if (!metaKey) {
         console.warn(`[build-data] ⚠ Sem metadata para "${arquivo}". Usando defaults derivados do nome do arquivo. Adicione uma entrada em eventos-meta.json.`);
+      } else if (metaKey !== arquivo) {
+        console.log(`[build-data] ↪ "${arquivo}" casado com meta "${metaKey}" (match tolerante).`);
       }
       const participantes = parsePlanilha(filePath);
       const evento = buildEvento(arquivo, eventoMeta, participantes);
@@ -537,8 +560,12 @@ function main() {
   // já aparecerem no painel. Quando a planilha real surgir na mesma chave, ela
   // tem precedência e o placeholder é ignorado.
   const arquivosSet = new Set(arquivos);
+  const arquivosNorm = new Set(arquivos.map(normPath));
   for (const [chave, m] of Object.entries(meta)) {
-    if (!m || !m.placeholder || m.ignore || arquivosSet.has(chave)) continue;
+    // Suprime o placeholder quando a planilha real existe — inclusive se o
+    // caminho do Drive difere só em caixa/acento/espaços (match tolerante).
+    if (!m || !m.placeholder || m.ignore) continue;
+    if (arquivosSet.has(chave) || arquivosNorm.has(normPath(chave))) continue;
     const defaults = {
       id: slugify(chave.replace(/\.xlsx$/i, "").replace(/\//g, "-")),
       title: chave.replace(/\.xlsx$/i, "").replace(/\//g, " · "),

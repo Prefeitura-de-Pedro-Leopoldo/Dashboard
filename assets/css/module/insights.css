@@ -37,7 +37,6 @@
 }
 .insight:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
   border-color: var(--border-strong);
 }
 .insight.positive { --insight-color: var(--ind-good); --insight-soft: var(--ind-good-soft); }

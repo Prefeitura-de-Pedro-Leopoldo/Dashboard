@@ -5,11 +5,13 @@ import { state } from "../core/state.js"
 import { rankingSecretarias, rankingEvasaoSecretarias } from "../metrics.js"
 import { escapeHtml, fmt, renderSecretariasTable, renderFaltasSecretariasTable } from "../ui.js"
 import { barSecretarias } from "../charts.js"
+import { unicosPorSecretaria } from "../servidores.js"
 
 export function renderViewSecretarias() {
   const { data } = state
   const ranking = rankingSecretarias(data.eventos)
   const rankingFaltas = rankingEvasaoSecretarias(data.eventos)
+  const unicos = unicosPorSecretaria(data.eventos)
 
   const view = document.getElementById("view-secretarias")
   view.innerHTML = `
@@ -67,6 +69,11 @@ export function renderViewSecretarias() {
         ${renderFaltasSecretariasTable(rankingFaltas)}
       </div>
     </div>
+
+    <div class="card">
+      <div class="card__header"><div><h3>Contagem única de servidor por secretaria</h3><p>Servidores <b>únicos</b> por secretaria (cada pessoa conta uma vez, mesmo inscrita em vários eventos).</p></div></div>
+      <div class="chart-wrap lg" id="secUnicosChartWrap"><canvas id="secUnicosChart"></canvas></div>
+    </div>
   `
   // Tabela com altura natural; o CSS Grid (.secretarias-grid) iguala os
   // dois cards automaticamente via align-items: stretch. O gráfico usa
@@ -87,5 +94,11 @@ export function renderViewSecretarias() {
     emptyLabel: "Sem faltas registradas.",
     tooltipExtra: (entry) =>
       entry ? [`Inscritos: ${entry.inscritos}`, `Presentes: ${entry.presentes}`, `Evasão: ${entry.taxaEvasao}%`] : [],
+  })
+  barSecretarias("secUnicosChart", unicos, {
+    limit: 15,
+    datasetLabel: "Servidores únicos",
+    unitLabel: "servidor(es)",
+    emptyLabel: "Sem servidores registrados.",
   })
 }

@@ -1593,7 +1593,7 @@ export function barSatisfacaoMedias(id, indicadores) {
       },
     },
     plugins: [barShadowPlugin, barDataLabelsPlugin, barHoverGrowPlugin],
-  }, isEmpty, "Sem respostas de satisfação.");
+  }, isEmpty, "Sem respostas de percepção de qualidade.");
 }
 
 // Distribuição das notas (1–5) por indicador — barras empilhadas horizontais.
@@ -1646,5 +1646,5 @@ export function barSatisfacaoDist(id, indicadores) {
         y: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: PALETTE.axis, font: { size: 11, weight: "600" }, padding: 8, crossAlign: "far" } },
       },
     },
-  }, isEmpty, "Sem respostas de satisfação.");
+  }, isEmpty, "Sem respostas de percepção de qualidade.");
 }
