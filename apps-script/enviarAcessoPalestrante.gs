@@ -30,9 +30,9 @@ const REPLY_TO      = 'egov@pedroleopoldo.mg.gov.br';
 // certificados de palestrante).
 const BCC_EMAIL     = 'egov@pedroleopoldo.mg.gov.br, fabiana.silva@pedroleopoldo.mg.gov.br';
 
-// Token compartilhado com o backend (env ACESSO_PAL_TOKEN na Vercel). Troque por
-// um valor aleatório e use o MESMO na Vercel.
-const SHARED_TOKEN  = 'TROQUE_ESTE_TOKEN_POR_UM_VALOR_ALEATORIO';
+// Token compartilhado com o backend (env ACESSO_PAL_TOKEN na Vercel). Já vem
+// preenchido: use EXATAMENTE este mesmo valor na env ACESSO_PAL_TOKEN.
+const SHARED_TOKEN  = '4Nk4KjOmQv5nXuAUTdRoFctbDED8iNXz9Y048Sl4GVPQjJxh';
 
 const DRY_RUN       = false; // true = não envia, só loga
 
