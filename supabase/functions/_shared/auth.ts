@@ -4,6 +4,9 @@
 import { scryptSync, timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
 
+// Reexporta os helpers HTTP (compat: handlers antigos importam daqui).
+export { CORS_HEADERS, jsonResponse, preflight } from "./http.ts";
+
 // Confere senha no formato "scrypt$<salt-hex>$<derivado-hex>".
 export function verifyPassword(password: string, stored: string | null | undefined): boolean {
   if (!stored || typeof stored !== "string") return false;
@@ -12,18 +15,4 @@ export function verifyPassword(password: string, stored: string | null | undefin
   const calc = scryptSync(String(password), salt, 64);
   const want = Buffer.from(dk, "hex");
   return calc.length === want.length && timingSafeEqual(calc, want);
-}
-
-// Cabeçalhos CORS padrão das Edge Functions.
-export const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-export function jsonResponse(obj: unknown, status = 200): Response {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-  });
 }
