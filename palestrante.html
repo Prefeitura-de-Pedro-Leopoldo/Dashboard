@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Painel do Palestrante · EGov-PL</title>
+    <link rel="icon" href="assets/img/favicon/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="assets/css/base/_variables.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script>
+      // Gate: só palestrante logado. Admin/sem sessão saem daqui.
+      (function () {
+        try {
+          var s = sessionStorage.getItem("egov_admin_session") || localStorage.getItem("egov_admin_session");
+          if (!s) { location.replace("index.html"); return; }
+          var sess = JSON.parse(s);
+          if (sess.role !== "palestrante") { location.replace("dashboard.html"); return; }
+          if (!sessionStorage.getItem("egov_admin_session")) sessionStorage.setItem("egov_admin_session", s);
+        } catch (e) { location.replace("index.html"); }
+      })();
+      (function () {
+        try {
+          var t = localStorage.getItem("egovpl-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: var(--font-sans, system-ui); background: var(--surface-bg); color: var(--text-primary); }
+      .pv-top {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 16px clamp(16px, 4vw, 40px); background: var(--surface-card);
+        border-bottom: 1px solid var(--border-default);
+      }
+      .pv-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; }
+      .pv-brand img { height: 34px; }
+      .pv-btn {
+        border: 1px solid var(--border-default); background: var(--surface-card);
+        color: var(--text-secondary); border-radius: 8px; padding: 8px 14px; cursor: pointer;
+        font-family: inherit; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;
+      }
+      .pv-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+      .pv-wrap { max-width: 900px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); }
+      .pv-head h1 { font-size: clamp(1.3rem, 3vw, 1.8rem); margin: 0 0 4px; }
+      .pv-head p { color: var(--text-muted); margin: 0 0 20px; }
+      .pv-card { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: 14px; padding: clamp(16px, 3vw, 24px); }
+      .pv-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+      .pv-card__head h2 { font-size: 1.1rem; margin: 0; }
+      .pv-meta { color: var(--text-muted); font-size: 0.9rem; }
+      .pv-search { width: 100%; max-width: 320px; padding: 9px 12px; border: 1.5px solid var(--border-default); border-radius: 8px; font-family: inherit; font-size: 0.9rem; background: var(--surface-card); color: var(--text-primary); }
+      table.pv-table { width: 100%; border-collapse: collapse; }
+      table.pv-table th, table.pv-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); font-size: 0.92rem; }
+      table.pv-table th { color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+      table.pv-table tbody tr:hover { background: var(--surface-muted); }
+      .pv-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; }
+      .pv-empty i { font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 10px; }
+    </style>
+  </head>
+  <body>
+    <header class="pv-top">
+      <div class="pv-brand">
+        <img src="assets/img/logo-light.png" alt="Escola de Governo" onerror="this.style.display='none'" />
+        <span>Painel do Palestrante</span>
+      </div>
+      <button class="pv-btn" id="sairBtn"><i class="fas fa-right-from-bracket"></i> Sair</button>
+    </header>
+
+    <main class="pv-wrap">
+      <div class="pv-head">
+        <h1 id="evTitulo">Carregando…</h1>
+        <p id="evSub">Lista de inscritos do seu evento.</p>
+      </div>
+      <div class="pv-card">
+        <div class="pv-card__head">
+          <h2><i class="fas fa-users"></i> Inscritos</h2>
+          <span class="pv-meta" id="contagem">—</span>
+        </div>
+        <div style="margin-bottom:14px;">
+          <input type="search" class="pv-search" id="busca" placeholder="Buscar por nome ou secretaria" />
+        </div>
+        <div id="host"></div>
+      </div>
+    </main>
+
+    <script>
+      const sess = JSON.parse(sessionStorage.getItem("egov_admin_session") || "{}");
+      document.getElementById("sairBtn").addEventListener("click", () => {
+        try { sessionStorage.removeItem("egov_admin_session"); localStorage.removeItem("egov_admin_session"); } catch (_) {}
+        location.replace("index.html");
+      });
+
+      const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+      let inscritos = []; // [{nome, secretaria}]
+
+      function render(filtro) {
+        const host = document.getElementById("host");
+        const q = norm(filtro);
+        const lista = !q ? inscritos : inscritos.filter((p) => norm(p.nome).includes(q) || norm(p.secretaria).includes(q));
+        document.getElementById("contagem").textContent = `${lista.length} pessoa(s)`;
+        if (!lista.length) {
+          host.innerHTML = `<div class="pv-empty"><i class="fas fa-users-slash"></i>${inscritos.length ? "Nenhum resultado para a busca." : "Ainda não há inscritos neste evento."}</div>`;
+          return;
+        }
+        host.innerHTML = `
+          <table class="pv-table">
+            <thead><tr><th style="width:56px;">#</th><th>Nome</th><th>Secretaria</th></tr></thead>
+            <tbody>
+              ${lista.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.nome || "-")}</td><td>${esc(p.secretaria || "Não informado")}</td></tr>`).join("")}
+            </tbody>
+          </table>`;
+      }
+
+      // Deduplica por nome normalizado; ordena alfabeticamente.
+      function consolidar(parts) {
+        const vistos = new Map();
+        for (const p of parts) {
+          const nome = String(p.nome || "").trim();
+          if (!nome) continue;
+          const k = norm(nome);
+          if (!vistos.has(k)) vistos.set(k, { nome, secretaria: p.secretaria || "" });
+          else if (!vistos.get(k).secretaria && p.secretaria) vistos.get(k).secretaria = p.secretaria;
+        }
+        return [...vistos.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      }
+
+      async function carregar() {
+        const eventoId = sess.eventoId;
+        if (!eventoId) {
+          document.getElementById("evTitulo").textContent = "Evento não vinculado";
+          document.getElementById("evSub").textContent = "Sua conta ainda não está associada a um evento. Contate a Escola de Governo.";
+          render("");
+          return;
+        }
+        let data;
+        try {
+          const r = await fetch("/eventos-data.json", { cache: "no-cache" });
+          data = await r.json();
+        } catch (_) { data = { eventos: [] }; }
+        const eventos = (data && data.eventos) || [];
+        // Casa por id direto OU por grupo.id (evento consolidado em turmas).
+        const meus = eventos.filter((e) => e.id === eventoId || (e.grupo && e.grupo.id === eventoId));
+        const titulo = (meus[0] && ((meus[0].grupo && meus[0].grupo.titulo) || meus[0].title)) || eventoId;
+        document.getElementById("evTitulo").textContent = titulo;
+
+        // Realizado: inscritos vêm do participantes (nome+secretaria já no JSON).
+        let parts = meus.flatMap((e) => e.participantes || []);
+
+        // Sem participantes (evento aberto): tenta ao vivo via /api/inscricoes.
+        if (!parts.length) {
+          const folders = [...new Set(meus.map((e) => e.pastaInscricao || String(e.fonte || "").replace(/\/[^/]*$/, "")).filter(Boolean))];
+          const resultados = await Promise.all(folders.map(async (f) => {
+            try {
+              const r = await fetch(`/api/inscricoes?path=${encodeURIComponent(f)}`);
+              const j = await r.json();
+              return (j && j.ok && Array.isArray(j.inscritos)) ? j.inscritos : [];
+            } catch (_) { return []; }
+          }));
+          parts = resultados.flat();
+        }
+
+        inscritos = consolidar(parts);
+        render("");
+      }
+
+      document.getElementById("busca").addEventListener("input", (e) => render(e.target.value));
+      carregar();
+    </script>
+  </body>
+</html>

@@ -638,6 +638,8 @@
                 sessionStorage.setItem("egov_pwchange", JSON.stringify({
                   email: data.email,
                   name: data.name || "",
+                  role: data.role || "admin",
+                  eventoId: data.eventoId || null,
                   currentPassword: pass,
                   remember,
                 }));
@@ -658,17 +660,26 @@
         }
       });
 
+      // Destino conforme o papel: palestrante vai para a visão restrita.
+      function destinoDaSessao(str) {
+        try { return JSON.parse(str || "{}").role === "palestrante" ? "palestrante.html" : "dashboard.html"; }
+        catch (_) { return "dashboard.html"; }
+      }
+
       function finishSession(data, remember) {
+        const isPal = data.role === "palestrante";
         const payload = JSON.stringify({
           email: data.email,
-          name: data.name || "Administrador EGov-PL",
+          name: data.name || (isPal ? "Palestrante" : "Administrador EGov-PL"),
+          role: data.role || "admin",
+          eventoId: data.eventoId || null,
           ts: Date.now(),
         });
         sessionStorage.setItem("egov_admin_session", payload);
         if (remember) {
           try { localStorage.setItem("egov_admin_session", payload); } catch (_) {}
         }
-        window.location.href = "dashboard.html";
+        window.location.href = isPal ? "palestrante.html" : "dashboard.html";
       }
 
       // sessão persistida (remember)
@@ -679,7 +690,7 @@
         if (persisted && !sessionStorage.getItem("egov_admin_session")) {
           sessionStorage.setItem("egov_admin_session", persisted);
         }
-        window.location.replace("dashboard.html");
+        window.location.replace(destinoDaSessao(sessionStorage.getItem("egov_admin_session")));
       }
 
       // Mostrar/ocultar senha
@@ -728,14 +739,7 @@
           });
           const data = await res.json().catch(() => ({}));
           if (res.ok && data.ok) {
-            const payload = JSON.stringify({
-              email: data.email,
-              name: data.name || "Administrador EGov-PL",
-              ts: Date.now(),
-            });
-            sessionStorage.setItem("egov_admin_session", payload);
-            try { localStorage.setItem("egov_admin_session", payload); } catch (_) {}
-            window.location.href = "dashboard.html";
+            finishSession(data, true);
           } else {
             showError(data.error || "Não foi possível entrar com o Google.");
           }

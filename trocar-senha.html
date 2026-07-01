@@ -168,16 +168,19 @@
           const data = await res.json().catch(() => ({}));
           if (res.ok && data.ok) {
             try { sessionStorage.removeItem("egov_pwchange"); } catch (_) {}
+            const isPal = pending.role === "palestrante";
             const payload = JSON.stringify({
               email: data.email,
-              name: data.name || "Administrador EGov-PL",
+              name: data.name || pending.name || (isPal ? "Palestrante" : "Administrador EGov-PL"),
+              role: pending.role || "admin",
+              eventoId: pending.eventoId || null,
               ts: Date.now(),
             });
             sessionStorage.setItem("egov_admin_session", payload);
             if (pending.remember) {
               try { localStorage.setItem("egov_admin_session", payload); } catch (_) {}
             }
-            window.location.href = "dashboard.html";
+            window.location.href = isPal ? "palestrante.html" : "dashboard.html";
           } else {
             submitBtn.classList.remove("is-loading");
             submitBtn.disabled = false;
