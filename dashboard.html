@@ -34,6 +34,8 @@
         try {
           var s = sessionStorage.getItem("egov_admin_session") || localStorage.getItem("egov_admin_session");
           if (!s) { location.replace("index.html"); return; }
+          // Palestrante NÃO acessa o painel admin: manda para a visão restrita.
+          try { if (JSON.parse(s).role === "palestrante") { location.replace("palestrante.html"); return; } } catch (_) {}
           if (!sessionStorage.getItem("egov_admin_session")) sessionStorage.setItem("egov_admin_session", s);
         } catch (e) { location.replace("index.html"); }
       })();

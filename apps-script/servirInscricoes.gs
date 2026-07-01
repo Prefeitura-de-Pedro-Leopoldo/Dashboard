@@ -241,6 +241,7 @@ function _lerInscricao(file, dedup) {
     inscritos.push({
       nome: nome,
       email: email,
+      secretaria: idx.sec >= 0 ? String(row[idx.sec] || '').trim() : '',
       dataInscricao: idx.data >= 0 ? _iso(row[idx.data]) : '',
     });
   }
@@ -249,16 +250,17 @@ function _lerInscricao(file, dedup) {
 
 // Acha as colunas de nome, e-mail e carimbo de data pelos cabeçalhos.
 function _detectarColunas(headers) {
-  let data = -1, email = -1, nome = -1, nomeCompleto = -1;
+  let data = -1, email = -1, nome = -1, nomeCompleto = -1, sec = -1;
   for (let i = 0; i < headers.length; i++) {
     const h = _norm(headers[i]);
     if (data < 0 && (h.indexOf('carimbo de data') >= 0 || h === 'timestamp' || h.indexOf('data/hora') >= 0)) data = i;
     if (email < 0 && (h.indexOf('e-mail') >= 0 || h.indexOf('email') >= 0 || h.indexOf('mail') >= 0)) email = i;
+    if (sec < 0 && (h.indexOf('secretaria') >= 0 || h.indexOf('lotacao') >= 0 || h.indexOf('orgao') >= 0 || h.indexOf('setor') >= 0)) sec = i;
     if (h.indexOf('nome completo') >= 0) nomeCompleto = i;
     if (nome < 0 && h.indexOf('nome') >= 0) nome = i;
   }
   if (nomeCompleto >= 0) nome = nomeCompleto; // preferir "nome completo"
-  return { data: data, email: email, nome: nome };
+  return { data: data, email: email, nome: nome, sec: sec };
 }
 
 // ============ HELPERS ============
