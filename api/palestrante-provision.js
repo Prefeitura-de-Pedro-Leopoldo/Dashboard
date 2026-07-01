@@ -18,8 +18,13 @@ import { hashPassword, upsertPalestranteUser } from "../lib/users.mjs";
 
 const log = createLogger("palestrante-provision");
 
-const MAILER_URL = process.env.ACESSO_PAL_WEBAPP_URL || "";
-const MAILER_TOKEN = process.env.ACESSO_PAL_TOKEN || "";
+// URL e token do mailer já vêm embutidos (mesmo padrão do send-certificate.js);
+// as envs, se definidas, têm precedência. Assim funciona sem configurar a Vercel.
+const MAILER_URL =
+  process.env.ACESSO_PAL_WEBAPP_URL ||
+  "https://script.google.com/macros/s/AKfycbzDq9D6vC3p8FFAMwISuPVP_ul3oBfcIKi9VKFmqOpb8duGGndrt-DnN8OM8_oP1dqZfw/exec";
+const MAILER_TOKEN =
+  process.env.ACESSO_PAL_TOKEN || "4Nk4KjOmQv5nXuAUTdRoFctbDED8iNXz9Y048Sl4GVPQjJxh";
 
 // Senha provisória forte e legível (sem caracteres ambíguos). Atende às regras
 // de troca de senha (maiúscula, minúscula, número e especial); o must_change
