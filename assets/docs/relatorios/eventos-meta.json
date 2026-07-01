@@ -201,8 +201,8 @@
       "id": "pl-por-todos-turma-1",
       "placeholder": true,
       "cargaHoraria": 15,
-      "title": "PL por Todos",
-      "tituloCurto": "PL por Todos - Turma 1",
+      "title": "PL por Todos - Segurança Pública",
+      "tituloCurto": "PL por Todos (Seg. Pública) - Turma 1",
       "date": "2026-06-30",
       "dateFim": "2026-07-28",
       "dateRaw": "Data: 30/06/2026 a 28/07/2026 (terças) - 5 encontros, 3h/dia (15h)",
@@ -213,7 +213,7 @@
       "vagas": 30,
       "grupo": {
         "id": "pl-por-todos-2026-06",
-        "titulo": "PL por Todos",
+        "titulo": "PL por Todos - Segurança Pública",
         "turma": 1,
         "modulo": null
       }
@@ -222,8 +222,8 @@
       "id": "pl-por-todos-turma-2",
       "placeholder": true,
       "cargaHoraria": 15,
-      "title": "PL por Todos",
-      "tituloCurto": "PL por Todos - Turma 2",
+      "title": "PL por Todos - Segurança Pública",
+      "tituloCurto": "PL por Todos (Seg. Pública) - Turma 2",
       "date": "2026-07-01",
       "dateFim": "2026-07-29",
       "dateRaw": "Data: 01/07/2026 a 29/07/2026 (quartas) - 5 encontros, 3h/dia (15h)",
@@ -234,10 +234,26 @@
       "vagas": 30,
       "grupo": {
         "id": "pl-por-todos-2026-06",
-        "titulo": "PL por Todos",
+        "titulo": "PL por Todos - Segurança Pública",
         "turma": 2,
         "modulo": null
       }
+    },
+    "pl-por-todos-desenvolvimento-social-2026-07/participantes.xlsx": {
+      "id": "pl-por-todos-desenvolvimento-social",
+      "placeholder": true,
+      "cargaHoraria": 15,
+      "title": "PL por Todos - Desenvolvimento Social",
+      "tituloCurto": "PL por Todos - Desenv. Social",
+      "date": "2026-07-03",
+      "dateFim": "2026-07-31",
+      "dateRaw": "Data: 03/07/2026 a 31/07/2026 (sextas) - 5 encontros, 3h/dia (15h)",
+      "time": "08h",
+      "duracaoHoras": 3,
+      "local": "Local: Secretaria de Desenvolvimento Social",
+      "city": "Pedro Leopoldo",
+      "vagas": 30,
+      "grupo": null
     }
   }
 }
