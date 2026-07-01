@@ -197,7 +197,7 @@
       "vagas": 40,
       "grupo": null
     },
-    "pl-por-todos-2026-06/turma 1/participantes.xlsx": {
+    "pl-por-todos-2026-06-seguranca-publica/turma 1/participantes.xlsx": {
       "id": "pl-por-todos-turma-1",
       "placeholder": true,
       "cargaHoraria": 15,
@@ -212,13 +212,13 @@
       "city": "Pedro Leopoldo",
       "vagas": 30,
       "grupo": {
-        "id": "pl-por-todos-2026-06",
+        "id": "pl-por-todos-2026-06-seguranca-publica",
         "titulo": "PL por Todos - Segurança Pública",
         "turma": 1,
         "modulo": null
       }
     },
-    "pl-por-todos-2026-06/turma 2/participantes.xlsx": {
+    "pl-por-todos-2026-06-seguranca-publica/turma 2/participantes.xlsx": {
       "id": "pl-por-todos-turma-2",
       "placeholder": true,
       "cargaHoraria": 15,
@@ -233,13 +233,13 @@
       "city": "Pedro Leopoldo",
       "vagas": 30,
       "grupo": {
-        "id": "pl-por-todos-2026-06",
+        "id": "pl-por-todos-2026-06-seguranca-publica",
         "titulo": "PL por Todos - Segurança Pública",
         "turma": 2,
         "modulo": null
       }
     },
-    "pl-por-todos-desenvolvimento-social-2026-07/participantes.xlsx": {
+    "pl-por-todos-2026-06-desenvolvimento-social/participantes.xlsx": {
       "id": "pl-por-todos-desenvolvimento-social",
       "placeholder": true,
       "cargaHoraria": 15,
