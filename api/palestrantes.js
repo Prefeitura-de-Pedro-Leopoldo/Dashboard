@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from "../lib/logger.mjs";
+import { provisionarAcessoPalestrante } from "../lib/palestrante-acesso.mjs";
 
 const log = createLogger("palestrantes");
 
@@ -74,6 +75,22 @@ export default async function handler(req, res) {
         snippet: text.slice(0, 300),
       });
     }
+    // Ao criar/atualizar (ou o palestrante se cadastrar via convite), provisiona
+    // uma vez o acesso ao painel restrito e envia as credenciais por e-mail.
+    // Server-side e tolerante: não altera a resposta do cadastro.
+    if (upstream.ok && data && data.ok && ["create", "update", "invite-submit"].includes(action) && body.email) {
+      try {
+        const proto = req.headers["x-forwarded-proto"] || "https";
+        const loginUrl = `${proto}://${req.headers.host}/`;
+        await provisionarAcessoPalestrante({
+          email: body.email,
+          name: body.nome,
+          eventoId: body.cursoId || null,
+          loginUrl,
+        });
+      } catch (_) { /* silencioso */ }
+    }
+
     return res.status(upstream.ok ? 200 : 502).json(data);
   } catch (err) {
     log.error("erro no proxy de palestrantes", { action, err: err?.message });
