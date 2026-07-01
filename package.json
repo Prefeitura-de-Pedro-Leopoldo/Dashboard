@@ -11,6 +11,7 @@
     "migrate": "node --env-file=.env.local scripts/migrate.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:edge": "deno test --no-check supabase/functions/",
     "lint": "eslint scripts lib api tests",
     "format": "prettier --write lib tests",
     "format:check": "prettier --check lib tests",
